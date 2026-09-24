@@ -1,5 +1,5 @@
 //
-//  Project_Report_BuilderApp.swift
+//  ProjectReportingBuilderApp.swift
 //  Project Report Builder
 //
 //  Created by Lawrence Shen on 24/9/2026.
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct Project_Report_BuilderApp: App {
+struct ProjectReportingBuilderApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,

@@ -29,20 +29,103 @@
 		21317F073064C0A700C041BB /* Project Report BuilderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Project Report BuilderUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A20000000000000000000002 /* Exclude folder placeholders */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Enums/.gitkeep",
+				"Protocols/.gitkeep",
+			);
+			target = 21317EED3064C0A500C041BB /* Project Report Builder */;
+		};
+		A20000000000000000000003 /* Exclude folder placeholders */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Export/.gitkeep",
+				"Preview/.gitkeep",
+				"ReportEditor/.gitkeep",
+				"Templates/.gitkeep",
+			);
+			target = 21317EED3064C0A500C041BB /* Project Report Builder */;
+		};
+		A20000000000000000000004 /* Exclude folder placeholders */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				".gitkeep",
+			);
+			target = 21317EED3064C0A500C041BB /* Project Report Builder */;
+		};
+		A20000000000000000000005 /* Exclude folder placeholders */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				".gitkeep",
+			);
+			target = 21317EED3064C0A500C041BB /* Project Report Builder */;
+		};
+		A20000000000000000000006 /* Exclude folder placeholders */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				".gitkeep",
+			);
+			target = 21317EED3064C0A500C041BB /* Project Report Builder */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		21317EF03064C0A500C041BB /* Project Report Builder */ = {
+		A10000000000000000000001 /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Project Report Builder";
+			path = App;
 			sourceTree = "<group>";
 		};
+		A10000000000000000000002 /* Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A20000000000000000000002 /* Exclude folder placeholders */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000003 /* Features */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A20000000000000000000003 /* Exclude folder placeholders */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000004 /* Services */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A20000000000000000000004 /* Exclude folder placeholders */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000005 /* Data */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A20000000000000000000005 /* Exclude folder placeholders */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000006 /* Platform */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A20000000000000000000006 /* Exclude folder placeholders */,
+			);
+			path = Platform;
+			sourceTree = "<group>";
+		};
+
 		21317F003064C0A700C041BB /* Project Report BuilderTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Project Report BuilderTests";
+			path = UnitTests;
 			sourceTree = "<group>";
 		};
 		21317F0A3064C0A700C041BB /* Project Report BuilderUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Project Report BuilderUITests";
+			path = UITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -72,12 +155,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		21317EF03064C0A500C041BB /* ProjectReportingBuilder */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000001 /* App */,
+				A10000000000000000000002 /* Core */,
+				A10000000000000000000003 /* Features */,
+				A10000000000000000000004 /* Services */,
+				A10000000000000000000005 /* Data */,
+				A10000000000000000000006 /* Platform */,
+				A10000000000000000000007 /* Tests */,
+			);
+			path = ProjectReportingBuilder;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000007 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				21317F003064C0A700C041BB /* Project Report BuilderTests */,
+				21317F0A3064C0A700C041BB /* Project Report BuilderUITests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+
 		21317EE53064C0A500C041BB = {
 			isa = PBXGroup;
 			children = (
-				21317EF03064C0A500C041BB /* Project Report Builder */,
-				21317F003064C0A700C041BB /* Project Report BuilderTests */,
-				21317F0A3064C0A700C041BB /* Project Report BuilderUITests */,
+				21317EF03064C0A500C041BB /* ProjectReportingBuilder */,
 				21317EEF3064C0A500C041BB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -108,7 +213,12 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				21317EF03064C0A500C041BB /* Project Report Builder */,
+				A10000000000000000000001 /* App */,
+				A10000000000000000000002 /* Core */,
+				A10000000000000000000003 /* Features */,
+				A10000000000000000000004 /* Services */,
+				A10000000000000000000005 /* Data */,
+				A10000000000000000000006 /* Platform */,
 			);
 			name = "Project Report Builder";
 			packageProductDependencies = (
