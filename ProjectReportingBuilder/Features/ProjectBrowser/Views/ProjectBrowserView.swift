@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ProjectBrowserView: View {
     @Bindable var viewModel: ProjectBrowserViewModel
-    @State private var showingNewProject = false
+    @Binding var showingNewProject: Bool
     @State private var projectToDelete: ProjectReport?
     
     var body: some View {
@@ -24,9 +24,6 @@ struct ProjectBrowserView: View {
             }
         }
         .task { await viewModel.loadProjects() }
-        .sheet(isPresented: $showingNewProject) {
-            NewProjectSheet(viewModel: viewModel)
-        }
         .confirmationDialog("Delete this project?", isPresented: Binding(
             get: { projectToDelete != nil },
             set: { if !$0 { projectToDelete = nil } }
@@ -62,8 +59,7 @@ struct ProjectBrowserView: View {
                     .accessibilityLabel("Search projects")
             }
             ProjectFilterBar(filter: $viewModel.filter,
-                             linesOfBusiness: viewModel.linesOfBusiness,
-                             newProject: showNewProject)
+                             linesOfBusiness: viewModel.linesOfBusiness)
             .disabled(viewModel.isLoading || viewModel.isSaving)
         }
         .padding()
@@ -105,5 +101,5 @@ struct ProjectBrowserView: View {
 }
 
 #Preview {
-    ProjectBrowserView(viewModel: ProjectBrowserViewModel(repository: InMemoryProjectRepository()))
+    ContentView(repository: InMemoryProjectRepository())
 }

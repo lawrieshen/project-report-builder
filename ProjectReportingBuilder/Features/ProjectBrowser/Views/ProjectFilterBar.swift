@@ -3,7 +3,6 @@ import SwiftUI
 struct ProjectFilterBar: View {
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
-    let newProject: () -> Void
     @State private var showingFilters = false
     
     var body: some View {
@@ -19,11 +18,7 @@ struct ProjectFilterBar: View {
             .popover(isPresented: $showingFilters) {
                 ProjectFilterPopover(filter: $filter, linesOfBusiness: linesOfBusiness)
             }
-            Button(action: newProject) {
-                Label("New Project", systemImage: "plus")
-            }
-            .keyboardShortcut("n", modifiers: .command)
-            .accessibilityIdentifier("newProjectButton")
+
         }
     }
 }
