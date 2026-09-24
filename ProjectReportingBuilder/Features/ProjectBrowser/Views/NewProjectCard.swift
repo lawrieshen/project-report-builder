@@ -16,32 +16,42 @@ struct NewProjectCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             cardHeader
-            projectForm
-            errorMessage
-            
-            Spacer()
-            
+            scrollableContent
             actionButtons
         }
         .padding(24)
         .frame(width: 420)
         .frame(maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor),
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(nsColor: .windowBackgroundColor))
+                .shadow(color: .black.opacity(0.2), radius: 24, x: 0, y: 8)
+        }
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(.primary.opacity(0.08))
         }
-        .shadow(color: .black.opacity(0.2), radius: 24, x: 0, y: 8)
         .task { isCodeNameFocused = true }
     }
-
+    
     @ViewBuilder
     private var cardHeader: some View {
         Text("New Project")
             .font(.title2)
     }
-
+    
+    @ViewBuilder
+    private var scrollableContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                projectForm
+                errorMessage
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxHeight: .infinity)
+    }
+    
     @ViewBuilder
     private var projectForm: some View {
         Form {
@@ -57,7 +67,7 @@ struct NewProjectCard: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private var errorMessage: some View {
         if let message = viewModel.actionErrorMessage {
@@ -65,21 +75,21 @@ struct NewProjectCard: View {
                 .foregroundStyle(.red)
         }
     }
-
+    
     @ViewBuilder
     private var actionButtons: some View {
         HStack {
             Button("Cancel") { onDismiss() }
                 .keyboardShortcut(.cancelAction)
                 .disabled(viewModel.isSaving)
-
+            
             Spacer()
-
+            
             if viewModel.isSaving {
                 ProgressView()
                     .controlSize(.small)
             }
-
+            
             Button("Create") {
                 Task {
                     let created = await viewModel.createProject(

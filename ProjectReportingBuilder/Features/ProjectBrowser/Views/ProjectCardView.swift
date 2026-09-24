@@ -26,7 +26,7 @@ struct ProjectCardView: View {
         Divider()
         Button("Delete", role: .destructive, action: delete)
     }
-
+    
     @ViewBuilder
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -51,7 +51,7 @@ struct ProjectCardView: View {
         }
         .contentShape(Rectangle())
     }
-
+    
     @ViewBuilder
     private var actionsMenu: some View {
         Menu {

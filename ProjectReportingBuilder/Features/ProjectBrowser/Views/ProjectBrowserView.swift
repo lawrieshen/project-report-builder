@@ -94,12 +94,12 @@ struct ProjectBrowserView: View {
         }
         .navigationTitle(project.codeName)
     }
-
+    
     private func showNewProject() {
         viewModel.actionErrorMessage = nil
         showingNewProject = true
     }
-
+    
     @ViewBuilder
     private var titleAndSearch: some View {
         HStack {

@@ -10,7 +10,7 @@ import SwiftUI
 @main
 struct ProjectReportingBuilderApp: App {
     private let repository = InMemoryProjectRepository(projects: [])
-
+    
     var body: some Scene {
         WindowGroup {
             ContentView(repository: repository)

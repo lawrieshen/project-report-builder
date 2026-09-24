@@ -24,10 +24,10 @@ struct ProjectFilterBar: View {
             .popover(isPresented: $showingFilters) {
                 ProjectFilterPopover(filter: $filter, linesOfBusiness: linesOfBusiness)
             }
-
+            
         }
     }
-
+    
     @ViewBuilder
     private var activeFilterTags: some View {
         HStack(spacing: 8) {
@@ -49,7 +49,7 @@ struct ProjectFilterBar: View {
         }
         .padding(.vertical, 4)
     }
-
+    
     @ViewBuilder
     private func filterTag(
         _ title: String,
@@ -82,5 +82,5 @@ struct ProjectFilterBar: View {
         .background(Color.accentColor.opacity(0.12), in: Capsule())
         .fixedSize()
     }
-
+    
 }

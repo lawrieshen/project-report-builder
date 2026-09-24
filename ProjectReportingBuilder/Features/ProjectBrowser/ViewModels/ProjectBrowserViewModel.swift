@@ -12,13 +12,13 @@ final class ProjectBrowserViewModel {
     private(set) var errorMessage: String?
     var actionErrorMessage: String?
     var selectedProject: ProjectReport?
-
+    
     private let repository: ProjectRepository
-
+    
     init(repository: ProjectRepository) {
         self.repository = repository
     }
-
+    
     var visibleProjects: [ProjectReport] {
         projects
             .filter(matchesSearch)
@@ -30,21 +30,21 @@ final class ProjectBrowserViewModel {
                 return $0.updatedAt > $1.updatedAt
             }
     }
-
+    
     var linesOfBusiness: [String] {
         Array(Set(projects.map { $0.lineOfBusiness })).sorted()
     }
-
+    
     var hasSearch: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-
+    
     func loadProjects() async {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-
+        
         do {
             let loadedProjects = try await repository.fetchProjects()
             try Task.checkCancellation()
@@ -55,15 +55,15 @@ final class ProjectBrowserViewModel {
             errorMessage = error.localizedDescription
         }
     }
-
+    
     func selectProject(_ project: ProjectReport) {
         selectedProject = project
     }
-
+    
     func clearFilters() {
         filter = ProjectBrowserFilter()
     }
-
+    
     func createProject(codeName: String, lineOfBusiness: String,
                        status: ReportStatus) async -> Bool {
         guard !isSaving else { return false }
@@ -73,11 +73,11 @@ final class ProjectBrowserViewModel {
             actionErrorMessage = "Enter a project code name and line of business."
             return false
         }
-
+        
         isSaving = true
         actionErrorMessage = nil
         defer { isSaving = false }
-
+        
         let now = Date()
         let project = ProjectReport(id: UUID(), codeName: name,
                                     lineOfBusiness: business, status: status,
@@ -94,13 +94,13 @@ final class ProjectBrowserViewModel {
             return false
         }
     }
-
+    
     func deleteProject(_ project: ProjectReport) async {
         guard !isSaving else { return }
         isSaving = true
         actionErrorMessage = nil
         defer { isSaving = false }
-
+        
         do {
             try await repository.delete(project)
             projects.removeAll { $0.id == project.id }
@@ -111,18 +111,18 @@ final class ProjectBrowserViewModel {
             actionErrorMessage = error.localizedDescription
         }
     }
-
+    
     private func matchesSearch(_ project: ProjectReport) -> Bool {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return query.isEmpty
-            || project.codeName.localizedCaseInsensitiveContains(query)
-            || project.lineOfBusiness.localizedCaseInsensitiveContains(query)
+        || project.codeName.localizedCaseInsensitiveContains(query)
+        || project.lineOfBusiness.localizedCaseInsensitiveContains(query)
     }
-
+    
     private func matchesFilter(_ project: ProjectReport) -> Bool {
         let matchesStatus = filter.statuses.isEmpty || filter.statuses.contains(project.status)
         let matchesBusiness = filter.linesOfBusiness.isEmpty
-            || filter.linesOfBusiness.contains(project.lineOfBusiness)
+        || filter.linesOfBusiness.contains(project.lineOfBusiness)
         return matchesStatus && matchesBusiness
     }
 }

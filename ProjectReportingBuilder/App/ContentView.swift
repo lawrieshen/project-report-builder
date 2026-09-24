@@ -4,11 +4,11 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingNewProject = false
     @State private var browserViewModel: ProjectBrowserViewModel
-
+    
     init(repository: ProjectRepository) {
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
-
+    
     @ViewBuilder
     private var mainContent: some View {
         NavigationSplitView {
@@ -19,7 +19,7 @@ struct ContentView: View {
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 760, minHeight: 400)
     }
-
+    
     var body: some View {
         // Keep the split view at the root so sidebar rows stay below the toolbar.
         mainContent
@@ -31,7 +31,7 @@ struct ContentView: View {
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.25),
                        value: showingNewProject)
     }
-
+    
     @ViewBuilder
     private var newProjectOverlay: some View {
         ZStack(alignment: .trailing) {
@@ -45,12 +45,12 @@ struct ContentView: View {
                     }
                     .accessibilityHidden(true)
                     .transition(.opacity)
-
-                ScrollView {
-                    NewProjectCard(viewModel: browserViewModel,
-                                   onDismiss: dismissNewProject)
-                        .padding(24)
-                }
+                
+                NewProjectCard(
+                    viewModel: browserViewModel,
+                    onDismiss: dismissNewProject
+                )
+                .padding(24)
                 .frame(width: 468)
                 .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
                 .zIndex(1)
@@ -58,12 +58,12 @@ struct ContentView: View {
         }
         .clipped()
     }
-
+    
     private func dismissNewProject() {
         browserViewModel.actionErrorMessage = nil
         showingNewProject = false
     }
-
+    
     @ViewBuilder
     private var sidebarContent: some View {
         List {
@@ -97,7 +97,7 @@ struct ContentView: View {
         .navigationTitle("Navigation")
         .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 260)
     }
-
+    
     @ViewBuilder
     private var detailContent: some View {
         ProjectBrowserView(viewModel: browserViewModel, showingNewProject: $showingNewProject)
@@ -114,7 +114,7 @@ struct ContentView: View {
                     .ignoresSafeArea()
             }
     }
-
+    
     @ViewBuilder
     private var sidebarFooter: some View {
         VStack(spacing: 0) {
@@ -138,5 +138,5 @@ struct ContentView: View {
 #Preview {
     ContentView(repository: InMemoryProjectRepository())
         .toolbar(removing: .title)
-
+    
 }

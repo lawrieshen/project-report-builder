@@ -10,7 +10,7 @@ extension ReportStatus {
         case .archived: return "Archived"
         }
     }
-
+    
     var color: Color {
         switch self {
         case .onTrack: return .green

@@ -23,7 +23,7 @@ struct ProjectFilterPopover: View {
         .padding()
         .frame(width: 280, height: 400)
     }
-
+    
     @ViewBuilder
     private var statusFilters: some View {
         Text("Status").font(.headline)
@@ -40,7 +40,7 @@ struct ProjectFilterPopover: View {
             ))
         }
     }
-
+    
     @ViewBuilder
     private var businessFilters: some View {
         Text("Line of Business").font(.headline)
@@ -57,7 +57,7 @@ struct ProjectFilterPopover: View {
             ))
         }
     }
-
+    
     @ViewBuilder
     private var actionButtons: some View {
         HStack {

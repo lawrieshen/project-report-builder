@@ -17,7 +17,7 @@ struct ProjectEmptyStateView: View {
             emptyStateActions
         }
     }
-
+    
     @ViewBuilder
     private var emptyStateLabel: some View {
         if !hasProjects {
@@ -28,14 +28,14 @@ struct ProjectEmptyStateView: View {
             Label("No projects match these filters.", systemImage: "line.3.horizontal.decrease")
         }
     }
-
+    
     @ViewBuilder
     private var emptyStateDescription: some View {
         if !hasProjects {
             Text("Create your first project report.")
         }
     }
-
+    
     @ViewBuilder
     private var emptyStateActions: some View {
         if !hasProjects {
