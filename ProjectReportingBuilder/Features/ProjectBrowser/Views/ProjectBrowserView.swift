@@ -1,59 +1,114 @@
-//
-//  ProjectBrowserView.swift
-//  Project Report Builder
-//
-//  Created by Lawrence Shen on 24/9/2026.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ProjectBrowserView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @State private var viewModel: ProjectBrowserViewModel
+    @State private var showingNewProject = false
+    @State private var projectToDelete: ProjectReport?
+    
+    init(repository: ProjectRepository) {
+        _viewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
+    }
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
+        NavigationStack {
+            VStack(spacing: 0) {
+                browserHeader
+                Divider()
+                browserContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+            .navigationDestination(item: $viewModel.selectedProject) { project in
+                // The reporting workflow is implemented in a later feature.
+                ContentUnavailableView {
+                    Label(project.codeName, systemImage: "doc.text")
+                } description: {
+                    Text("Report Editor is not available yet.")
+                }
+                .navigationTitle(project.codeName)
+            }
+        }
+        .frame(minWidth: 360, minHeight: 400)
+        .task { await viewModel.loadProjects() }
+        .sheet(isPresented: $showingNewProject) {
+            NewProjectSheet(viewModel: viewModel)
+        }
+        .confirmationDialog("Delete this project?", isPresented: Binding(
+            get: { projectToDelete != nil },
+            set: { if !$0 { projectToDelete = nil } }
+        ), titleVisibility: .visible) {
+            if let project = projectToDelete {
+                Button("Delete", role: .destructive) {
+                    Task { await viewModel.deleteProject(project) }
                 }
             }
-        } detail: {
-            Text("Select an item")
+            Button("Cancel", role: .cancel) { projectToDelete = nil }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .alert("Unable to Complete Action", isPresented: Binding(
+            get: { viewModel.actionErrorMessage != nil && !showingNewProject },
+            set: { if !$0 { viewModel.actionErrorMessage = nil } }
+        )) {
+            Button("OK") { viewModel.actionErrorMessage = nil }
+        } message: {
+            Text(viewModel.actionErrorMessage ?? "")
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+    
+    @ViewBuilder
+    private var browserHeader: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Projects").font(.largeTitle.bold())
+                Spacer()
+                TextField("Search projects", text: $viewModel.searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 280)
+                    .accessibilityLabel("Search projects")
+            }
+            ProjectFilterBar(filter: $viewModel.filter,
+                             linesOfBusiness: viewModel.linesOfBusiness,
+                             newProject: showNewProject)
+            .disabled(viewModel.isLoading || viewModel.isSaving)
+        }
+        .padding()
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    
+    @ViewBuilder
+    private var browserContent: some View {
+        if viewModel.isLoading {
+            ProgressView("Loading projects…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let message = viewModel.errorMessage {
+            ContentUnavailableView {
+                Label("Unable to load projects.", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(message)
+            } actions: {
+                Button("Retry") { Task { await viewModel.loadProjects() } }
+            }
+        } else if viewModel.visibleProjects.isEmpty {
+            ProjectEmptyStateView(hasProjects: !viewModel.projects.isEmpty,
+                                  searchText: viewModel.searchText,
+                                  hasFilters: !viewModel.filter.isEmpty,
+                                  newProject: showNewProject,
+                                  clearSearch: { viewModel.searchText = "" },
+                                  clearFilters: { viewModel.clearFilters() })
+        } else {
+            ProjectGridView(projects: viewModel.visibleProjects,
+                            open: { viewModel.selectProject($0) },
+                            delete: { projectToDelete = $0 })
+            .disabled(viewModel.isSaving)
         }
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+    
+    private func showNewProject() {
+        viewModel.actionErrorMessage = nil
+        showingNewProject = true
     }
 }
 
 #Preview {
-    ProjectBrowserView()
-        .modelContainer(for: Item.self, inMemory: true)
+    ProjectBrowserView(repository: InMemoryProjectRepository())
 }
