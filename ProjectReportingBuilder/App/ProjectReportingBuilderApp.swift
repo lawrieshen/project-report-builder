@@ -15,6 +15,7 @@ struct ProjectReportingBuilderApp: App {
         WindowGroup {
             ContentView(repository: repository)
         }
+        .windowStyle(HiddenTitleBarWindowStyle())
         .defaultSize(width: 1000, height: 700)
     }
 }

@@ -30,6 +30,7 @@ struct ContentView: View {
                 .listRowBackground(Color.accentColor.opacity(0.12))
             }
             .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     Divider()
@@ -47,10 +48,27 @@ struct ContentView: View {
                     .padding()
                 }
             }
+            .background {
+                Color(nsColor: .windowBackgroundColor)
+                    .overlay(Color.gray.opacity(0.12))
+                    .ignoresSafeArea()
+            }
             .navigationTitle("Navigation")
             .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 260)
         } detail: {
             ProjectBrowserView(viewModel: browserViewModel, showingNewProject: $showingNewProject)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: .textBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .padding(.top, 12)
+                .ignoresSafeArea(.container, edges: .top)
+                .background {
+                    Color(nsColor: .windowBackgroundColor)
+                        .overlay(Color.gray.opacity(0.12))
+                        .ignoresSafeArea()
+                }
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 760, minHeight: 400)
@@ -62,4 +80,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView(repository: InMemoryProjectRepository())
+        .toolbar(removing: .title)
+
 }

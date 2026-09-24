@@ -62,7 +62,9 @@ struct ProjectBrowserView: View {
                              linesOfBusiness: viewModel.linesOfBusiness)
             .disabled(viewModel.isLoading || viewModel.isSaving)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.top, 36)
+        .padding(.bottom, 16)
         .fixedSize(horizontal: false, vertical: true)
     }
     
