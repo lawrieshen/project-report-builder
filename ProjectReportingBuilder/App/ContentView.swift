@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var columnVisibility = NavigationSplitViewVisibility.automatic
     @State private var browserViewModel: ProjectBrowserViewModel
 
     init(repository: ProjectRepository) {
@@ -8,14 +9,20 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List {
                 Button {
                     browserViewModel.selectedProject = nil
                 } label: {
-                    Label("Projects", systemImage: "folder")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+                    Label {
+                        Text("Projects")
+                            .font(.system(size: 16))
+                    } icon: {
+                        Image(systemName: "folder")
+                            .font(.system(size: 18))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("projectsNavigation")
