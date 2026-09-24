@@ -13,7 +13,7 @@ struct ProjectReportingBuilderApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ProjectBrowserView(repository: repository)
+            ContentView(repository: repository)
         }
         .defaultSize(width: 1000, height: 700)
     }

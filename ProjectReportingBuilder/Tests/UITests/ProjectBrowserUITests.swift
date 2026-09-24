@@ -34,6 +34,12 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         card.click()
         XCTAssertTrue(app.staticTexts["Report Editor is not available yet."].waitForExistence(timeout: 5))
+        // Sidebar navigation returns from the editor to the browser.
+        let projectsNavigation = app.buttons["projectsNavigation"]
+        XCTAssertTrue(projectsNavigation.exists)
+        projectsNavigation.click()
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        XCTAssertTrue(search.exists)
     }
     @MainActor
     func testFilterAndDeleteProject() throws {

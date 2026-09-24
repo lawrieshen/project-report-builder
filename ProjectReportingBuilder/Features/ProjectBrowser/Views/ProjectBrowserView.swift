@@ -1,13 +1,9 @@
 import SwiftUI
 
 struct ProjectBrowserView: View {
-    @State private var viewModel: ProjectBrowserViewModel
+    @Bindable var viewModel: ProjectBrowserViewModel
     @State private var showingNewProject = false
     @State private var projectToDelete: ProjectReport?
-    
-    init(repository: ProjectRepository) {
-        _viewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
-    }
     
     var body: some View {
         NavigationStack {
@@ -27,7 +23,6 @@ struct ProjectBrowserView: View {
                 .navigationTitle(project.codeName)
             }
         }
-        .frame(minWidth: 360, minHeight: 400)
         .task { await viewModel.loadProjects() }
         .sheet(isPresented: $showingNewProject) {
             NewProjectSheet(viewModel: viewModel)
@@ -110,5 +105,5 @@ struct ProjectBrowserView: View {
 }
 
 #Preview {
-    ProjectBrowserView(repository: InMemoryProjectRepository())
+    ProjectBrowserView(viewModel: ProjectBrowserViewModel(repository: InMemoryProjectRepository()))
 }
