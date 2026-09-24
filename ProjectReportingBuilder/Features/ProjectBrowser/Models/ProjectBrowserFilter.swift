@@ -1,0 +1,17 @@
+//
+//  ProjectBrowserFilter.swift
+//  Project Report Builder
+//
+//  Created by Lawrence Shen on 24/9/2026.
+//
+
+import SwiftUI
+
+struct ProjectBrowserFilter {
+    var statuses: Set<ReportStatus> = []
+    var linesOfBusiness: Set<String> = []
+    
+    var isEmpty: Bool {
+        statuses.isEmpty && linesOfBusiness.isEmpty
+    }
+}
