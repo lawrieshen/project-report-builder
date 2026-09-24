@@ -5,6 +5,7 @@
 //  Created by Lawrence Shen on 24/9/2026.
 //
 
+@MainActor
 protocol ProjectRepository {
     func fetchProjects() async throws -> [ProjectReport]
     

@@ -1,29 +1,26 @@
-//
-//  InMemoryProjectRepository.swift
-//  Project Report Builder
-//
-//  Created by Lawrence Shen on 24/9/2026.
-//
+import Foundation
 
+@MainActor
 final class InMemoryProjectRepository: ProjectRepository {
-
     private var projects: [ProjectReport]
-    
-    init(projects: [ProjectReport]) {
+
+    init(projects: [ProjectReport] = []) {
         self.projects = projects
     }
-    
+
     func fetchProjects() async throws -> [ProjectReport] {
-        return projects
+        projects
     }
-    
+
     func save(_ project: ProjectReport) async throws {
-        // MVP implementation
-    }
-    
-    func delete(_ project: ProjectReport) async throws {
-        projects.removeAll {
-            $0.id == project.id
+        if let index = projects.firstIndex(where: { $0.id == project.id }) {
+            projects[index] = project
+        } else {
+            projects.append(project)
         }
+    }
+
+    func delete(_ project: ProjectReport) async throws {
+        projects.removeAll { $0.id == project.id }
     }
 }
