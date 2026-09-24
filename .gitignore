@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Xcode user settings and build output
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.build/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.mobileprovision
