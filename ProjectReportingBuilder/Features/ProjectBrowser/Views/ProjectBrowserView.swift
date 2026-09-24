@@ -45,7 +45,8 @@ struct ProjectBrowserView: View {
     private var browserHeader: some View {
         VStack(spacing: 10) {
             titleAndSearch
-            ProjectFilterBar(filter: $viewModel.filter,
+            ProjectFilterBar(searchText: $viewModel.searchText,
+                             filter: $viewModel.filter,
                              linesOfBusiness: viewModel.linesOfBusiness)
             .disabled(viewModel.isLoading || viewModel.isSaving)
         }
