@@ -25,7 +25,7 @@ struct ProjectReportingBuilderApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ProjectBrowserView()
         }
         .modelContainer(sharedModelContainer)
     }

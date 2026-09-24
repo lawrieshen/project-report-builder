@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  ProjectBrowserView.swift
 //  Project Report Builder
 //
 //  Created by Lawrence Shen on 24/9/2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct ContentView: View {
+struct ProjectBrowserView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
@@ -54,6 +54,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ProjectBrowserView()
         .modelContainer(for: Item.self, inMemory: true)
 }
