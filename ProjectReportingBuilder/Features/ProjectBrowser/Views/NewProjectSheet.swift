@@ -51,3 +51,9 @@ struct NewProjectSheet: View {
         .interactiveDismissDisabled(viewModel.isSaving)
     }
 }
+
+#Preview {
+    NewProjectSheet(
+        viewModel: ProjectBrowserViewModel(repository: InMemoryProjectRepository())
+    )
+}
