@@ -14,13 +14,7 @@ struct ProjectBrowserView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationDestination(item: $viewModel.selectedProject) { project in
-                // The reporting workflow is implemented in a later feature.
-                ContentUnavailableView {
-                    Label(project.codeName, systemImage: "doc.text")
-                } description: {
-                    Text("Report Editor is not available yet.")
-                }
-                .navigationTitle(project.codeName)
+                reportEditorPlaceholder(for: project)
             }
         }
         .task { await viewModel.loadProjects() }
@@ -50,14 +44,7 @@ struct ProjectBrowserView: View {
     @ViewBuilder
     private var browserHeader: some View {
         VStack(spacing: 10) {
-            HStack {
-                Text("Projects").font(.largeTitle.bold())
-                Spacer()
-                TextField("Search projects", text: $viewModel.searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 280)
-                    .accessibilityLabel("Search projects")
-            }
+            titleAndSearch
             ProjectFilterBar(filter: $viewModel.filter,
                              linesOfBusiness: viewModel.linesOfBusiness)
             .disabled(viewModel.isLoading || viewModel.isSaving)
@@ -96,9 +83,32 @@ struct ProjectBrowserView: View {
         }
     }
     
+    @ViewBuilder
+    private func reportEditorPlaceholder(for project: ProjectReport) -> some View {
+        // The reporting workflow is implemented in a later feature.
+        ContentUnavailableView {
+            Label(project.codeName, systemImage: "doc.text")
+        } description: {
+            Text("Report Editor is not available yet.")
+        }
+        .navigationTitle(project.codeName)
+    }
+
     private func showNewProject() {
         viewModel.actionErrorMessage = nil
         showingNewProject = true
+    }
+
+    @ViewBuilder
+    private var titleAndSearch: some View {
+        HStack {
+            Text("Projects").font(.largeTitle.bold())
+            Spacer()
+            TextField("Search projects", text: $viewModel.searchText)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 280)
+                .accessibilityLabel("Search projects")
+        }
     }
 }
 

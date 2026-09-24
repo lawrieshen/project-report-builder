@@ -12,10 +12,14 @@ final class ProjectBrowserUITests: XCTestCase {
             XCTFail(app.debugDescription)
             return
         }
+        XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar before creation")
         newProject.click()
 
         let name = app.textFields["newProjectCodeName"]
-        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        guard name.waitForExistence(timeout: 5) else {
+            XCTFail(app.debugDescription)
+            return
+        }
         name.click()
         name.typeText("Titan")
         let business = app.textFields["newProjectLineOfBusiness"]
@@ -25,6 +29,7 @@ final class ProjectBrowserUITests: XCTestCase {
 
         let card = app.buttons["Open Titan"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar after creation")
         let search = app.textFields["Search projects"]
         search.click()
         search.typeText("does not exist")
@@ -32,11 +37,20 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertFalse(card.exists)
         app.buttons["Clear Search"].click()
         XCTAssertTrue(card.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar before opening project")
         card.click()
         XCTAssertTrue(app.staticTexts["Report Editor is not available yet."].waitForExistence(timeout: 5))
         // Sidebar navigation returns from the editor to the browser.
         let projectsNavigation = app.buttons["projectsNavigation"]
-        XCTAssertTrue(projectsNavigation.exists)
+        let sidebarVisible = NSPredicate(format: "hittable == true")
+        let sidebarExpectation = XCTNSPredicateExpectation(predicate: sidebarVisible, object: projectsNavigation)
+        guard XCTWaiter.wait(for: [sidebarExpectation], timeout: 5) == .completed else {
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            XCTFail("Sidebar after opening project: " + app.debugDescription)
+            return
+        }
         projectsNavigation.click()
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         XCTAssertTrue(search.exists)
@@ -50,7 +64,10 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertTrue(newProject.waitForExistence(timeout: 10))
         newProject.click()
         let name = app.textFields["newProjectCodeName"]
-        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        guard name.waitForExistence(timeout: 5) else {
+            XCTFail(app.debugDescription)
+            return
+        }
         name.click()
         name.typeText("Atlas")
         let business = app.textFields["newProjectLineOfBusiness"]
