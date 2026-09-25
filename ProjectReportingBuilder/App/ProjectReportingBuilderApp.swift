@@ -19,7 +19,8 @@ struct ProjectReportingBuilderApp: App {
         // One editing window prevents two workspaces overwriting the same draft.
         Window("Project Reporting Builder", id: "main") {
             if let environment {
-                ContentView(repository: environment.projects, assetFactory: environment.assets)
+                ContentView(repository: environment.projects, assetFactory: environment.assets,
+                            recoveryRepository: LocalDraftRecoveryRepository(store: environment.store))
             } else {
                 ContentUnavailableView("Unable to open local storage", systemImage: "externaldrive.badge.exclamationmark",
                                        description: Text(startupError ?? "Please reopen the app."))

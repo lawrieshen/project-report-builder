@@ -15,6 +15,10 @@ struct ReportEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent, showPreview: showPreview, showExport: showExport)
+            if let message = viewModel.recoveryMessage {
+                Text(message).font(.caption).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("recoveryStatus")
+            }
             Divider()
             workspaceContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

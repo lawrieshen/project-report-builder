@@ -10,6 +10,7 @@ final class AppRouter {
     var showingNewProject = false
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
+    private let recoveryRepository: (any DraftRecoveryRepository)?
     private let repository: ProjectRepository
     private let assetFactory: (UUID) -> any AssetRepository
 
@@ -20,7 +21,9 @@ final class AppRouter {
     }
 
     init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil,
-         assetFactory: ((UUID) -> any AssetRepository)? = nil) {
+         assetFactory: ((UUID) -> any AssetRepository)? = nil,
+         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
+        self.recoveryRepository = recoveryRepository
         self.repository = repository
         let fallback = assetRepository ?? LocalAssetRepository()
         self.assetFactory = assetFactory ?? { _ in fallback }
@@ -77,7 +80,7 @@ final class AppRouter {
             editor = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
-            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id))
+            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository)
             route = .reportEditor(projectID: id)
         }
     }
