@@ -30,6 +30,7 @@ struct ProjectReportingBuilderApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1000, height: 700)
+        .commands { AppCommands() }
         Settings {
             if let environment {
                 AppSettingsView(store: environment.settings, fileStore: environment.store)

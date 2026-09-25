@@ -36,7 +36,6 @@ struct ReportEditorHeaderView: View {
                 .disabled(!viewModel.isDirty || viewModel.isSaving)
                 .accessibilityIdentifier("discardReport")
             Button("Save") { Task { await viewModel.save() } }
-                .keyboardShortcut("s", modifiers: .command)
                 .disabled(!viewModel.canSave)
                 .accessibilityIdentifier("saveReport")
         }
