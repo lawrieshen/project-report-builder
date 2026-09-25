@@ -29,7 +29,7 @@ struct ProjectCardView: View {
     
     @ViewBuilder
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppSpacing.field) {
             Text(project.codeName)
                 .font(.headline)
                 .lineLimit(2)
@@ -50,7 +50,7 @@ struct ProjectCardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding()
+        .padding(AppSpacing.cardInset)
         .frame(maxWidth: .infinity, minHeight: 180, alignment: .topLeading)
         .background(.background, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
@@ -68,7 +68,7 @@ struct ProjectCardView: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .padding()
+        .padding(AppSpacing.cardInset)
         .accessibilityLabel("Actions for " + project.codeName)
     }
 }

@@ -11,7 +11,6 @@ struct ReportEditorView: View {
             workspaceContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.top, 36)
         .task { await viewModel.load() }
     }
 
@@ -48,10 +47,10 @@ struct ReportEditorView: View {
                     Button("Retry Save") { Task { await viewModel.save() } }
                         .disabled(!viewModel.canSave)
                 }
-                .padding()
+                .padding(AppSpacing.cardInset)
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: AppSpacing.section) {
                     ProjectIdentitySectionView(draft: draft)
                     Divider()
                     HealthUrgencySectionView(draft: draft)
@@ -63,7 +62,7 @@ struct ReportEditorView: View {
                     AccountabilitySectionView(draft: draft)
                 }
                 .textFieldStyle(.roundedBorder)
-                .padding(24)
+                .padding(AppSpacing.pageInset)
             }
             .disabled(viewModel.isSaving)
         }

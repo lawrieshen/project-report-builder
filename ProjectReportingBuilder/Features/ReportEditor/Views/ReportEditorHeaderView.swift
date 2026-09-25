@@ -5,7 +5,7 @@ struct ReportEditorHeaderView: View {
     let onBack: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.field) {
             Button(action: onBack) {
                 Label("Projects", systemImage: "chevron.left")
             }
@@ -26,6 +26,7 @@ struct ReportEditorHeaderView: View {
                 .disabled(!viewModel.canSave)
                 .accessibilityIdentifier("saveReport")
         }
-        .padding()
+        .padding(.horizontal, AppSpacing.pageInset)
+        .padding(.vertical, AppSpacing.cardInset)
     }
 }

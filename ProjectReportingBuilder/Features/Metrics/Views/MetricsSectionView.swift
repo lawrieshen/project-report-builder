@@ -8,7 +8,7 @@ struct MetricsSectionView: View {
     private var metrics: [EngineeringMetricDraft] { viewModel.draft?.metrics ?? [] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.field) {
             sectionHeader
             if metrics.isEmpty {
                 Text("No metrics yet").foregroundStyle(.secondary)

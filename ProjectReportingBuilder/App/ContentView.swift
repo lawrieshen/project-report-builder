@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    private enum Layout {
+        // The detail background extends beneath the title bar; its controls do not.
+        static let titleBarClearance: CGFloat = 36
+        static let detailInset: CGFloat = 12
+    }
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var router: AppRouter
     @State private var browserViewModel: ProjectBrowserViewModel
@@ -65,8 +71,7 @@ struct ContentView: View {
                         router.openProject(id: project.id)
                     }
                 )
-                .padding(24)
-                .frame(width: 468)
+                .padding(AppSpacing.pageInset)
                 .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
                 .zIndex(1)
             }
@@ -116,12 +121,11 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         workspaceDestination
+            .padding(.top, Layout.titleBarClearance)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
-            .padding(.top, 12)
+            .padding(Layout.detailInset)
             .ignoresSafeArea(.container, edges: .top)
             .background {
                 Color(nsColor: .windowBackgroundColor)
@@ -157,7 +161,7 @@ struct ContentView: View {
             .keyboardShortcut("n", modifiers: .command)
             .accessibilityIdentifier("newProjectButton")
             .disabled(browserViewModel.isLoading || browserViewModel.isSaving || router.editor?.isSaving == true)
-            .padding()
+            .padding(AppSpacing.cardInset)
         }
     }
 }
