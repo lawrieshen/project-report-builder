@@ -5,6 +5,7 @@ struct ReportEditorHeaderView: View {
     let onBack: () -> Void
     let addContent: () -> Void
     let showPreview: () -> Void
+    let showExport: () -> Void
 
     var body: some View {
         HStack(spacing: AppSpacing.field) {
@@ -22,6 +23,9 @@ struct ReportEditorHeaderView: View {
             Button("Preview", action: showPreview)
                 .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isImporting)
                 .accessibilityIdentifier("openLivePreview")
+            Button("Export", action: showExport)
+                .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isSaving || viewModel.isImporting)
+                .accessibilityIdentifier("openExport")
             Button("Add Content", action: addContent)
                 .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isSaving || viewModel.isImporting)
                 .accessibilityIdentifier("addContent")
