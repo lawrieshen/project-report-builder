@@ -5,15 +5,15 @@ import Testing
 @MainActor
 struct ProjectBrowserViewModelTests {
     private func project(_ name: String, _ business: String,
-                         _ status: ReportStatus, _ timestamp: Double) -> ProjectReport {
+                         _ status: ProjectStatus, _ timestamp: Double) -> ProjectReport {
         ProjectReport(id: UUID(), codeName: name, lineOfBusiness: business,
                       status: status, createdAt: Date(timeIntervalSince1970: 0),
                       updatedAt: Date(timeIntervalSince1970: timestamp))
     }
 
     @Test func searchFiltersSortWithoutChangingSource() async {
-        let titan = project("Titan", "iOS / Camera", .onTrack, 1)
-        let atlas = project("Atlas", "iOS / Camera", .blocked, 3)
+        let titan = project("Titan", "iOS / Camera", .active, 1)
+        let atlas = project("Atlas", "iOS / Camera", .archived, 3)
         let nova = project("Nova", "Services", .draft, 2)
         let source = [titan, atlas, nova]
         let model = ProjectBrowserViewModel(repository: InMemoryProjectRepository(projects: source))
@@ -26,7 +26,7 @@ struct ProjectBrowserViewModelTests {
         #expect(model.visibleProjects == [titan])
         model.searchText = "CAMERA"
         #expect(model.visibleProjects == [atlas, titan])
-        model.filter.statuses = [.onTrack]
+        model.filter.statuses = [.active]
         #expect(model.visibleProjects == [titan])
         model.filter.linesOfBusiness = ["Services"]
         #expect(model.visibleProjects.isEmpty)
@@ -36,7 +36,7 @@ struct ProjectBrowserViewModelTests {
         model.filter.linesOfBusiness = ["Services"]
         #expect(model.visibleProjects == [nova])
         model.clearFilters()
-        model.filter.statuses = [.draft, .blocked]
+        model.filter.statuses = [.draft, .archived]
         #expect(model.visibleProjects == [atlas, nova])
         #expect(model.projects == source)
         #expect(model.linesOfBusiness == ["Services", "iOS / Camera"])
@@ -46,7 +46,7 @@ struct ProjectBrowserViewModelTests {
         let repository = InMemoryProjectRepository()
         let model = ProjectBrowserViewModel(repository: repository)
         model.searchText = "no match"
-        model.filter.statuses = [.blocked]
+        model.filter.statuses = [.archived]
         let created = await model.createProject(codeName: " Titan ",
                                                 lineOfBusiness: " Camera ", status: .draft)
         #expect(created)
@@ -76,6 +76,29 @@ struct ProjectBrowserViewModelTests {
 
         #expect(model.route == .reportEditor(projectID: selected.id))
         #expect(model.projects == [selected])
+    }
+
+    @Test func healthFiltersAreIndependentFromLifecycle() async {
+        var redProject = project("Titan", "Camera", .active, 1)
+        redProject.card = SnippetCard(
+            id: UUID(),
+            health: ProjectHealth(ragStatus: .red, milestone: nil),
+            summary: ExecutiveSummary(type: .update, message: ""),
+            accountability: Accountability(leadEPM: nil, projectDRI: nil)
+        )
+        let unassessed = project("Atlas", "Camera", .active, 2)
+        let model = ProjectBrowserViewModel(repository: InMemoryProjectRepository(
+            projects: [redProject, unassessed]))
+        await model.loadProjects()
+        model.filter.statuses = [.active]
+        #expect(model.visibleProjects == [unassessed, redProject])
+        model.filter.healthStatuses = [.red, .amber]
+        #expect(model.visibleProjects == [redProject])
+        model.filter.statuses = [.draft]
+        #expect(model.visibleProjects.isEmpty)
+        model.clearFilters()
+        #expect(model.filter.isEmpty)
+        #expect(model.visibleProjects == [unassessed, redProject])
     }
 
     @Test func invalidCreationDoesNotSave() async throws {

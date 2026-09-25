@@ -13,6 +13,8 @@ struct ProjectFilterPopover: View {
                 VStack(alignment: .leading, spacing: 10) {
                     statusFilters
                     Divider()
+                    healthFilters
+                    Divider()
                     businessFilters
                 }
                 .toggleStyle(.checkbox)
@@ -27,7 +29,7 @@ struct ProjectFilterPopover: View {
     @ViewBuilder
     private var statusFilters: some View {
         Text("Status").font(.headline)
-        ForEach(ReportStatus.allCases, id: \.self) { status in
+        ForEach(ProjectStatus.allCases, id: \.self) { status in
             Toggle(status.displayName, isOn: Binding(
                 get: { filter.statuses.contains(status) },
                 set: { selected in
@@ -41,6 +43,26 @@ struct ProjectFilterPopover: View {
         }
     }
     
+    @ViewBuilder
+    private var healthFilters: some View {
+        Text("Health").font(.headline)
+        ForEach(RAGStatus.allCases, id: \.self) { health in
+            Toggle(isOn: Binding(
+                get: { filter.healthStatuses.contains(health) },
+                set: { selected in
+                    if selected {
+                        filter.healthStatuses.insert(health)
+                    } else {
+                        filter.healthStatuses.remove(health)
+                    }
+                }
+            )) {
+                Label(health.displayName, systemImage: "circle.fill")
+                    .foregroundStyle(health.color)
+            }
+        }
+    }
+
     @ViewBuilder
     private var businessFilters: some View {
         Text("Line of Business").font(.headline)

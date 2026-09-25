@@ -37,8 +37,15 @@ struct ProjectCardView: View {
             Text(project.lineOfBusiness)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
-            Label(project.status.displayName, systemImage: "circle.fill")
-                .foregroundStyle(project.status.color)
+            Text(project.status.displayName)
+                .foregroundStyle(.secondary)
+            if let health = project.card?.health.ragStatus {
+                Label(health.displayName, systemImage: "circle.fill")
+                    .foregroundStyle(health.color)
+            } else {
+                Text("Not assessed")
+                    .foregroundStyle(.secondary)
+            }
             Text("Updated " + project.updatedAt.formatted(.relative(presentation: .named)))
                 .font(.caption)
                 .foregroundStyle(.secondary)

@@ -19,7 +19,7 @@ struct InMemoryProjectRepositoryTests {
         let first = ProjectReport(id: UUID(), codeName: "One", lineOfBusiness: "Camera",
                                   status: .draft, createdAt: .now, updatedAt: .now)
         let second = ProjectReport(id: UUID(), codeName: "Two", lineOfBusiness: "Services",
-                               status: .onTrack, createdAt: .now, updatedAt: .now)
+                               status: .active, createdAt: .now, updatedAt: .now)
         let repository = InMemoryProjectRepository(projects: [first, second])
         try await repository.delete(first)
         try await repository.delete(first)
