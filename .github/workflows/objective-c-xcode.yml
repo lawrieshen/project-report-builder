@@ -1,4 +1,4 @@
-name: Xcode - Build and Analyze
+name: Xcode - Build, Analyze and Test
 
 on:
   push:
@@ -33,3 +33,36 @@ jobs:
             -destination "generic/platform=macOS" \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO
+
+  test:
+    name: Run Tests
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Run tests
+        shell: bash
+        run: |
+          bash test.sh \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="" \
+            -resultBundlePath build/TestResults.xcresult
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/TestResults.xcresult
+          if-no-files-found: warn
+          retention-days: 7
