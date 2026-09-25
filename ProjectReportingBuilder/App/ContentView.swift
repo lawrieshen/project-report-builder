@@ -26,8 +26,8 @@ struct ContentView: View {
     @State private var browserViewModel: ProjectBrowserViewModel
     
     init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil) {
-        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings))
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil) {
+        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings, session: session))
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
     
@@ -45,6 +45,7 @@ struct ContentView: View {
     var body: some View {
         // Keep the split view at the root so sidebar rows stay below the toolbar.
         mainContent
+            .task { await router.restoreSession() }
             .focusedSceneValue(\.reportActions, commandActions)
             .disabled(isShowingCard)
             .accessibilityHidden(isShowingCard)
@@ -248,12 +249,17 @@ struct ContentView: View {
                              focusedSection: $focusedSection)
                 .id(editor.projectID)
         } else {
-            ProjectBrowserView(viewModel: browserViewModel,
+            VStack(spacing: AppSpacing.field) {
+                if let message = router.restorationMessage {
+                    Text(message).font(.caption).foregroundStyle(.secondary)
+                }
+                ProjectBrowserView(viewModel: browserViewModel,
                                openProject: { router.openProject(id: $0.id) },
                                newProject: router.newProject,
                                isCreatingProject: isShowingCard,
                                showFilters: { card = .filters },
                                duplicateProject: { card = .duplicate($0) })
+            }
         }
     }
 

@@ -21,7 +21,7 @@ struct ProjectReportingBuilderApp: App {
             if let environment {
                 ContentView(repository: environment.projects, assetFactory: environment.assets,
                             recoveryRepository: LocalDraftRecoveryRepository(store: environment.store),
-                            settings: environment.settings)
+                            settings: environment.settings, session: environment.session)
                     .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
             } else {
                 ContentUnavailableView("Unable to open local storage", systemImage: "externaldrive.badge.exclamationmark",

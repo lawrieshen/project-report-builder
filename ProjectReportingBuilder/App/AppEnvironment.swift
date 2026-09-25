@@ -3,6 +3,7 @@ import Foundation
 /// Choose storage dependencies once for the application session.
 @MainActor
 struct AppEnvironment {
+    let session: AppSessionStore
     let settings: AppSettingsStore
     let storage: ApplicationStorage
     let store: ProjectFileStore
@@ -10,6 +11,7 @@ struct AppEnvironment {
 
     init(storage: ApplicationStorage, defaults: UserDefaults = .standard,
          initialSettings: AppSettings = .default) {
+        session = AppSessionStore(repository: UserDefaultsSessionRepository(defaults: defaults))
         settings = AppSettingsStore(repository: UserDefaultsSettingsRepository(defaults: defaults, initialSettings: initialSettings))
         self.storage = storage
         store = ProjectFileStore(storage: storage)
