@@ -23,7 +23,20 @@ struct ReportEditorView: View {
             workspaceContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .disabled(viewModel.pendingRecovery != nil)
         .task { await viewModel.load() }
+        .alert("Restore Unsaved Changes?", isPresented: Binding(
+            get: { viewModel.pendingRecovery != nil }, set: { _ in }
+        )) {
+            Button("Discard Recovery", role: .destructive) { Task { await viewModel.discardRecovery() } }
+                .accessibilityIdentifier("discardRecovery")
+            Button("Restore") { viewModel.restoreRecovery() }
+                .accessibilityIdentifier("restoreRecovery")
+        } message: {
+            if let snapshot = viewModel.pendingRecovery {
+                Text("An unsaved version is available from " + snapshot.capturedAt.formatted() + ". Restoring it does not save the report.")
+            }
+        }
     }
 
     @ViewBuilder

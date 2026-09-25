@@ -4,6 +4,43 @@ import XCTest
 final class PersistenceUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    func testRecoverUnsavedDraftAfterTermination() {
+        let app = XCUIApplication.isolated()
+        app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["newProjectButton"].waitForExistence(timeout: 10))
+        app.buttons["newProjectButton"].click()
+        app.textFields["newProjectCodeName"].click()
+        app.textFields["newProjectCodeName"].typeText("Recovery Titan")
+        app.textFields["newProjectLineOfBusiness"].click()
+        app.textFields["newProjectLineOfBusiness"].typeText("Camera")
+        app.buttons["Create & Open"].click()
+        let title = app.textFields["reportCodeName"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeKey("a", modifierFlags: .command)
+        title.typeText("Unsaved Titan")
+        XCTAssertTrue(app.staticTexts["Draft backed up locally"].waitForExistence(timeout: 8))
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Recovery Titan"].waitForExistence(timeout: 10))
+        app.buttons["Open Recovery Titan"].click()
+        XCTAssertTrue(app.buttons["restoreRecovery"].waitForExistence(timeout: 5))
+        app.buttons["restoreRecovery"].click()
+        XCTAssertEqual(title.value as? String, "Unsaved Titan")
+        XCTAssertTrue(app.buttons["saveReport"].isEnabled)
+        app.buttons["discardReport"].click()
+        XCTAssertEqual(title.value as? String, "Recovery Titan")
+        app.buttons["workspaceBack"].click()
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Recovery Titan"].waitForExistence(timeout: 10))
+        app.buttons["Open Recovery Titan"].click()
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["restoreRecovery"].exists)
+        XCTAssertFalse(app.buttons["saveReport"].isEnabled)
+    }
+
     func testSavedProjectSurvivesRelaunch() {
         let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
