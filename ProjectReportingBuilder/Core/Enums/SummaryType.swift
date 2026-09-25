@@ -5,7 +5,7 @@
 //  Created by Lawrence Shen on 25/9/2026.
 //
 
-enum SummaryType: String, Codable, CaseIterable {
+nonisolated enum SummaryType: String, Codable, CaseIterable, Sendable {
     case update
     case blocker
     case ask

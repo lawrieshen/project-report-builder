@@ -1,7 +1,7 @@
 import Foundation
 
 /// Check the format version before decoding domain values.
-struct StoredDocument<Value: Codable>: Codable {
+nonisolated struct StoredDocument<Value: Codable>: Codable {
     let schemaVersion: Int
     let value: Value
 
@@ -18,9 +18,9 @@ struct StoredDocument<Value: Codable>: Codable {
     }
 }
 
-private struct StorageVersion: Decodable { let schemaVersion: Int }
+private nonisolated struct StorageVersion: Decodable { let schemaVersion: Int }
 
-enum StorageError: LocalizedError {
+nonisolated enum StorageError: LocalizedError {
     case unsupportedVersion(Int)
     case readFailed(String)
     case writeFailed(String)

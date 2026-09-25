@@ -1,7 +1,7 @@
 import Foundation
 
 /// Resolve managed paths without exposing file-system details to feature views.
-struct ApplicationStorage: Sendable {
+nonisolated struct ApplicationStorage: Sendable {
     let root: URL
     var projects: URL { root.appendingPathComponent("Projects", isDirectory: true) }
     var recovery: URL { root.appendingPathComponent("Recovery", isDirectory: true) }

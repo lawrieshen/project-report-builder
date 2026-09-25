@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ProjectReport: Identifiable, Codable, Equatable {
+nonisolated struct ProjectReport: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     
     var codeName: String

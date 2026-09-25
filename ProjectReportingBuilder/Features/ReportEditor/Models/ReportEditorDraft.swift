@@ -1,7 +1,7 @@
 import Foundation
 
 /// Keep editable values separate from the saved report.
-struct ReportEditorDraft: Equatable {
+nonisolated struct ReportEditorDraft: Codable, Equatable, Sendable {
     var codeName: String
     var lineOfBusiness: String
     var ragStatus: RAGStatus?

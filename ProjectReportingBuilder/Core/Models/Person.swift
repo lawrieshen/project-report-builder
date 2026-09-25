@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Person: Identifiable, Codable, Equatable {
+nonisolated struct Person: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var role: String?
