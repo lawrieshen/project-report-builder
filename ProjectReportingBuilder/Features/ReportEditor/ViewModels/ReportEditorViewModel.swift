@@ -24,10 +24,10 @@ final class ReportEditorViewModel {
 
 
     init(projectID: UUID, repository: ProjectRepository,
-         assetRepository: any AssetRepository = LocalAssetRepository()) {
+         assetRepository: (any AssetRepository)? = nil) {
         self.projectID = projectID
         self.repository = repository
-        self.assetRepository = assetRepository
+        self.assetRepository = assetRepository ?? LocalAssetRepository()
     }
 
     var isDirty: Bool { draft != savedDraft }

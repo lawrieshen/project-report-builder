@@ -89,3 +89,48 @@ icon, rather than color alone.
 Metrics tests cover model compatibility, comparison boundaries, formatting,
 validation, duplicate names, stable IDs, ordering, failed saves, discard,
 editing cancellation, and save/reopen UI workflows. Storage remains in memory.
+
+## Content & Asset Input
+
+Use **Add Content** in the workspace header to type, paste, or import a UTF-8
+plain-text file (up to 1 MB). The floating card processes explicit labels, one
+per line. This MVP uses local rules, not AI or free-form language interpretation.
+
+~~~text
+Project: Titan
+Line of Business: Camera
+Health: Amber
+Milestone: DVT
+Deadline: 2026-09-30
+Summary Type: blocker
+Summary: Camera pipeline latency remains high.
+Lead EPM: Jane Smith
+Project DRI: Alex
+~~~
+
+Review **Current** and **Suggested** values before selecting **Apply Selected**.
+Only empty fields start checked. Existing values require an explicit selection.
+Unknown labels and invalid dates/statuses are ignored. Dates use YYYY-MM-DD;
+health accepts Green/Amber/Red and summary type accepts Update/Blocker/Ask.
+Source notes are temporary input and are not stored in the report. Processing
+alone does not modify the draft. Applied suggestions participate in Save,
+Discard, and unsaved-navigation protection. Milestones still require both a
+phase and a deadline before the report can be saved.
+
+The **Supporting Content** section accepts PNG, JPEG, and HEIC images through
+the native file picker or file drag-and-drop. Images are validated by their
+decoded format, limited to 20 MB each, and copied into app-managed storage.
+Use each image's menu to preview, replace, move, or remove it. Alt text is editable
+inline and may remain empty while drafting. Replacing an image preserves its
+identity, alt text, and position. Duplicate filenames are allowed.
+
+Reports store lightweight image references rather than image bytes. Image
+changes remain in the draft until Save; Discard restores saved references.
+Failed saves preserve edits and files. Unused draft files are cleaned up, and
+removed saved files are deleted only after a successful save. Cleanup failures
+are shown separately without undoing a successful report save.
+
+Storage remains session-scoped: reports use the in-memory repository and assets
+use a managed temporary directory. Cross-launch persistence is not implemented.
+PDF/OCR, remote URLs, automatic captions, metric ingestion, and template changes
+are outside this feature.

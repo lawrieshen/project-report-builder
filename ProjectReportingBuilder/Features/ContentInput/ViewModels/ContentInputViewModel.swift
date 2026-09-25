@@ -14,8 +14,8 @@ final class ContentInputViewModel {
     private let processor: any ContentProcessing
     private var generation = 0
 
-    init(processor: any ContentProcessing = ContentProcessor()) {
-        self.processor = processor
+    init(processor: (any ContentProcessing)? = nil) {
+        self.processor = processor ?? ContentProcessor()
     }
 
     var canProcess: Bool {
