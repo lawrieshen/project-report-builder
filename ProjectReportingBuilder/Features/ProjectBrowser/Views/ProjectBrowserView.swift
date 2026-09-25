@@ -6,6 +6,7 @@ struct ProjectBrowserView: View {
     let newProject: () -> Void
     var isCreatingProject = false
     let showFilters: () -> Void
+    var duplicateProject: (ProjectReport) -> Void = { _ in }
     @State private var projectToDelete: ProjectReport?
     
     var body: some View {
@@ -82,7 +83,7 @@ struct ProjectBrowserView: View {
         } else {
             ProjectGridView(projects: viewModel.visibleProjects,
                             open: openProject,
-                            delete: { projectToDelete = $0 })
+                            delete: { projectToDelete = $0 }, duplicate: duplicateProject)
             .disabled(viewModel.isSaving)
         }
     }

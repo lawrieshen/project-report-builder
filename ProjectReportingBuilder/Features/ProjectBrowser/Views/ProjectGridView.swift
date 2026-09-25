@@ -10,6 +10,9 @@ struct ProjectGridView: View {
     let open: (ProjectReport) -> Void
     let delete: (ProjectReport) -> Void
     
+    var duplicate: (ProjectReport) -> Void = { _ in }
+
+
     var body: some View {
         GeometryReader { geometry in
             // Cap the grid at three columns, with room for smaller windows.
@@ -23,7 +26,7 @@ struct ProjectGridView: View {
                     ForEach(projects) { project in
                         ProjectCardView(project: project,
                                         open: { open(project) },
-                                        delete: { delete(project) })
+                                        delete: { delete(project) }, duplicate: { duplicate(project) })
                     }
                 }
                 .padding(AppSpacing.pageInset)

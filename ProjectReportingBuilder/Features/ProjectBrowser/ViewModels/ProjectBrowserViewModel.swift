@@ -99,6 +99,23 @@ final class ProjectBrowserViewModel {
         }
     }
     
+    func duplicateProject(_ project: ProjectReport, codeName: String) async -> Bool {
+        guard !isSaving else { return false }
+        isSaving = true
+        actionErrorMessage = nil
+        defer { isSaving = false }
+        do {
+            _ = try await repository.duplicate(id: project.id, codeName: codeName)
+            searchText = ""
+            clearFilters()
+            await loadProjects()
+            return true
+        } catch {
+            actionErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func deleteProject(_ project: ProjectReport) async {
         guard !isSaving else { return }
         isSaving = true
@@ -107,7 +124,7 @@ final class ProjectBrowserViewModel {
         
         do {
             try await repository.delete(project)
-            projects.removeAll { $0.id == project.id }
+            await loadProjects()
         } catch {
             actionErrorMessage = error.localizedDescription
         }

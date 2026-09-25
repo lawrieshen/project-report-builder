@@ -16,5 +16,8 @@ final class LocalProjectRepository: ProjectRepository {
 
     func fetchProject(id: UUID) async throws -> ProjectReport? { try await store.fetchProject(id: id) }
     func save(_ project: ProjectReport) async throws { try await store.save(project) }
+    func duplicate(id: UUID, codeName: String) async throws -> ProjectReport {
+        try await store.duplicate(id: id, codeName: codeName)
+    }
     func delete(_ project: ProjectReport) async throws { try await store.delete(id: project.id) }
 }

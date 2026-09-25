@@ -41,6 +41,40 @@ final class PersistenceUITests: XCTestCase {
         XCTAssertFalse(app.buttons["saveReport"].isEnabled)
     }
 
+    func testDuplicateAndDeleteSurviveRelaunch() {
+        let app = XCUIApplication.isolated()
+        app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["newProjectButton"].waitForExistence(timeout: 10))
+        app.buttons["newProjectButton"].click()
+        app.textFields["newProjectCodeName"].click()
+        app.textFields["newProjectCodeName"].typeText("Original")
+        app.textFields["newProjectLineOfBusiness"].click()
+        app.textFields["newProjectLineOfBusiness"].typeText("Camera")
+        app.buttons["Create & Open"].click()
+        XCTAssertTrue(app.buttons["workspaceBack"].waitForExistence(timeout: 5))
+        app.buttons["workspaceBack"].click()
+        XCTAssertTrue(app.buttons["Open Original"].waitForExistence(timeout: 5))
+        app.buttons["Open Original"].rightClick()
+        app.menuItems["Duplicate"].click()
+        XCTAssertTrue(app.buttons["confirmDuplicate"].waitForExistence(timeout: 5))
+        app.buttons["confirmDuplicate"].click()
+        XCTAssertTrue(app.buttons["Open Original Copy"].waitForExistence(timeout: 5))
+        app.buttons["Open Original Copy"].rightClick()
+        app.windows.firstMatch.menuItems["Delete"].click()
+        let confirmDelete = app.sheets.buttons["Delete"]
+        XCTAssertTrue(confirmDelete.waitForExistence(timeout: 5))
+        confirmDelete.click()
+        let removed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            !app.buttons["Open Original Copy"].exists
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Original"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Open Original Copy"].exists)
+    }
+
     func testSavedProjectSurvivesRelaunch() {
         let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]

@@ -105,6 +105,28 @@ actor ProjectFileStore {
         if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
     }
 
+    func duplicate(id: UUID, codeName: String) throws -> ProjectReport {
+        guard let original = try fetchProject(id: id) else { throw StorageError.projectMissing }
+        let name = codeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { throw StorageError.writeFailed("project name") }
+        let copy = original.duplicated(codeName: name)
+        let staging = storage.projects.appendingPathComponent(".copy-" + copy.id.uuidString)
+        do {
+            let assets = staging.appendingPathComponent("Assets", isDirectory: true)
+            try FileManager.default.createDirectory(at: assets, withIntermediateDirectories: true)
+            for (source, destination) in zip(original.card?.assets ?? [], copy.card?.assets ?? []) {
+                try FileManager.default.copyItem(at: assetURL(source, projectID: id),
+                    to: assets.appendingPathComponent(destination.localReference))
+            }
+            try JSONEncoder().encode(StoredDocument(copy)).write(to: staging.appendingPathComponent("project.json"), options: .atomic)
+            try FileManager.default.moveItem(at: staging, to: storage.projectDirectory(copy.id))
+            return copy
+        } catch {
+            try? FileManager.default.removeItem(at: staging)
+            throw StorageError.writeFailed("project copy")
+        }
+    }
+
     func delete(id: UUID) throws {
         let directory = storage.projectDirectory(id)
         guard FileManager.default.fileExists(atPath: directory.path) else { return }
