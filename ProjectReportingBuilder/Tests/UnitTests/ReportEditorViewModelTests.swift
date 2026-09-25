@@ -6,7 +6,7 @@ import Testing
 struct ReportEditorViewModelTests {
     private func report() -> ProjectReport {
         ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
-                      status: .active, template: .technical, createdAt: .distantPast, updatedAt: .distantPast)
+                      status: .active, createdAt: .distantPast, updatedAt: .distantPast)
     }
 
     @Test func openingCardlessReportDoesNotWrite() async throws {
@@ -32,7 +32,7 @@ struct ReportEditorViewModelTests {
         #expect(repository.saveCount == 0)
     }
 
-    @Test func repeatedSavesKeepOneCardAndTemplate() async throws {
+    @Test func repeatedSavesKeepOneCardAndMetadata() async throws {
         let original = report()
         let repository = WorkspaceTestRepository(project: original)
         let model = ReportEditorViewModel(projectID: original.id, repository: repository)
@@ -46,7 +46,6 @@ struct ReportEditorViewModelTests {
         #expect(repository.saveCount == 2)
         #expect(repository.project?.card?.id == cardID)
         #expect(repository.project?.card?.summary.message == "Second")
-        #expect(repository.project?.template == .technical)
         #expect(repository.project?.createdAt == original.createdAt)
         #expect(repository.project?.updatedAt != original.updatedAt)
         let reopened = ReportEditorViewModel(projectID: original.id, repository: repository)

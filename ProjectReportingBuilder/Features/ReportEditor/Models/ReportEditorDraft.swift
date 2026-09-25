@@ -53,7 +53,7 @@ struct ReportEditorDraft: Equatable {
         codeNameError == nil && lineOfBusinessError == nil && milestoneError == nil && metricsError == nil
     }
 
-    /// Apply editable fields while preserving identity, template, status, and metadata.
+    /// Apply editable fields while preserving identity, status, and metadata.
     /// - Returns: A report ready to save. Validate the draft before calling.
     /// - Throws: A validation error if a metric cannot be converted.
     func applying(to project: ProjectReport, cardID: UUID, updatedAt: Date) throws -> ProjectReport {
