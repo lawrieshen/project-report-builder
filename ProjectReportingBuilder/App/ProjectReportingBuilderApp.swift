@@ -21,6 +21,7 @@ struct ProjectReportingBuilderApp: App {
             if let environment {
                 ContentView(repository: environment.projects, assetFactory: environment.assets,
                             recoveryRepository: LocalDraftRecoveryRepository(store: environment.store))
+                    .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
             } else {
                 ContentUnavailableView("Unable to open local storage", systemImage: "externaldrive.badge.exclamationmark",
                                        description: Text(startupError ?? "Please reopen the app."))
@@ -29,7 +30,10 @@ struct ProjectReportingBuilderApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1000, height: 700)
         Settings {
-            if let environment { AppSettingsView(store: environment.settings, fileStore: environment.store) }
+            if let environment {
+                AppSettingsView(store: environment.settings, fileStore: environment.store)
+                    .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
+            }
         }
     }
 }
