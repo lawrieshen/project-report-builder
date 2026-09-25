@@ -56,7 +56,7 @@ struct ReportEditorDraftTests {
         draft.summaryMessage = "Need help"
         draft.leadEPMName = "Jane Smith"
         draft.projectDRIName = "Alex"
-        let result = draft.applying(to: project, cardID: UUID(), updatedAt: date)
+        let result = try draft.applying(to: project, cardID: UUID(), updatedAt: date)
         #expect(result.id == project.id)
         #expect(result.template == .technical)
         #expect(result.status == .active)
@@ -74,6 +74,6 @@ struct ReportEditorDraftTests {
         #expect(card.accountability.leadEPM?.name == "Jane Smith")
         #expect(card.accountability.projectDRI?.name == "Alex")
         draft.leadEPMName = " "
-        #expect(draft.applying(to: result, cardID: cardID, updatedAt: date).card?.accountability.leadEPM == nil)
+        #expect(try draft.applying(to: result, cardID: cardID, updatedAt: date).card?.accountability.leadEPM == nil)
     }
 }
