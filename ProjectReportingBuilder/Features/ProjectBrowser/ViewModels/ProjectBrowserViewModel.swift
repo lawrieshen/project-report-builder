@@ -10,6 +10,7 @@ final class ProjectBrowserViewModel {
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var errorMessage: String?
+    private(set) var storageWarnings: [String] = []
     var actionErrorMessage: String?
     
     private let repository: ProjectRepository
@@ -48,6 +49,7 @@ final class ProjectBrowserViewModel {
             let loadedProjects = try await repository.fetchProjects()
             try Task.checkCancellation()
             projects = loadedProjects
+            storageWarnings = repository.loadWarnings
         } catch is CancellationError {
             // A cancelled view task should not display an error.
         } catch {

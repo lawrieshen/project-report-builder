@@ -202,7 +202,7 @@ final class AssetInputUITests: XCTestCase {
     }
 
     private func openReport() -> XCUIApplication {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         app.activate()

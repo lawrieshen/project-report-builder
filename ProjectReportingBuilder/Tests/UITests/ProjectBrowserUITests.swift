@@ -3,7 +3,7 @@ import XCTest
 final class ProjectBrowserUITests: XCTestCase {
     @MainActor
     func testCreateSearchAndOpenProject() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         // Start with a fresh window instead of restoring a previously closed one.
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
@@ -62,7 +62,7 @@ final class ProjectBrowserUITests: XCTestCase {
     }
     @MainActor
     func testFilterAndDeleteProject() throws {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         let newProject = app.buttons["newProjectButton"]
