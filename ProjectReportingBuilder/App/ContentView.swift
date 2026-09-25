@@ -45,7 +45,7 @@ struct ContentView: View {
     
     @ViewBuilder
     private var newProjectOverlay: some View {
-        ZStack(alignment: .trailing) {
+        ZStack(alignment: .topTrailing) {
             if router.showingNewProject {
                 Color.black.opacity(0.01)
                     .ignoresSafeArea()
@@ -59,7 +59,11 @@ struct ContentView: View {
                 
                 NewProjectCard(
                     viewModel: browserViewModel,
-                    onDismiss: dismissNewProject
+                    onDismiss: dismissNewProject,
+                    onCreated: { project in
+                        dismissNewProject()
+                        router.openProject(id: project.id)
+                    }
                 )
                 .padding(24)
                 .frame(width: 468)

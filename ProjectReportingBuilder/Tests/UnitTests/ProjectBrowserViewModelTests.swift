@@ -49,8 +49,9 @@ struct ProjectBrowserViewModelTests {
         model.filter.statuses = [.archived]
         let created = await model.createProject(codeName: " Titan ",
                                                 lineOfBusiness: " Camera ", status: .draft)
-        #expect(created)
+        #expect(created != nil)
         let saved = try #require(model.projects.first)
+        #expect(created?.id == saved.id)
         #expect(saved.codeName == "Titan")
         #expect(saved.lineOfBusiness == "Camera")
         #expect(saved.status == .draft)
@@ -100,7 +101,7 @@ struct ProjectBrowserViewModelTests {
         let repository = InMemoryProjectRepository()
         let model = ProjectBrowserViewModel(repository: repository)
         let created = await model.createProject(codeName: "  ", lineOfBusiness: "Camera", status: .draft)
-        #expect(!created)
+        #expect(created == nil)
         #expect(model.actionErrorMessage != nil)
         #expect(try await repository.fetchProjects().isEmpty)
     }
@@ -123,7 +124,7 @@ struct ProjectBrowserViewModelTests {
         #expect(model.projects == [existing])
         #expect(model.actionErrorMessage != nil)
         let created = await model.createProject(codeName: "New", lineOfBusiness: "Services", status: .draft)
-        #expect(!created)
+        #expect(created == nil)
         #expect(model.projects == [existing])
         #expect(!model.isSaving)
     }

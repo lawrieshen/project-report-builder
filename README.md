@@ -21,6 +21,10 @@ A native macOS application for creating strucutured, shareable project reporting
 - Xcode
 ## Report Workspace
 
+Use **Create & Open** in the compact, top-aligned New Project card to save a
+project and open its workspace immediately. Failed creation keeps your input
+in the card for retry.
+
 Open a project card to view and edit its report in one screen. The workspace
 supports project identity, health and milestone, executive summary, and
 accountability. Status and template are read-only in the inspector.
