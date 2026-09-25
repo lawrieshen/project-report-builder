@@ -4,10 +4,11 @@ struct ReportEditorView: View {
     @Bindable var viewModel: ReportEditorViewModel
     let onBack: () -> Void
     var editMetric: (EngineeringMetricDraft, Bool) -> Void = { _, _ in }
+    var addContent: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
-            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack)
+            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent)
             Divider()
             workspaceContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

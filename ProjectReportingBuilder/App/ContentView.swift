@@ -9,6 +9,7 @@ struct ContentView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private enum Card {
+        case sourceContent
         case filters
         case metric(EngineeringMetricDraft, Bool)
     }
@@ -86,6 +87,10 @@ struct ContentView: View {
             })
         } else if let card {
             switch card {
+            case .sourceContent:
+                if let editor = router.editor {
+                    ContentInputCard(editor: editor, onDismiss: dismissCard)
+                }
             case .filters:
                 ProjectFilterCard(filter: $browserViewModel.filter,
                                   linesOfBusiness: browserViewModel.linesOfBusiness,
@@ -171,7 +176,8 @@ struct ContentView: View {
     private var workspaceDestination: some View {
         if let editor = router.editor {
             ReportEditorView(viewModel: editor, onBack: router.showProjects,
-                             editMetric: { card = .metric($0, $1) })
+                             editMetric: { card = .metric($0, $1) },
+                             addContent: { card = .sourceContent })
                 .id(editor.projectID)
         } else {
             ProjectBrowserView(viewModel: browserViewModel,
