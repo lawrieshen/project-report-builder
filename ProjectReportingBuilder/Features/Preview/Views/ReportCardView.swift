@@ -91,18 +91,10 @@ struct ReportCardView: View {
     @ViewBuilder
     private var summary: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
-            ReportSectionHeading(section: .summary, title: summaryTitle)
+            ReportSectionHeading(section: .summary, title: model.summaryHeading)
             Text(model.summaryMessage)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("previewSummary")
-        }
-    }
-
-    private var summaryTitle: String {
-        switch model.summaryType {
-        case .update: return "Latest Update"
-        case .blocker: return "Blocker"
-        case .ask: return "Ask"
         }
     }
 

@@ -8,10 +8,13 @@ struct ReportExportRenderer: ReportExportRendering {
 
     func render(model: ReportPreviewModel, options: ExportOptions) async throws -> ExportResult {
         try Task.checkCancellation()
-        guard options.format == .png else { throw ExportError.unsupportedFormat }
         let images = try await preparedImages(model.assets)
         try Task.checkCancellation()
-        let data = try png(model: model, images: images, options: options)
+        let data: Data
+        switch options.format {
+        case .png: data = try png(model: model, images: images, options: options)
+        case .html: data = try ReportHTMLRenderer.render(model: model, images: images, options: options)
+        }
         return ExportResult(data: data, fileName: ExportFileName.fileName(model.codeName, format: options.format),
                             contentType: options.format)
     }
