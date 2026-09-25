@@ -55,31 +55,18 @@ struct ReportExportRenderer: ReportExportRendering {
             .frame(width: ReportCardStyle.standardWidth)
             .fixedSize(horizontal: false, vertical: true)
             .environment(\.colorScheme, scheme)
+            .background(options.background == .transparent ? Color.clear : ReportAccessibilityStyle.canonical.palette(scheme).background.color)
         let renderer = ImageRenderer(content: card)
         let scale = options.imageScale.factor
-        var output: Data?
-        var failure: ExportError = .renderingFailed
-        renderer.render(rasterizationScale: scale) { size, draw in
-            guard Self.isSafeRasterSize(size, scale: scale) else {
-                failure = .reportTooLarge
-                return
-            }
-            let width = Int(ceil(size.width * scale)), height = Int(ceil(size.height * scale))
-            guard let space = CGColorSpace(name: CGColorSpace.sRGB),
-                  let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
-                                          bytesPerRow: width * 4, space: space,
-                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
-            context.scaleBy(x: scale, y: scale)
-            if options.background != .transparent {
-                let background = ReportAccessibilityStyle.canonical.palette(scheme).background
-                context.setFillColor(CGColor(red: background.red, green: background.green, blue: background.blue, alpha: 1))
-                context.fill(CGRect(origin: .zero, size: size))
-            }
-            draw(context)
-            guard let image = context.makeImage() else { return }
-            output = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+        renderer.scale = scale
+        var measuredSize: CGSize?
+        renderer.render(rasterizationScale: scale) { size, _ in measuredSize = size }
+        guard let measuredSize else { throw ExportError.renderingFailed }
+        guard Self.isSafeRasterSize(measuredSize, scale: scale) else { throw ExportError.reportTooLarge }
+        guard let image = renderer.cgImage,
+              let output = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
+            throw ExportError.renderingFailed
         }
-        guard let output else { throw failure }
         return output
     }
 
