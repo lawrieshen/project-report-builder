@@ -14,10 +14,11 @@ struct SnippetCard: Identifiable, Codable, Equatable {
     var summary: ExecutiveSummary
     var accountability: Accountability
     
+    var assets: [ImageAsset] = []
     var metrics: [EngineeringMetric] = []
 
     private enum CodingKeys: String, CodingKey {
-        case id, health, summary, accountability, metrics
+        case id, health, summary, accountability, metrics, assets
     }
 
 }
@@ -30,6 +31,7 @@ extension SnippetCard {
         health = try values.decode(ProjectHealth.self, forKey: .health)
         summary = try values.decode(ExecutiveSummary.self, forKey: .summary)
         accountability = try values.decode(Accountability.self, forKey: .accountability)
+        assets = try values.decodeIfPresent([ImageAsset].self, forKey: .assets) ?? []
         metrics = try values.decodeIfPresent([EngineeringMetric].self, forKey: .metrics) ?? []
     }
 }
