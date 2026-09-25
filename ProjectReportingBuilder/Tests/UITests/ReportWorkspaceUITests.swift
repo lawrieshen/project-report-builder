@@ -82,7 +82,7 @@ final class ReportWorkspaceUITests: XCTestCase {
     }
 
     private func openNewReport() throws -> XCUIApplication {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         let newProject = app.buttons["newProjectButton"]

@@ -11,6 +11,10 @@ struct ProjectBrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
             browserHeader
+            if !viewModel.storageWarnings.isEmpty {
+                Text("Some projects could not be loaded.\n" + viewModel.storageWarnings.joined(separator: "\n"))
+                    .font(.caption).foregroundStyle(.orange).padding(AppSpacing.cardInset)
+            }
             Divider()
             browserContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -24,8 +24,8 @@ struct ContentView: View {
     @State private var router: AppRouter
     @State private var browserViewModel: ProjectBrowserViewModel
     
-    init(repository: ProjectRepository) {
-        _router = State(initialValue: AppRouter(repository: repository))
+    init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil) {
+        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory))
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
     

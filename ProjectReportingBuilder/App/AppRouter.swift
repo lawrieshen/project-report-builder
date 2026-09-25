@@ -11,7 +11,7 @@ final class AppRouter {
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
     private let repository: ProjectRepository
-    private let assetRepository: any AssetRepository
+    private let assetFactory: (UUID) -> any AssetRepository
 
     private enum Destination {
         case browser
@@ -19,9 +19,11 @@ final class AppRouter {
         case editor(UUID)
     }
 
-    init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil) {
+    init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil,
+         assetFactory: ((UUID) -> any AssetRepository)? = nil) {
         self.repository = repository
-        self.assetRepository = assetRepository ?? LocalAssetRepository()
+        let fallback = assetRepository ?? LocalAssetRepository()
+        self.assetFactory = assetFactory ?? { _ in fallback }
     }
 
     func openProject(id: UUID) {
@@ -75,7 +77,7 @@ final class AppRouter {
             editor = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
-            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetRepository)
+            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id))
             route = .reportEditor(projectID: id)
         }
     }
