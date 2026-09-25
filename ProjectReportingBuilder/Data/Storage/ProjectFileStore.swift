@@ -50,6 +50,27 @@ actor ProjectFileStore {
         catch { throw StorageError.writeFailed("project") }
     }
 
+    func assetURL(_ asset: ImageAsset, projectID: UUID) throws -> URL {
+        let reference = asset.localReference
+        guard !reference.isEmpty, reference != ".", reference != "..",
+              !reference.contains("/"), !reference.contains("\\") else { throw StorageError.invalidReference }
+        return storage.assets(projectID).appendingPathComponent(reference)
+    }
+
+    func writeAsset(_ data: Data, asset: ImageAsset, projectID: UUID) throws {
+        guard try fetchProject(id: projectID) != nil else { throw StorageError.projectMissing }
+        let url = try assetURL(asset, projectID: projectID)
+        try FileManager.default.createDirectory(at: storage.assets(projectID), withIntermediateDirectories: true)
+        try data.write(to: url, options: .atomic)
+    }
+
+    func removeAsset(_ asset: ImageAsset, projectID: UUID) throws {
+        let url = try assetURL(asset, projectID: projectID)
+        let saved = try fetchProject(id: projectID)?.card?.assets ?? []
+        guard !saved.contains(where: { $0.localReference == asset.localReference }) else { return }
+        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+    }
+
     func delete(id: UUID) throws {
         let directory = storage.projectDirectory(id)
         guard FileManager.default.fileExists(atPath: directory.path) else { return }

@@ -6,14 +6,25 @@ import UniformTypeIdentifiers
 actor LocalAssetRepository: AssetRepository {
     private let directory: URL
     private let maximumFileSize: Int
+    private let store: ProjectFileStore?
+    private let projectID: UUID?
 
     // Reports currently live in memory, so the default asset directory is session-scoped.
     init(directory: URL = FileManager.default.temporaryDirectory
         .appendingPathComponent("ProjectReportAssets")
         .appendingPathComponent(UUID().uuidString),
          maximumFileSize: Int = 20 * 1_048_576) {
+        self.store = nil
+        self.projectID = nil
         self.directory = directory
         self.maximumFileSize = maximumFileSize
+    }
+
+    init(storage: ApplicationStorage, projectID: UUID, store: ProjectFileStore) {
+        self.directory = storage.assets(projectID)
+        self.projectID = projectID
+        self.store = store
+        self.maximumFileSize = 20 * 1_048_576
     }
 
     func importImage(from url: URL) async throws -> ImageAsset {
@@ -36,12 +47,20 @@ actor LocalAssetRepository: AssetRepository {
         let id = UUID()
         let reference = id.uuidString + "." + (type?.preferredFilenameExtension ?? "image")
         let asset = ImageAsset(id: id, fileName: url.lastPathComponent, localReference: reference)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try data.write(to: managedURL(for: asset), options: .atomic)
+        if let store, let projectID {
+            try await store.writeAsset(data, asset: asset, projectID: projectID)
+        } else {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try data.write(to: managedURL(for: asset), options: .atomic)
+        }
         return asset
     }
 
     func removeImage(_ asset: ImageAsset) async throws {
+        if let store, let projectID {
+            try await store.removeAsset(asset, projectID: projectID)
+            return
+        }
         let url = try managedURL(for: asset)
         if FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)

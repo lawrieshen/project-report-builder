@@ -90,6 +90,26 @@ struct AssetRepositoryTests {
         #expect(FileManager.default.fileExists(atPath: fake.path))
     }
 
+    @Test func persistentAssetsSurviveReopeningAndSourceRemoval() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = ApplicationStorage(root: root)
+        try storage.prepare()
+        let store = ProjectFileStore(storage: storage)
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        try await store.save(project)
+        let source = try makeImage(in: root, type: .png)
+        let assets = LocalAssetRepository(storage: storage, projectID: project.id, store: store)
+        let asset = try await assets.importImage(from: source)
+        try FileManager.default.removeItem(at: source)
+        let reopened = LocalAssetRepository(storage: storage, projectID: project.id, store: ProjectFileStore(storage: storage))
+        #expect(try await reopened.thumbnailData(for: asset, maximumPixelSize: 8).isEmpty == false)
+        #expect(!asset.localReference.contains("/"))
+        try await store.delete(id: project.id)
+        await #expect(throws: (any Error).self) { try await store.writeAsset(Data(), asset: asset, projectID: project.id) }
+        #expect(!FileManager.default.fileExists(atPath: storage.projectDirectory(project.id).path))
+    }
+
     private func makeImage(in directory: URL, type: UTType,
                            red: CGFloat = 0.1, green: CGFloat = 0.3, blue: CGFloat = 0.9) throws -> URL {
         let colorSpace = try #require(CGColorSpace(name: CGColorSpace.sRGB))
