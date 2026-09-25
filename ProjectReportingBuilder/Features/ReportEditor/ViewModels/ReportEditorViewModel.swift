@@ -142,6 +142,35 @@ final class ReportEditorViewModel {
         importedAssets = []
     }
 
+    /// Apply only explicitly selected, available suggestions to the current draft.
+    func applyContentSuggestions(_ suggestions: ReportContentSuggestions,
+                                 selection: ContentSuggestionSelection) {
+        guard !isSaving, !isLoading, var current = draft else { return }
+        for field in selection.fields {
+            switch field {
+            case .codeName:
+                if let value = suggestions.codeName { current.codeName = value }
+            case .lineOfBusiness:
+                if let value = suggestions.lineOfBusiness { current.lineOfBusiness = value }
+            case .health:
+                if let value = suggestions.ragStatus { current.ragStatus = value }
+            case .milestone:
+                if let value = suggestions.milestonePhase { current.milestonePhase = value }
+            case .deadline:
+                if let value = suggestions.milestoneDeadline { current.milestoneDeadline = value }
+            case .summaryType:
+                if let value = suggestions.summaryType { current.summaryType = value }
+            case .summary:
+                if let value = suggestions.summaryMessage { current.summaryMessage = value }
+            case .leadEPM:
+                if let value = suggestions.leadEPMName { current.leadEPMName = value }
+            case .projectDRI:
+                if let value = suggestions.projectDRIName { current.projectDRIName = value }
+            }
+        }
+        draft = current
+    }
+
     /// Import or replace an image only after the managed copy has been validated.
     func importImages(from urls: [URL], replacing assetID: UUID? = nil) async {
         guard !isLoading, !isSaving, !isImporting, draft != nil else { return }
