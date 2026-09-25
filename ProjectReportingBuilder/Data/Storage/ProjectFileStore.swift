@@ -85,6 +85,21 @@ actor ProjectFileStore {
         }
     }
 
+    /// Remove recovery documents only; leave projects and managed images untouched.
+    func clearRecoveryDrafts() throws {
+        try storage.prepare()
+        let files = try FileManager.default.contentsOfDirectory(at: storage.recovery,
+            includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+        for file in files {
+            guard file.pathExtension == "json",
+                  UUID(uuidString: file.deletingPathExtension().lastPathComponent) != nil else { continue }
+            let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            guard values.isRegularFile == true, values.isSymbolicLink != true else { continue }
+            do { try FileManager.default.removeItem(at: file) }
+            catch { throw StorageError.writeFailed("recovery cleanup; some drafts may remain") }
+        }
+    }
+
     func assetURL(_ asset: ImageAsset, projectID: UUID) throws -> URL {
         let reference = asset.localReference
         guard !reference.isEmpty, reference != ".", reference != "..",

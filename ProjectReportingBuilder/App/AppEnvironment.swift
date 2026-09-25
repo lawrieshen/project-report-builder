@@ -3,6 +3,7 @@ import Foundation
 /// Choose storage dependencies once for the application session.
 @MainActor
 struct AppEnvironment {
+    let maintenance = RecoveryMaintenanceCoordinator()
     let session: AppSessionStore
     let settings: AppSettingsStore
     let storage: ApplicationStorage

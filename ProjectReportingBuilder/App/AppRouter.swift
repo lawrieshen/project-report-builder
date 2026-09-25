@@ -11,6 +11,7 @@ final class AppRouter {
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
     private let recoveryRepository: (any DraftRecoveryRepository)?
+    private let maintenance: RecoveryMaintenanceCoordinator?
     private let session: AppSessionStore?
     private var hasRestoredSession = false
     private var navigationRevision = 0
@@ -27,7 +28,9 @@ final class AppRouter {
 
     init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil,
          assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil) {
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil,
+         maintenance: RecoveryMaintenanceCoordinator? = nil) {
+        self.maintenance = maintenance
         self.session = session
         self.settings = settings
         self.recoveryRepository = recoveryRepository
@@ -73,7 +76,7 @@ final class AppRouter {
     }
 
     func discardAndLeave() async {
-        guard editor?.isSaving != true, editor?.isImporting != true else { return }
+        guard maintenance?.isClearing != true, editor?.isSaving != true, editor?.isImporting != true else { return }
         guard await editor?.discardChanges() == true else {
             cancelNavigation()
             return
@@ -92,7 +95,7 @@ final class AppRouter {
     private func request(_ destination: Destination) {
         navigationRevision += 1
         restorationMessage = nil
-        guard editor?.isSaving != true, editor?.isImporting != true else { return }
+        guard maintenance?.isClearing != true, editor?.isSaving != true, editor?.isImporting != true else { return }
         if editor?.isDirty == true {
             pendingDestination = destination
             editor?.setAutosavePaused(true)
@@ -115,10 +118,12 @@ final class AppRouter {
         case .browser, .newProject:
             route = nil
             editor = nil
+            maintenance?.participant = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
             session?.state.lastOpenedProjectID = id
             editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository, settings: settings)
+            maintenance?.participant = editor
             route = .reportEditor(projectID: id)
         }
     }
