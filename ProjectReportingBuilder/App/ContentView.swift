@@ -26,8 +26,8 @@ struct ContentView: View {
     @State private var browserViewModel: ProjectBrowserViewModel
     
     init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
-        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository))
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil) {
+        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings))
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
     

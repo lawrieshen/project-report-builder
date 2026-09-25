@@ -11,6 +11,7 @@ final class AppRouter {
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
     private let recoveryRepository: (any DraftRecoveryRepository)?
+    private let settings: AppSettingsStore?
     private let repository: ProjectRepository
     private let assetFactory: (UUID) -> any AssetRepository
 
@@ -22,7 +23,8 @@ final class AppRouter {
 
     init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil,
          assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil) {
+        self.settings = settings
         self.recoveryRepository = recoveryRepository
         self.repository = repository
         let fallback = assetRepository ?? LocalAssetRepository()
@@ -40,6 +42,7 @@ final class AppRouter {
     func cancelNavigation() {
         pendingDestination = nil
         showingLeaveConfirmation = false
+        editor?.setAutosavePaused(false)
     }
 
     func discardAndLeave() async {
@@ -63,6 +66,7 @@ final class AppRouter {
         guard editor?.isSaving != true, editor?.isImporting != true else { return }
         if editor?.isDirty == true {
             pendingDestination = destination
+            editor?.setAutosavePaused(true)
             showingLeaveConfirmation = true
         } else {
             navigate(to: destination)
@@ -76,6 +80,7 @@ final class AppRouter {
     }
 
     private func navigate(to destination: Destination) {
+        editor?.setAutosavePaused(true)
         showingNewProject = false
         switch destination {
         case .browser, .newProject:
@@ -83,7 +88,7 @@ final class AppRouter {
             editor = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
-            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository)
+            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository, settings: settings)
             route = .reportEditor(projectID: id)
         }
     }
