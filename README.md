@@ -58,3 +58,30 @@ preservation, load/save failures, dirty state, discard, guarded navigation,
 save/reopen, and browser refresh. ViewModels access reports through
 `ProjectRepository.fetchProject(id:)`; `AppRouter` passes only project IDs and
 coordinates navigation. Views edit `ReportEditorDraft` instead of stored data.
+
+## Engineering Metrics
+
+The Report Workspace includes an Engineering Metrics section between Health and
+Summary. Add or click a metric to edit a temporary copy. **Save Metric** applies
+that copy to the report draft; **Cancel** leaves the report unchanged. Use
+**Save** in the workspace header to save the report to the repository.
+
+Each metric has a name and current value, plus optional unit, target, and
+severity (P0–P3 or Info). Targets support `<`, `≤`, `>`, `≥`, and `=`. Target status
+and delta are calculated from the stored values, not saved as display strings.
+Equality compares the exact stored Double values. Status includes text and an
+icon, rather than color alone.
+
+- Names must be unique within the report, ignoring case and surrounding spaces.
+- Numeric input uses a decimal point; scientific notation is accepted. Commas,
+  NaN, infinity, and values outside the finite Double range are rejected.
+- Use the row menu to Edit, Move Up, Move Down, or Delete Metric. Array order is
+  preserved across saves. Deletion changes the draft immediately; Discard can
+  restore the last saved metrics.
+- Metric changes participate in unsaved-navigation protection. Failed report
+  saves preserve all metric edits, and saving never changes the template.
+- Older report cards without a metrics field decode with an empty list.
+
+Metrics tests cover model compatibility, comparison boundaries, formatting,
+validation, duplicate names, stable IDs, ordering, failed saves, discard,
+editing cancellation, and save/reopen UI workflows. Storage remains in memory.
