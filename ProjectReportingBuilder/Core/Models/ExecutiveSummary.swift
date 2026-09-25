@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ExecutiveSummary: Codable, Equatable {
+nonisolated struct ExecutiveSummary: Codable, Equatable, Sendable {
     var type: SummaryType
     var message: String
 }

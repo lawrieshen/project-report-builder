@@ -6,7 +6,7 @@
 //
 
 // Manage project health status
-enum RAGStatus: String, Codable, CaseIterable {
+nonisolated enum RAGStatus: String, Codable, CaseIterable, Sendable {
     case green
     case amber
     case red

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Project_Report_Builder
 
+@MainActor
 struct StorageFoundationTests {
     @Test func versionAndDirectoryBoundaries() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

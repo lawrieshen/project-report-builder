@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Milestone: Codable, Equatable {
+nonisolated struct Milestone: Codable, Equatable, Sendable {
     var phase: String
     var deadline: Date
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct ProjectLoadResult {
+nonisolated struct ProjectLoadResult: Sendable {
     var projects: [ProjectReport] = []
     var warnings: [String] = []
 }
@@ -50,6 +50,39 @@ actor ProjectFileStore {
         catch { throw StorageError.writeFailed("project") }
     }
 
+    func fetchRecovery(projectID: UUID) throws -> RecoverySnapshot? {
+        let url = storage.recoveryFile(projectID)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        do {
+            let snapshot = try StoredDocument<RecoverySnapshot>.decode(Data(contentsOf: url))
+            guard snapshot.projectID == projectID else { throw StorageError.readFailed("recovery identity") }
+            guard let project = try fetchProject(id: projectID),
+                  project.updatedAt == snapshot.baseUpdatedAt else { return nil }
+            return snapshot
+        } catch let error as StorageError { throw error }
+        catch { throw StorageError.readFailed("recovery copy") }
+    }
+
+    func saveRecovery(_ snapshot: RecoverySnapshot) throws {
+        guard let project = try fetchProject(id: snapshot.projectID) else { throw StorageError.projectMissing }
+        _ = try fetchRecovery(projectID: snapshot.projectID)
+        // An older pending write must not resurrect a draft after a successful save.
+        guard project.updatedAt == snapshot.baseUpdatedAt else { return }
+        do {
+            try storage.prepare()
+            let data = try JSONEncoder().encode(StoredDocument(snapshot))
+            try data.write(to: storage.recoveryFile(snapshot.projectID), options: .atomic)
+        } catch { throw StorageError.writeFailed("recovery copy") }
+    }
+
+    func deleteRecovery(projectID: UUID) throws {
+        let url = storage.recoveryFile(projectID)
+        if FileManager.default.fileExists(atPath: url.path) {
+            do { try FileManager.default.removeItem(at: url) }
+            catch { throw StorageError.writeFailed("recovery cleanup") }
+        }
+    }
+
     func assetURL(_ asset: ImageAsset, projectID: UUID) throws -> URL {
         let reference = asset.localReference
         guard !reference.isEmpty, reference != ".", reference != "..",
@@ -67,7 +100,8 @@ actor ProjectFileStore {
     func removeAsset(_ asset: ImageAsset, projectID: UUID) throws {
         let url = try assetURL(asset, projectID: projectID)
         let saved = try fetchProject(id: projectID)?.card?.assets ?? []
-        guard !saved.contains(where: { $0.localReference == asset.localReference }) else { return }
+        let recovered = try fetchRecovery(projectID: projectID)?.draft.assets ?? []
+        guard !(saved + recovered).contains(where: { $0.localReference == asset.localReference }) else { return }
         if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
     }
 

@@ -4,6 +4,24 @@ import Testing
 
 @MainActor
 struct LocalProjectRepositoryTests {
+    @Test func failedAtomicWritePreservesPreviousDocument() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let storage = ApplicationStorage(root: root)
+        let store = ProjectFileStore(storage: storage)
+        var project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        try await store.save(project)
+        let directory = storage.projectDirectory(project.id)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+            try? FileManager.default.removeItem(at: root)
+        }
+        let before = try Data(contentsOf: storage.projectFile(project.id))
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        project.codeName = "Must not replace saved data"
+        await #expect(throws: (any Error).self) { try await store.save(project) }
+        #expect(try Data(contentsOf: storage.projectFile(project.id)) == before)
+    }
+
     @Test func survivesReinitializationAndReportsCorruption() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

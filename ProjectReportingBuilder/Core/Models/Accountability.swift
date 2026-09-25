@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Accountability: Codable, Equatable {
+nonisolated struct Accountability: Codable, Equatable, Sendable {
     var leadEPM: Person?
     var projectDRI: Person?
 }

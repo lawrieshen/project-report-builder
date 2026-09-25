@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ProjectHealth: Codable, Equatable {
+nonisolated struct ProjectHealth: Codable, Equatable, Sendable {
     var ragStatus: RAGStatus?
     var milestone: Milestone?
 }
