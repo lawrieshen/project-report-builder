@@ -79,9 +79,15 @@ final class ProjectBrowserViewModel {
         defer { isSaving = false }
         
         let now = Date()
-        let project = ProjectReport(id: UUID(), codeName: name,
-                                    lineOfBusiness: business, status: status,
-                                    createdAt: now, updatedAt: now)
+        let project = ProjectReport(
+            id: UUID(),
+            codeName: name,
+            lineOfBusiness: business,
+            status: status,
+            createdAt: now,
+            updatedAt: now
+        )
+        
         do {
             try await repository.save(project)
             projects.append(project)
