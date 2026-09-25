@@ -5,10 +5,10 @@
 //  Created by Lawrence Shen on 25/9/2026.
 //
 
-import SwiftUI
+import Foundation
 
 struct Person: Identifiable, Codable, Equatable {
-    var id: Int
+    let id: UUID
     var name: String
     var role: String?
     
