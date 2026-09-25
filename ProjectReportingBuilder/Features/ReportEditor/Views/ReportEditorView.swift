@@ -56,6 +56,8 @@ struct ReportEditorView: View {
                     Divider()
                     HealthUrgencySectionView(draft: draft)
                     Divider()
+                    MetricsSectionView(viewModel: viewModel)
+                    Divider()
                     ExecutiveSummarySectionView(draft: draft)
                     Divider()
                     AccountabilitySectionView(draft: draft)

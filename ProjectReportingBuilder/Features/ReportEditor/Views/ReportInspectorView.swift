@@ -16,6 +16,7 @@ struct ReportInspectorView: View {
                 Text("Sections").font(.headline)
                 Text("Identity")
                 Text("Health")
+                Text("Metrics")
                 Text("Summary")
                 Text("Accountability")
             }
