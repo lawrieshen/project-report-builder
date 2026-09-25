@@ -27,6 +27,7 @@ struct AutosaveTests {
         #expect(repository.saveCount == 1)
         #expect(repository.project?.card?.summary.message == "Latest")
         #expect(!editor.isDirty)
+        #expect(editor.saveState == .saved)
     }
 
     @Test func manualSaveAndDiscardCancelPendingSave() async throws {
@@ -62,6 +63,7 @@ struct AutosaveTests {
         editor.draft?.codeName = "Retained"
         try await Task.sleep(for: .milliseconds(1300))
         #expect(editor.saveError != nil)
+        #expect(editor.saveState == .failed("Autosave failed"))
         #expect(editor.isDirty)
         repository.failSave = false
         try await Task.sleep(for: .milliseconds(1300))
