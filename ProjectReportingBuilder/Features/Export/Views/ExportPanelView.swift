@@ -3,6 +3,8 @@ import SwiftUI
 struct ExportPanelView: View {
     @Bindable var viewModel: ExportViewModel
     let model: ReportPreviewModel
+    let validation: AccessibilityValidationModel
+    let reviewIssues: () -> Void
     let onDismiss: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
@@ -22,8 +24,7 @@ struct ExportPanelView: View {
             Text("Export / Share").font(.title2)
             Spacer()
             Button("Close", action: onDismiss)
-                .keyboardShortcut(.cancelAction)
-                .disabled(viewModel.isExporting)
+                .disabled(viewModel.isBusy)
                 .accessibilityIdentifier("closeExport")
         }
     }
@@ -33,7 +34,16 @@ struct ExportPanelView: View {
             Text("Export the current report, including unsaved changes.")
                 .font(.callout).foregroundStyle(.secondary)
             options
-            actions
+            if viewModel.requiresConfirmation, let report = viewModel.accessibilityReport {
+                AccessibilityExportWarningView(issueCount: report.issues.count,
+                    review: {
+                        viewModel.cancelPendingExport()
+                        reviewIssues()
+                    }, proceed: { Task { await viewModel.exportAnyway() } },
+                    cancel: viewModel.cancelPendingExport)
+            } else {
+                actions
+            }
             feedback
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -58,7 +68,7 @@ struct ExportPanelView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .disabled(viewModel.isExporting)
+        .disabled(viewModel.isBusy || viewModel.requiresConfirmation)
     }
 
     private var actions: some View {
@@ -73,13 +83,14 @@ struct ExportPanelView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .disabled(viewModel.isExporting)
+        .disabled(viewModel.isBusy)
     }
 
     @ViewBuilder
     private var feedback: some View {
-        if viewModel.isExporting {
-            ProgressView(viewModel.progressMessage)
+        if viewModel.isBusy {
+            ProgressView(viewModel.isCheckingAccessibility && !viewModel.isExporting
+                         ? "Checking accessibility…" : viewModel.progressMessage)
         } else if let error = viewModel.errorMessage {
             Text(error).floatingCardError()
             if let action = viewModel.lastAction { Button("Retry") { run(action) } }
@@ -91,6 +102,6 @@ struct ExportPanelView: View {
 
     private func run(_ action: ExportAction) {
         let appearance: ExportAppearance = colorScheme == .dark ? .dark : .light
-        Task { await viewModel.perform(action, model: model, appearance: appearance) }
+        Task { await viewModel.request(action, model: model, validation: validation, appearance: appearance) }
     }
 }

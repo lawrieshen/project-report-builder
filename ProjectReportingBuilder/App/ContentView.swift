@@ -94,8 +94,10 @@ struct ContentView: View {
         } else if let card {
             switch card {
             case .export:
-                if let model = router.editor?.previewModel, let exportViewModel {
-                    ExportPanelView(viewModel: exportViewModel, model: model, onDismiss: dismissCard)
+                if let draft = router.editor?.draft, let exportViewModel {
+                    ExportPanelView(viewModel: exportViewModel, model: ReportPreviewModel(draft: draft),
+                                    validation: AccessibilityValidationModel(draft: draft),
+                                    reviewIssues: { self.card = .accessibility }, onDismiss: dismissCard)
                 }
             case .accessibility:
                 if let draft = router.editor?.draft {
@@ -148,7 +150,7 @@ struct ContentView: View {
     }
 
     private func dismissCard() {
-        guard exportViewModel?.isExporting != true else { return }
+        guard exportViewModel?.isBusy != true else { return }
         guard !browserViewModel.isSaving, router.editor?.isSaving != true else { return }
         if router.showingNewProject {
             dismissNewProject()
