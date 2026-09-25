@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Project_Report_Builder
 
+@MainActor
 struct ContentProcessorTests {
     @Test func labelledNotesProduceOptionalSuggestions() async throws {
         let result = try await ContentProcessor().process(text: """

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Project_Report_Builder
 
+@MainActor
 struct ImageAssetModelTests {
     @Test func assetsRoundTripThroughDraftAndCoding() throws {
         let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",

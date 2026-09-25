@@ -19,9 +19,9 @@ final class AppRouter {
         case editor(UUID)
     }
 
-    init(repository: ProjectRepository, assetRepository: any AssetRepository = LocalAssetRepository()) {
+    init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil) {
         self.repository = repository
-        self.assetRepository = assetRepository
+        self.assetRepository = assetRepository ?? LocalAssetRepository()
     }
 
     func openProject(id: UUID) {

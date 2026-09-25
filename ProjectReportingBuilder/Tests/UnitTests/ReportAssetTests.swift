@@ -81,3 +81,39 @@ struct ReportAssetTests {
         #expect(Set(await assets.removed) == Set(original.map(\.localReference)))
     }
 }
+
+actor DelayedAssetRepository: AssetRepository {
+    private var continuation: CheckedContinuation<ImageAsset, Never>?
+    private(set) var removed: [ImageAsset] = []
+    var started: Bool { continuation != nil }
+    func importImage(from url: URL) async throws -> ImageAsset {
+        await withCheckedContinuation { continuation = $0 }
+    }
+    func finish(with asset: ImageAsset) { continuation?.resume(returning: asset); continuation = nil }
+    func removeImage(_ asset: ImageAsset) async throws { removed.append(asset) }
+    func thumbnailData(for asset: ImageAsset, maximumPixelSize: Int) async throws -> Data { Data() }
+}
+
+@MainActor
+struct AssetImportCancellationTests {
+    @Test func discardDuringImportDoesNotRestoreAbandonedAssets() async throws {
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+                                    status: .draft, createdAt: .now, updatedAt: .now)
+        let assets = DelayedAssetRepository()
+        let model = ReportEditorViewModel(projectID: project.id,
+                                         repository: WorkspaceTestRepository(project: project), assetRepository: assets)
+        await model.load()
+        let task = Task { await model.importImages(from: [URL(fileURLWithPath: "/late.png")]) }
+        while !(await assets.started) { await Task.yield() }
+        #expect(model.isImporting)
+        #expect(await model.save() == false)
+        model.discardChanges()
+        let abandoned = ImageAsset(id: UUID(), fileName: "late.png", localReference: "late.png")
+        await assets.finish(with: abandoned)
+        await task.value
+        await model.cleanupTask?.value
+        #expect(model.draft?.assets.isEmpty == true)
+        #expect(!model.isDirty)
+        #expect(await assets.removed == [abandoned])
+    }
+}
