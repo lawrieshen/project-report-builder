@@ -7,13 +7,14 @@ struct ReportEditorView: View {
     var addContent: () -> Void = {}
     var previewAsset: (ImageAsset) -> Void = { _ in }
     var showPreview: () -> Void = {}
+    var showExport: () -> Void = {}
     var checkAccessibility: () -> Void = {}
     @Binding var focusedSection: ReportSection?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
-            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent, showPreview: showPreview)
+            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent, showPreview: showPreview, showExport: showExport)
             Divider()
             workspaceContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
