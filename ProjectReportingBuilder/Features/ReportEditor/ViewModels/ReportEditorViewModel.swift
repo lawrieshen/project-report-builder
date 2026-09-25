@@ -18,6 +18,7 @@ final class ReportEditorViewModel: AppSettingsObserving {
     private(set) var loadError: String?
     private(set) var saveError: String?
     private(set) var hasLoaded = false
+    private var lastSaveWasAutomatic = false
     private var autosaveTask: Task<Void, Never>?
     private var autosaveEnabled = false
     private var autosaveDelay: AutosaveDelay = .seconds2
@@ -75,7 +76,7 @@ final class ReportEditorViewModel: AppSettingsObserving {
                 try Task.checkCancellation()
                 guard let self else { return }
                 self.autosaveTask = nil
-                _ = await self.save()
+                _ = await self.save(automatically: true)
             } catch is CancellationError {
                 // A newer edit, settings change, or manual action superseded this save.
             } catch {
@@ -87,6 +88,11 @@ final class ReportEditorViewModel: AppSettingsObserving {
     var previewModel: ReportPreviewModel? { draft.map { ReportPreviewModel(draft: $0) } }
 
     var isDirty: Bool { draft != savedDraft }
+    var saveState: SaveState {
+        if isSaving { return .saving }
+        if saveError != nil { return .failed(lastSaveWasAutomatic ? "Autosave failed" : "Save failed") }
+        return isDirty ? .unsaved : .saved
+    }
     var canSave: Bool { pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
     /// Load once without overwriting edits when the view reappears.
@@ -134,10 +140,11 @@ final class ReportEditorViewModel: AppSettingsObserving {
 
     /// Save a validated snapshot; keep edits intact if the repository fails.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
-    func save() async -> Bool {
+    func save(automatically: Bool = false) async -> Bool {
         autosaveTask?.cancel()
         autosaveTask = nil
         guard pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
+        lastSaveWasAutomatic = automatically
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
             return false
