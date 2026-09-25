@@ -5,6 +5,9 @@ struct ProjectCardView: View {
     let open: () -> Void
     let delete: () -> Void
     
+    var duplicate: () -> Void = {}
+
+
     var body: some View {
         Button(action: open) {
             cardContent
@@ -21,7 +24,7 @@ struct ProjectCardView: View {
     private var actions: some View {
         Button("Open", action: open)
         Divider()
-        Button("Duplicate") {}.disabled(true)
+        Button("Duplicate", action: duplicate)
         Button("Archive") {}.disabled(true)
         Divider()
         Button("Delete", role: .destructive, action: delete)
