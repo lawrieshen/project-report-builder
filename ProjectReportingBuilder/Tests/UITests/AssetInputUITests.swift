@@ -64,6 +64,16 @@ final class AssetInputUITests: XCTestCase {
         XCTAssertEqual(alt.value as? String, "System diagram")
         scrollTo(preview, in: app)
         assertImageColor(.blue, in: preview, named: "Reopened — saved blue A")
+        app.buttons["openLivePreview"].click()
+        XCTAssertTrue(app.buttons["closeLivePreview"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Supporting Assets"].exists)
+        XCTAssertTrue(app.images["System diagram"].firstMatch.waitForExistence(timeout: 5))
+        let reportPreview = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        reportPreview.name = "Live Preview — supporting image"
+        reportPreview.lifetime = .keepAlways
+        add(reportPreview)
+        app.buttons["closeLivePreview"].click()
+        XCTAssertFalse(app.buttons["saveReport"].isEnabled)
     }
 
     private func scrollTo(_ element: XCUIElement, in app: XCUIApplication) {

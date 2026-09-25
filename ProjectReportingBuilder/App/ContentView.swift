@@ -9,6 +9,7 @@ struct ContentView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private enum Card {
+        case livePreview
         case imagePreview(ImageAsset)
         case sourceContent
         case filters
@@ -88,6 +89,15 @@ struct ContentView: View {
             })
         } else if let card {
             switch card {
+            case .livePreview:
+                if let editor = router.editor, let model = editor.previewModel {
+                    GeometryReader { geometry in
+                        LivePreviewView(model: model,
+                                        loadImage: { try await editor.imageData(for: $0, maximumPixelSize: 1200) },
+                                        onDismiss: dismissCard)
+                            .floatingCard(width: geometry.size.width, maxHeight: .infinity)
+                    }
+                }
             case .imagePreview(let asset):
                 if let editor = router.editor {
                     ImagePreviewCard(asset: asset, editor: editor, onDismiss: dismissCard)
@@ -183,7 +193,8 @@ struct ContentView: View {
             ReportEditorView(viewModel: editor, onBack: router.showProjects,
                              editMetric: { card = .metric($0, $1) },
                              addContent: { card = .sourceContent },
-                             previewAsset: { card = .imagePreview($0) })
+                             previewAsset: { card = .imagePreview($0) },
+                             showPreview: { card = .livePreview })
                 .id(editor.projectID)
         } else {
             ProjectBrowserView(viewModel: browserViewModel,
