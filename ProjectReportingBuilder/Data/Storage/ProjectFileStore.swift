@@ -8,12 +8,14 @@ nonisolated struct ProjectLoadResult: Sendable {
 /// Serialize disk operations away from the main actor.
 actor ProjectFileStore {
     let storage: ApplicationStorage
+    private var maintenanceWarnings: [String] = []
 
     init(storage: ApplicationStorage) { self.storage = storage }
 
     func fetchProjects() throws -> ProjectLoadResult {
         try storage.prepare()
-        var result = ProjectLoadResult()
+        recoverPendingDeletes()
+        var result = ProjectLoadResult(warnings: maintenanceWarnings)
         let directories = try FileManager.default.contentsOfDirectory(at: storage.projects,
             includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
         for directory in directories {
@@ -127,10 +129,36 @@ actor ProjectFileStore {
         }
     }
 
+    /// Commit deletion by renaming first; unfinished cleanup is retried on the next load.
     func delete(id: UUID) throws {
         let directory = storage.projectDirectory(id)
-        guard FileManager.default.fileExists(atPath: directory.path) else { return }
-        do { try FileManager.default.removeItem(at: directory) }
-        catch { throw StorageError.deleteFailed }
+        let tombstone = storage.projects.appendingPathComponent(".deleted-" + id.uuidString)
+        if FileManager.default.fileExists(atPath: directory.path) {
+            do { try FileManager.default.moveItem(at: directory, to: tombstone) }
+            catch { throw StorageError.deleteFailed }
+        }
+        finishDelete(id: id, tombstone: tombstone)
+    }
+
+    private func finishDelete(id: UUID, tombstone: URL) {
+        do {
+            try deleteRecovery(projectID: id)
+            if FileManager.default.fileExists(atPath: tombstone.path) {
+                try FileManager.default.removeItem(at: tombstone)
+            }
+        } catch {
+            maintenanceWarnings.append("Project deleted, but some files still need cleanup: " + id.uuidString)
+        }
+    }
+
+    private func recoverPendingDeletes() {
+        maintenanceWarnings = []
+        do {
+            for url in try FileManager.default.contentsOfDirectory(at: storage.projects, includingPropertiesForKeys: nil) {
+                let name = url.lastPathComponent
+                guard name.hasPrefix(".deleted-"), let id = UUID(uuidString: String(name.dropFirst(9))) else { continue }
+                finishDelete(id: id, tombstone: url)
+            }
+        } catch { maintenanceWarnings.append("Unable to inspect pending file cleanup.") }
     }
 }

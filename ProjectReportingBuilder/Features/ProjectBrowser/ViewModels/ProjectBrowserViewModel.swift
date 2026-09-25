@@ -130,6 +130,20 @@ final class ProjectBrowserViewModel {
         }
     }
     
+    func archiveProject(_ project: ProjectReport) async {
+        guard !isSaving else { return }
+        isSaving = true
+        actionErrorMessage = nil
+        defer { isSaving = false }
+        do {
+            guard var current = try await repository.fetchProject(id: project.id) else { throw StorageError.projectMissing }
+            current.status = .archived
+            // Keep the content revision so an existing unsaved recovery remains valid.
+            try await repository.save(current)
+            await loadProjects()
+        } catch { actionErrorMessage = error.localizedDescription }
+    }
+
     private func matchesSearch(_ project: ProjectReport) -> Bool {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return query.isEmpty

@@ -12,6 +12,7 @@ struct ProjectGridView: View {
     
     var duplicate: (ProjectReport) -> Void = { _ in }
 
+    var archive: (ProjectReport) -> Void = { _ in }
 
     var body: some View {
         GeometryReader { geometry in
@@ -26,7 +27,7 @@ struct ProjectGridView: View {
                     ForEach(projects) { project in
                         ProjectCardView(project: project,
                                         open: { open(project) },
-                                        delete: { delete(project) }, duplicate: { duplicate(project) })
+                                        delete: { delete(project) }, duplicate: { duplicate(project) }, archive: { archive(project) })
                     }
                 }
                 .padding(AppSpacing.pageInset)

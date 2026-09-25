@@ -32,7 +32,7 @@ struct ProjectBrowserView: View {
             }
             Button("Cancel", role: .cancel) { projectToDelete = nil }
         } message: {
-            Text("This action cannot be undone.")
+            Text("This project, its images, and recovered edits will be permanently removed from this Mac. This action cannot be undone.")
         }
         .alert("Unable to Complete Action", isPresented: Binding(
             get: { viewModel.actionErrorMessage != nil && !isCreatingProject },
@@ -83,7 +83,8 @@ struct ProjectBrowserView: View {
         } else {
             ProjectGridView(projects: viewModel.visibleProjects,
                             open: openProject,
-                            delete: { projectToDelete = $0 }, duplicate: duplicateProject)
+                            delete: { projectToDelete = $0 }, duplicate: duplicateProject,
+                            archive: { project in Task { await viewModel.archiveProject(project) } })
             .disabled(viewModel.isSaving)
         }
     }
