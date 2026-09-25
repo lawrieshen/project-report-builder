@@ -2,20 +2,17 @@ import SwiftUI
 
 struct ProjectBrowserView: View {
     @Bindable var viewModel: ProjectBrowserViewModel
-    @Binding var showingNewProject: Bool
+    let openProject: (ProjectReport) -> Void
+    let newProject: () -> Void
+    var isCreatingProject = false
     @State private var projectToDelete: ProjectReport?
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                browserHeader
-                Divider()
-                browserContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .navigationDestination(item: $viewModel.selectedProject) { project in
-                reportEditorPlaceholder(for: project)
-            }
+        VStack(spacing: 0) {
+            browserHeader
+            Divider()
+            browserContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .task { await viewModel.loadProjects() }
         .confirmationDialog("Delete this project?", isPresented: Binding(
@@ -32,7 +29,7 @@ struct ProjectBrowserView: View {
             Text("This action cannot be undone.")
         }
         .alert("Unable to Complete Action", isPresented: Binding(
-            get: { viewModel.actionErrorMessage != nil && !showingNewProject },
+            get: { viewModel.actionErrorMessage != nil && !isCreatingProject },
             set: { if !$0 { viewModel.actionErrorMessage = nil } }
         )) {
             Button("OK") { viewModel.actionErrorMessage = nil }
@@ -78,26 +75,15 @@ struct ProjectBrowserView: View {
                                   clearFilters: { viewModel.clearFilters() })
         } else {
             ProjectGridView(projects: viewModel.visibleProjects,
-                            open: { viewModel.selectProject($0) },
+                            open: openProject,
                             delete: { projectToDelete = $0 })
             .disabled(viewModel.isSaving)
         }
     }
     
-    @ViewBuilder
-    private func reportEditorPlaceholder(for project: ProjectReport) -> some View {
-        // The reporting workflow is implemented in a later feature.
-        ContentUnavailableView {
-            Label(project.codeName, systemImage: "doc.text")
-        } description: {
-            Text("Report Editor is not available yet.")
-        }
-        .navigationTitle(project.codeName)
-    }
-    
     private func showNewProject() {
         viewModel.actionErrorMessage = nil
-        showingNewProject = true
+        newProject()
     }
     
     @ViewBuilder

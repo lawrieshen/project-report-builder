@@ -6,7 +6,7 @@ struct NewProjectCard: View {
     @FocusState private var isCodeNameFocused: Bool
     @State private var codeName = ""
     @State private var lineOfBusiness = ""
-    @State private var status: ReportStatus = .draft
+    @State private var status: ProjectStatus = .draft
     
     private var isValid: Bool {
         !codeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -61,7 +61,7 @@ struct NewProjectCard: View {
             TextField("Line of Business", text: $lineOfBusiness)
                 .accessibilityIdentifier("newProjectLineOfBusiness")
             Picker("Status", selection: $status) {
-                ForEach(ReportStatus.allCases, id: \.self) { status in
+                ForEach(ProjectStatus.allCases, id: \.self) { status in
                     Text(status.displayName).tag(status)
                 }
             }
