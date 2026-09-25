@@ -12,4 +12,5 @@ xcodebuild test \
   -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath build \
   -parallel-testing-enabled NO \
-  -skip-testing:'Project Report BuilderUITests/Project_Report_BuilderUITests/testLaunchPerformance'
+  -skip-testing:'Project Report BuilderUITests/Project_Report_BuilderUITests/testLaunchPerformance' \
+  "$@"
