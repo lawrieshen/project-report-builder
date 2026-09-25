@@ -11,6 +11,7 @@ final class AppRouter {
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
     private let repository: ProjectRepository
+    private let assetRepository: any AssetRepository
 
     private enum Destination {
         case browser
@@ -18,8 +19,9 @@ final class AppRouter {
         case editor(UUID)
     }
 
-    init(repository: ProjectRepository) {
+    init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil) {
         self.repository = repository
+        self.assetRepository = assetRepository ?? LocalAssetRepository()
     }
 
     func openProject(id: UUID) {
@@ -36,7 +38,7 @@ final class AppRouter {
     }
 
     func discardAndLeave() {
-        guard editor?.isSaving != true else { return }
+        guard editor?.isSaving != true, editor?.isImporting != true else { return }
         editor?.discardChanges()
         completePendingNavigation()
     }
@@ -50,7 +52,7 @@ final class AppRouter {
     }
 
     private func request(_ destination: Destination) {
-        guard editor?.isSaving != true else { return }
+        guard editor?.isSaving != true, editor?.isImporting != true else { return }
         if editor?.isDirty == true {
             pendingDestination = destination
             showingLeaveConfirmation = true
@@ -73,7 +75,7 @@ final class AppRouter {
             editor = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
-            editor = ReportEditorViewModel(projectID: id, repository: repository)
+            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetRepository)
             route = .reportEditor(projectID: id)
         }
     }

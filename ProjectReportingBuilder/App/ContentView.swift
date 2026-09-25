@@ -9,6 +9,8 @@ struct ContentView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private enum Card {
+        case imagePreview(ImageAsset)
+        case sourceContent
         case filters
         case metric(EngineeringMetricDraft, Bool)
     }
@@ -86,6 +88,14 @@ struct ContentView: View {
             })
         } else if let card {
             switch card {
+            case .imagePreview(let asset):
+                if let editor = router.editor {
+                    ImagePreviewCard(asset: asset, editor: editor, onDismiss: dismissCard)
+                }
+            case .sourceContent:
+                if let editor = router.editor {
+                    ContentInputCard(editor: editor, onDismiss: dismissCard)
+                }
             case .filters:
                 ProjectFilterCard(filter: $browserViewModel.filter,
                                   linesOfBusiness: browserViewModel.linesOfBusiness,
@@ -171,7 +181,9 @@ struct ContentView: View {
     private var workspaceDestination: some View {
         if let editor = router.editor {
             ReportEditorView(viewModel: editor, onBack: router.showProjects,
-                             editMetric: { card = .metric($0, $1) })
+                             editMetric: { card = .metric($0, $1) },
+                             addContent: { card = .sourceContent },
+                             previewAsset: { card = .imagePreview($0) })
                 .id(editor.projectID)
         } else {
             ProjectBrowserView(viewModel: browserViewModel,
@@ -195,7 +207,7 @@ struct ContentView: View {
             }
             .keyboardShortcut("n", modifiers: .command)
             .accessibilityIdentifier("newProjectButton")
-            .disabled(browserViewModel.isLoading || browserViewModel.isSaving || router.editor?.isSaving == true)
+            .disabled(browserViewModel.isLoading || browserViewModel.isSaving || router.editor?.isSaving == true || router.editor?.isImporting == true)
             .padding(AppSpacing.cardInset)
         }
     }
