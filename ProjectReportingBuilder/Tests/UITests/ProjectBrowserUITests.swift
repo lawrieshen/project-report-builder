@@ -39,7 +39,7 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar before opening project")
         card.click()
-        XCTAssertTrue(app.staticTexts["Report Editor is not available yet."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         // Sidebar navigation returns from the editor to the browser.
         let projectsNavigation = app.buttons["projectsNavigation"]
         let sidebarVisible = NSPredicate(format: "hittable == true")
