@@ -42,7 +42,7 @@ struct ProjectBrowserViewModelTests {
         #expect(model.linesOfBusiness == ["Services", "iOS / Camera"])
     }
 
-    @Test func createAndDeleteUpdateRepositoryAndSelection() async throws {
+    @Test func createAndDeleteUpdateRepository() async throws {
         let repository = InMemoryProjectRepository()
         let model = ProjectBrowserViewModel(repository: repository)
         model.searchText = "no match"
@@ -56,25 +56,20 @@ struct ProjectBrowserViewModelTests {
         #expect(saved.status == .draft)
         #expect(model.visibleProjects == [saved])
         #expect(try await repository.fetchProjects() == [saved])
-        model.selectProject(saved)
-        #expect(model.route == .reportEditor(projectID: saved.id))
         await model.deleteProject(saved)
         #expect(model.projects.isEmpty)
-        #expect(model.route == nil)
         #expect(try await repository.fetchProjects().isEmpty)
     }
 
-    @Test func deletingAnotherProjectPreservesRoute() async {
+    @Test func deletingAnotherProjectPreservesRemainingData() async {
         let selected = project("Titan", "Camera", .draft, 1)
         let other = project("Atlas", "Services", .draft, 2)
         let repository = InMemoryProjectRepository(projects: [selected, other])
         let model = ProjectBrowserViewModel(repository: repository)
         await model.loadProjects()
-        model.selectProject(selected)
 
         await model.deleteProject(other)
 
-        #expect(model.route == .reportEditor(projectID: selected.id))
         #expect(model.projects == [selected])
     }
 
@@ -124,9 +119,7 @@ struct ProjectBrowserViewModelTests {
         #expect(model.projects == [existing])
 
         repository.shouldFail = true
-        model.selectProject(existing)
         await model.deleteProject(existing)
-        #expect(model.route == .reportEditor(projectID: existing.id))
         #expect(model.projects == [existing])
         #expect(model.actionErrorMessage != nil)
         let created = await model.createProject(codeName: "New", lineOfBusiness: "Services", status: .draft)
