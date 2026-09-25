@@ -1,9 +1,9 @@
 import SwiftUI
 
-struct ProjectFilterPopover: View {
+struct ProjectFilterCard: View {
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
-    @Environment(\.dismiss) private var dismiss
+    let onDismiss: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
@@ -22,8 +22,7 @@ struct ProjectFilterPopover: View {
             }
             actionButtons
         }
-        .padding(AppSpacing.cardInset)
-        .frame(width: 280, height: 400)
+        .floatingCard(width: 320, maxHeight: 400, padding: AppSpacing.cardInset)
     }
     
     @ViewBuilder
@@ -85,8 +84,9 @@ struct ProjectFilterPopover: View {
         HStack {
             Button("Clear") { filter = ProjectBrowserFilter() }
             Spacer()
-            Button("Done") { dismiss() }
+            Button("Done") { onDismiss() }
                 .keyboardShortcut(.defaultAction)
+                .onExitCommand(perform: onDismiss)
         }
     }
 }

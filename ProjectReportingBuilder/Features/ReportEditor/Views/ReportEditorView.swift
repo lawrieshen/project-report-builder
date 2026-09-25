@@ -3,6 +3,7 @@ import SwiftUI
 struct ReportEditorView: View {
     @Bindable var viewModel: ReportEditorViewModel
     let onBack: () -> Void
+    var editMetric: (EngineeringMetricDraft, Bool) -> Void = { _, _ in }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,7 +56,7 @@ struct ReportEditorView: View {
                     Divider()
                     HealthUrgencySectionView(draft: draft)
                     Divider()
-                    MetricsSectionView(viewModel: viewModel)
+                    MetricsSectionView(viewModel: viewModel, editMetric: editMetric)
                     Divider()
                     ExecutiveSummarySectionView(draft: draft)
                     Divider()

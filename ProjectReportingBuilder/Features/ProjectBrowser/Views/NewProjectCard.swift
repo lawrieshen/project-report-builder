@@ -20,17 +20,7 @@ struct NewProjectCard: View {
             scrollableContent
             actionButtons
         }
-        .padding(AppSpacing.dialogInset)
-        .frame(width: 420)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(nsColor: .windowBackgroundColor))
-                .shadow(color: .black.opacity(0.2), radius: 24, x: 0, y: 8)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.primary.opacity(0.08))
-        }
+        .floatingCard()
         .task { isCodeNameFocused = true }
     }
     
@@ -80,7 +70,7 @@ struct NewProjectCard: View {
     private var errorMessage: some View {
         if let message = viewModel.actionErrorMessage {
             Text(message)
-                .foregroundStyle(.red)
+                .floatingCardError()
         }
     }
     
