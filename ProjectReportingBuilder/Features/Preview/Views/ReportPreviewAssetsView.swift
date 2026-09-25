@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct ReportPreviewAssetsView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private let style = ReportAccessibilityStyle.canonical
+    private var palette: ReportPalette { style.palette(colorScheme) }
     let assets: [ImageAsset]
     let images: [String: PreviewImageState]
 
@@ -11,7 +14,7 @@ struct ReportPreviewAssetsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
-            Text("Supporting Assets").font(.headline).accessibilityAddTraits(.isHeader)
+            ReportSectionHeading(section: .supportingContent)
             LazyVGrid(columns: columns, spacing: AppSpacing.gridGap) {
                 ForEach(assets) { asset in
                     assetImage(asset)
@@ -29,14 +32,14 @@ struct ReportPreviewAssetsView: View {
                     .accessibilityLabel(asset.altText.isEmpty ? asset.fileName : asset.altText)
             case .unavailable:
                 Label("Image unavailable: " + asset.fileName, systemImage: "photo.badge.exclamationmark")
-                    .font(.caption)
+                    .font(.system(size: style.captionSize))
             case nil:
                 ProgressView("Loading " + asset.fileName)
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: ReportCardStyle.imageHeight)
-        .background(.quaternary.opacity(0.2))
+        .background(palette.tile.color)
         .clipShape(RoundedRectangle(cornerRadius: ReportCardStyle.tileRadius))
     }
 }

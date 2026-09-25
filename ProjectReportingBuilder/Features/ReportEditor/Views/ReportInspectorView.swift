@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReportInspectorView: View {
     let project: ProjectReport
+    var checkAccessibility: () -> Void = {}
 
     var body: some View {
         ScrollView {
@@ -10,6 +11,9 @@ struct ReportInspectorView: View {
                 LabeledContent("Status", value: project.status.displayName)
                 Text("Last Updated").font(.headline)
                 Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
+                Divider()
+                Button("Check Accessibility", action: checkAccessibility)
+                    .accessibilityIdentifier("checkAccessibility")
                 Divider()
                 Text("Sections").font(.headline)
                 Text("Identity")

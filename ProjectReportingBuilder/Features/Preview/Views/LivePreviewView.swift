@@ -1,10 +1,5 @@
 import SwiftUI
 
-private struct ReportCardHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 1
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
-}
-
 struct LivePreviewView: View {
     let model: ReportPreviewModel
     let loadImage: (ImageAsset) async throws -> Data
@@ -105,7 +100,9 @@ struct LivePreviewView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .background {
                         GeometryReader { geometry in
-                            Color.clear.preference(key: ReportCardHeightKey.self, value: geometry.size.height)
+                            Color.clear
+                                .onAppear { updateCardHeight(geometry.size.height) }
+                                .onChange(of: geometry.size.height) { _, height in updateCardHeight(height) }
                         }
                     }
                     .scaleEffect(displayedZoom, anchor: .topLeading)
@@ -118,9 +115,11 @@ struct LivePreviewView: View {
         .environment(\.colorScheme, colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: ReportCardStyle.tileRadius))
         .accessibilityIdentifier("previewCanvas")
-        .onPreferenceChange(ReportCardHeightKey.self) { height in
-            if height > 0 && abs(cardHeight - height) > 0.5 { cardHeight = height }
-        }
+    }
+
+    // Measure inside TimelineView, whose boundary does not reliably forward preferences.
+    private func updateCardHeight(_ height: CGFloat) {
+        if height > 0 && abs(cardHeight - height) > 0.5 { cardHeight = height }
     }
 
     private func loadImages() async {
