@@ -3,6 +3,7 @@ import SwiftUI
 struct NewProjectCard: View {
     @Bindable var viewModel: ProjectBrowserViewModel
     let onDismiss: () -> Void
+    let onCreated: (ProjectReport) -> Void
     @FocusState private var isCodeNameFocused: Bool
     @State private var codeName = ""
     @State private var lineOfBusiness = ""
@@ -14,23 +15,12 @@ struct NewProjectCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
             cardHeader
             scrollableContent
             actionButtons
         }
-        .padding(24)
-        .frame(width: 420)
-        .frame(maxHeight: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(nsColor: .windowBackgroundColor))
-                .shadow(color: .black.opacity(0.2), radius: 24, x: 0, y: 8)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.primary.opacity(0.08))
-        }
+        .floatingCard()
         .task { isCodeNameFocused = true }
     }
     
@@ -42,14 +32,22 @@ struct NewProjectCard: View {
     
     @ViewBuilder
     private var scrollableContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                projectForm
-                errorMessage
+        ViewThatFits(in: .vertical) {
+            formContent
+                .fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                formContent
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
+            projectForm
+            errorMessage
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     @ViewBuilder
@@ -72,7 +70,7 @@ struct NewProjectCard: View {
     private var errorMessage: some View {
         if let message = viewModel.actionErrorMessage {
             Text(message)
-                .foregroundStyle(.red)
+                .floatingCardError()
         }
     }
     
@@ -90,12 +88,12 @@ struct NewProjectCard: View {
                     .controlSize(.small)
             }
             
-            Button("Create") {
+            Button("Create & Open") {
                 Task {
                     let created = await viewModel.createProject(
                         codeName: codeName, lineOfBusiness: lineOfBusiness, status: status)
-                    if created {
-                        onDismiss()
+                    if let created {
+                        onCreated(created)
                     }
                 }
             }
@@ -108,6 +106,7 @@ struct NewProjectCard: View {
 #Preview {
     NewProjectCard(
         viewModel: ProjectBrowserViewModel(repository: InMemoryProjectRepository()),
-        onDismiss: {}
+        onDismiss: {},
+        onCreated: { _ in }
     )
 }

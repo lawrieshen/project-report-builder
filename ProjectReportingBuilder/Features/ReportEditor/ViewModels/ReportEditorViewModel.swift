@@ -63,8 +63,8 @@ final class ReportEditorViewModel {
         isSaving = true
         saveError = nil
         defer { isSaving = false }
-        let updated = submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
         do {
+            let updated = try submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
             try await repository.save(updated)
             self.project = updated
             savedDraft = ReportEditorDraft(project: updated)
@@ -77,6 +77,46 @@ final class ReportEditorViewModel {
             saveError = error.localizedDescription
             return false
         }
+    }
+
+    /// Add a confirmed metric without writing to the repository.
+    /// - Returns: A validation message, or nil on success.
+    func addMetric(_ metric: EngineeringMetricDraft) -> String? {
+        guard !isSaving, !isLoading, var draft else { return "The report is busy. Try again." }
+        guard !draft.metrics.contains(where: { $0.id == metric.id }) else { return "This metric already exists." }
+        if let message = metric.validationError(in: draft.metrics) { return message }
+        draft.metrics.append(metric)
+        self.draft = draft
+        return nil
+    }
+
+    /// Replace a metric by ID while preserving its position in the report.
+    func updateMetric(_ metric: EngineeringMetricDraft) -> String? {
+        guard !isSaving, !isLoading, var draft else { return "The report is busy. Try again." }
+        guard let index = draft.metrics.firstIndex(where: { $0.id == metric.id }) else {
+            return "This metric no longer exists."
+        }
+        if let message = metric.validationError(in: draft.metrics) { return message }
+        draft.metrics[index] = metric
+        self.draft = draft
+        return nil
+    }
+
+    func deleteMetric(id: UUID) {
+        guard !isSaving, !isLoading else { return }
+        draft?.metrics.removeAll { $0.id == id }
+    }
+
+    /// Move metrics using array insertion offsets; array order is the saved order.
+    func moveMetric(fromOffsets offsets: IndexSet, toOffset destination: Int) {
+        guard !isSaving, !isLoading, var draft,
+              destination >= 0, destination <= draft.metrics.count,
+              offsets.allSatisfy({ draft.metrics.indices.contains($0) }) else { return }
+        let moved = offsets.sorted().map { draft.metrics[$0] }
+        let insertion = destination - offsets.filter { $0 < destination }.count
+        for index in offsets.sorted(by: >) { draft.metrics.remove(at: index) }
+        draft.metrics.insert(contentsOf: moved, at: insertion)
+        self.draft = draft
     }
 
     func discardChanges() {

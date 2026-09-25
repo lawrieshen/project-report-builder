@@ -94,10 +94,7 @@ final class ReportWorkspaceUITests: XCTestCase {
         let business = app.textFields["newProjectLineOfBusiness"]
         business.click()
         business.typeText("Camera")
-        app.buttons["Create"].click()
-        let card = app.buttons["Open Titan"]
-        XCTAssertTrue(card.waitForExistence(timeout: 5))
-        card.click()
+        app.buttons["Create & Open"].click()
         XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         return app
     }
