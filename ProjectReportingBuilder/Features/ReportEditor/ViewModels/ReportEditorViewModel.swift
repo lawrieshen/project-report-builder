@@ -162,14 +162,28 @@ final class ReportEditorViewModel {
         self.draft = draft
     }
 
-    func discardChanges() {
-        guard !isSaving else { return }
+    /// Finish durable cleanup before reporting that edits have been discarded.
+    @discardableResult
+    func discardChanges() async -> Bool {
+        guard !isSaving else { return false }
+        isSaving = true
+        defer { isSaving = false }
+        recoveryTask?.cancel()
+        await recoveryTask?.value
+        do {
+            try await recoveryRepository?.deleteRecovery(projectID: projectID)
+        } catch {
+            recoveryMessage = "Unable to discard recovery: " + error.localizedDescription
+            return false
+        }
         assetGeneration += 1
         draft = savedDraft
         saveError = nil
         assetError = nil
+        recoveryMessage = nil
         cleanUnusedAssets(importedAssets)
         importedAssets = []
+        return true
     }
 
     /// Apply only explicitly selected, available suggestions to the current draft.

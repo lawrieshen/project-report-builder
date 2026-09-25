@@ -40,7 +40,7 @@ struct ReportAssetTests {
         #expect(await model.save() == false)
         await model.cleanupTask?.value
         #expect(await assets.removed.isEmpty)
-        model.discardChanges()
+        await model.discardChanges()
         await model.cleanupTask?.value
         #expect(model.draft?.assets.first?.localReference == first.localReference)
         #expect(await assets.removed.contains(replacement.localReference))
@@ -74,7 +74,7 @@ struct ReportAssetTests {
         #expect(model.draft?.assets.first?.id == original[1].id)
         model.removeAsset(id: original[0].id)
         #expect(model.draft?.assets.count == 1)
-        model.discardChanges()
+        await model.discardChanges()
         await model.cleanupTask?.value
         #expect(model.draft?.assets.isEmpty == true)
         #expect(!model.isDirty)
@@ -107,7 +107,7 @@ struct AssetImportCancellationTests {
         while !(await assets.started) { await Task.yield() }
         #expect(model.isImporting)
         #expect(await model.save() == false)
-        model.discardChanges()
+        await model.discardChanges()
         let abandoned = ImageAsset(id: UUID(), fileName: "late.png", localReference: "late.png")
         await assets.finish(with: abandoned)
         await task.value

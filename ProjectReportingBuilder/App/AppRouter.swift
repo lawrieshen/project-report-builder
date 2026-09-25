@@ -42,9 +42,12 @@ final class AppRouter {
         showingLeaveConfirmation = false
     }
 
-    func discardAndLeave() {
+    func discardAndLeave() async {
         guard editor?.isSaving != true, editor?.isImporting != true else { return }
-        editor?.discardChanges()
+        guard await editor?.discardChanges() == true else {
+            cancelNavigation()
+            return
+        }
         completePendingNavigation()
     }
 
