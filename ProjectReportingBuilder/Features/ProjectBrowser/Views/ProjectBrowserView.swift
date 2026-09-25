@@ -5,6 +5,7 @@ struct ProjectBrowserView: View {
     let openProject: (ProjectReport) -> Void
     let newProject: () -> Void
     var isCreatingProject = false
+    let showFilters: () -> Void
     @State private var projectToDelete: ProjectReport?
     
     var body: some View {
@@ -36,6 +37,7 @@ struct ProjectBrowserView: View {
         } message: {
             Text(viewModel.actionErrorMessage ?? "")
         }
+
     }
     
     @ViewBuilder
@@ -44,7 +46,8 @@ struct ProjectBrowserView: View {
             titleAndSearch
             ProjectFilterBar(searchText: $viewModel.searchText,
                              filter: $viewModel.filter,
-                             linesOfBusiness: viewModel.linesOfBusiness)
+                             linesOfBusiness: viewModel.linesOfBusiness,
+                             showFilters: showFilters)
             .disabled(viewModel.isLoading || viewModel.isSaving)
         }
         .padding(.horizontal, AppSpacing.pageInset)

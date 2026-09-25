@@ -10,7 +10,7 @@ struct ProjectFilterBar: View {
     @Binding var searchText: String
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
-    @State private var showingFilters = false
+    let showFilters: () -> Void
     
     var body: some View {
         HStack {
@@ -20,16 +20,14 @@ struct ProjectFilterBar: View {
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {
-                showingFilters = true
+                showFilters()
             } label: {
                 Label(filter.isEmpty ? "Filter" : "Filter (Active)",
                       systemImage: "line.3.horizontal.decrease")
             }
             .fixedSize()
             .accessibilityIdentifier("projectFilterButton")
-            .popover(isPresented: $showingFilters) {
-                ProjectFilterPopover(filter: $filter, linesOfBusiness: linesOfBusiness)
-            }
+
             
         }
     }

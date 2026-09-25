@@ -2,8 +2,7 @@ import SwiftUI
 
 struct MetricsSectionView: View {
     @Bindable var viewModel: ReportEditorViewModel
-    @State private var editingMetric: EngineeringMetricDraft?
-    @State private var isAdding = false
+    let editMetric: (EngineeringMetricDraft, Bool) -> Void
 
     private var metrics: [EngineeringMetricDraft] { viewModel.draft?.metrics ?? [] }
 
@@ -15,12 +14,7 @@ struct MetricsSectionView: View {
             }
             metricRows
         }
-        .sheet(item: $editingMetric) { metric in
-            MetricEditorView(metric: metric, existingMetrics: metrics) { confirmed in
-                if isAdding { return viewModel.addMetric(confirmed) }
-                return viewModel.updateMetric(confirmed)
-            }
-        }
+
     }
 
     @ViewBuilder
@@ -29,8 +23,7 @@ struct MetricsSectionView: View {
             Text("Engineering Metrics").font(.title3.bold())
             Spacer()
             Button {
-                isAdding = true
-                editingMetric = EngineeringMetricDraft()
+                editMetric(EngineeringMetricDraft(), true)
             } label: {
                 Label("Add Metric", systemImage: "plus")
             }
@@ -43,8 +36,7 @@ struct MetricsSectionView: View {
         ForEach(Array(metrics.enumerated()), id: \.element.id) { index, metric in
             MetricRowView(draft: metric, canMoveUp: index > 0, canMoveDown: index < metrics.count - 1,
                 edit: {
-                    isAdding = false
-                    editingMetric = metric
+                    editMetric(metric, false)
                 },
                 delete: { viewModel.deleteMetric(id: metric.id) },
                 moveUp: { viewModel.moveMetric(fromOffsets: IndexSet(integer: index), toOffset: index - 1) },
