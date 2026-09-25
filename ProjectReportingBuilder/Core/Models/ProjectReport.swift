@@ -5,7 +5,7 @@
 //  Created by Lawrence Shen on 24/9/2026.
 //
 
-import SwiftUI
+import Foundation
 
 struct ProjectReport: Identifiable, Codable, Equatable {
     let id: UUID
@@ -14,7 +14,7 @@ struct ProjectReport: Identifiable, Codable, Equatable {
     var lineOfBusiness: String
     var status: ProjectStatus
     
-    var template: ReportTemplate?
+    var template: ReportTemplate = .executive
     var card: SnippetCard?
     
     var createdAt: Date
