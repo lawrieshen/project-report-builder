@@ -50,6 +50,41 @@ final class ExportUITests: XCTestCase {
         XCTAssertEqual(title.value as? String, "Titan")
     }
 
+    func testAccessibilityReviewAndExportAnyway() {
+        let app = openReport()
+        let title = app.textFields["reportCodeName"]
+        title.click()
+        title.typeKey("a", modifierFlags: .command)
+        title.typeKey(.delete, modifierFlags: [])
+        app.buttons["openExport"].click()
+        app.buttons["saveExport"].click()
+        XCTAssertTrue(app.buttons["exportAnyway"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.sheets.firstMatch.exists)
+        app.buttons["reviewExportIssues"].click()
+        let identity = app.buttons["accessibilitySection.identity"]
+        XCTAssertTrue(identity.waitForExistence(timeout: 5))
+        identity.click()
+        XCTAssertTrue(title.isHittable)
+        app.buttons["openExport"].click()
+        app.buttons["saveExport"].click()
+        XCTAssertTrue(app.buttons["exportAnyway"].waitForExistence(timeout: 5))
+        app.buttons["exportAnyway"].click()
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 5))
+        app.sheets.buttons["Cancel"].click()
+        app.buttons["closeExport"].click()
+        XCTAssertEqual(title.value as? String, "")
+        XCTAssertTrue(app.staticTexts["Unsaved Changes"].exists)
+        title.click()
+        title.typeText("Fixed title")
+        app.buttons["openExport"].click()
+        app.buttons["saveExport"].click()
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["exportAnyway"].exists)
+        app.sheets.buttons["Cancel"].click()
+        app.buttons["closeExport"].click()
+        XCTAssertTrue(app.buttons["saveReport"].isEnabled)
+    }
+
     private func openReport() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]

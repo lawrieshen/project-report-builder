@@ -14,13 +14,28 @@ final class ExportViewModel {
     private(set) var errorMessage: String?
     private(set) var successMessage: String?
     private(set) var lastAction: ExportAction?
+    private(set) var accessibilityReport: AccessibilityReport?
+    private(set) var isCheckingAccessibility = false
+    private var pendingExport: PendingExport?
+    private let checker: any AccessibilityChecking
+
+    private struct PendingExport {
+        let action: ExportAction
+        let model: ReportPreviewModel
+        let appearance: ExportAppearance
+    }
+
+    var requiresConfirmation: Bool { pendingExport != nil }
+    var isBusy: Bool { isExporting || isCheckingAccessibility }
     private let renderer: any ReportExportRendering
     private let clipboard: any ClipboardWriting
     private let fileExporter: any FileExporting
     private let sharing: any ReportSharing
 
     init(renderer: any ReportExportRendering, clipboard: any ClipboardWriting,
-         fileExporter: any FileExporting, sharing: any ReportSharing) {
+         fileExporter: any FileExporting, sharing: any ReportSharing,
+         checker: any AccessibilityChecking = AccessibilityChecker()) {
+        self.checker = checker
         self.renderer = renderer
         self.clipboard = clipboard
         self.fileExporter = fileExporter
@@ -35,6 +50,32 @@ final class ExportViewModel {
         default: return "Generating report…"
         }
     }
+
+    /// Recheck the same unsaved snapshot before every output action.
+    func request(_ action: ExportAction, model: ReportPreviewModel,
+                 validation: AccessibilityValidationModel, appearance: ExportAppearance) async {
+        guard !isBusy, !requiresConfirmation else { return }
+        errorMessage = nil
+        successMessage = nil
+        isCheckingAccessibility = true
+        defer { isCheckingAccessibility = false }
+        let report = await checker.validate(model: validation)
+        guard !Task.isCancelled else { return }
+        accessibilityReport = report
+        if report.isValid {
+            await perform(action, model: model, appearance: appearance)
+        } else {
+            pendingExport = PendingExport(action: action, model: model, appearance: appearance)
+        }
+    }
+
+    func exportAnyway() async {
+        guard !isBusy, let pendingExport else { return }
+        self.pendingExport = nil
+        await perform(pendingExport.action, model: pendingExport.model, appearance: pendingExport.appearance)
+    }
+
+    func cancelPendingExport() { pendingExport = nil }
 
     /// Export one immutable snapshot without accessing a project repository or editor.
     func perform(_ action: ExportAction, model: ReportPreviewModel, appearance: ExportAppearance) async {
