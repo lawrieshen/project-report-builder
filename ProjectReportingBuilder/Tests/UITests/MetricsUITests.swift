@@ -125,7 +125,7 @@ final class MetricsUITests: XCTestCase {
     }
 
     private func openReport() -> XCUIApplication {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         XCTAssertTrue(app.buttons["newProjectButton"].waitForExistence(timeout: 10))

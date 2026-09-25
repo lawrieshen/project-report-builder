@@ -71,6 +71,10 @@ final class AssetInputUITests: XCTestCase {
         XCTAssertTrue(alt.waitForExistence(timeout: 5))
         app.buttons["workspaceBack"].click()
         XCTAssertTrue(app.buttons["Open Titan"].waitForExistence(timeout: 5))
+        try FileManager.default.removeItem(at: first)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Titan"].waitForExistence(timeout: 10))
         app.buttons["Open Titan"].click()
         scrollTo(alt, in: app)
         XCTAssertTrue(alt.waitForExistence(timeout: 5))
@@ -202,7 +206,7 @@ final class AssetInputUITests: XCTestCase {
     }
 
     private func openReport() -> XCUIApplication {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         app.activate()

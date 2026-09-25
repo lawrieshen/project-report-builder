@@ -6,7 +6,7 @@ import Observation
 final class ReportEditorViewModel {
     let projectID: UUID
     private(set) var project: ProjectReport?
-    var draft: ReportEditorDraft?
+    var draft: ReportEditorDraft? { didSet { scheduleRecovery() } }
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var loadError: String?
@@ -15,6 +15,11 @@ final class ReportEditorViewModel {
     private var savedDraft: ReportEditorDraft?
     private let repository: ProjectRepository
     private let assetRepository: any AssetRepository
+    private let recoveryRepository: (any DraftRecoveryRepository)?
+    private let recoveryDelay: Duration
+    private(set) var recoveryTask: Task<Void, Never>?
+    private(set) var recoveryMessage: String?
+    private(set) var pendingRecovery: RecoverySnapshot?
     private var importedAssets: [ImageAsset] = []
     private var assetGeneration = 0
     private(set) var isImporting = false
@@ -24,7 +29,11 @@ final class ReportEditorViewModel {
 
 
     init(projectID: UUID, repository: ProjectRepository,
-         assetRepository: (any AssetRepository)? = nil) {
+         assetRepository: (any AssetRepository)? = nil,
+         recoveryRepository: (any DraftRecoveryRepository)? = nil,
+         recoveryDelay: Duration = .milliseconds(1500)) {
+        self.recoveryRepository = recoveryRepository
+        self.recoveryDelay = recoveryDelay
         self.projectID = projectID
         self.repository = repository
         self.assetRepository = assetRepository ?? LocalAssetRepository()
@@ -33,7 +42,7 @@ final class ReportEditorViewModel {
     var previewModel: ReportPreviewModel? { draft.map { ReportPreviewModel(draft: $0) } }
 
     var isDirty: Bool { draft != savedDraft }
-    var canSave: Bool { isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
+    var canSave: Bool { pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
     /// Load once without overwriting edits when the view reappears.
     func load() async {
@@ -55,6 +64,18 @@ final class ReportEditorViewModel {
             project = loaded
             draft = loaded.map { ReportEditorDraft(project: $0) }
             savedDraft = draft
+            if let loaded {
+                do {
+                    if let snapshot = try await recoveryRepository?.fetchRecovery(projectID: projectID),
+                       snapshot.draft != savedDraft {
+                        pendingRecovery = snapshot
+                    }
+                } catch {
+                    recoveryMessage = "Recovery unavailable: " + error.localizedDescription
+                }
+                // Keep the canonical revision, even when an empty card was prepared for editing.
+                project = loaded
+            }
             hasLoaded = true
         } catch is CancellationError {
             // A cancelled load can be retried when the view reappears.
@@ -66,7 +87,7 @@ final class ReportEditorViewModel {
     /// Save a validated snapshot; keep edits intact if the repository fails.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
     func save() async -> Bool {
-        guard !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
+        guard pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
             return false
@@ -74,10 +95,17 @@ final class ReportEditorViewModel {
         guard isDirty else { return true }
         isSaving = true
         saveError = nil
-        defer { isSaving = false }
+        defer {
+            isSaving = false
+            if isDirty { scheduleRecovery() }
+        }
+        recoveryTask?.cancel()
+        await recoveryTask?.value
         do {
             let updated = try submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
             try await repository.save(updated)
+            await clearRecovery()
+
             let previousAssets = savedDraft?.assets ?? []
             self.project = updated
             savedDraft = ReportEditorDraft(project: updated)
@@ -134,14 +162,28 @@ final class ReportEditorViewModel {
         self.draft = draft
     }
 
-    func discardChanges() {
-        guard !isSaving else { return }
+    /// Finish durable cleanup before reporting that edits have been discarded.
+    @discardableResult
+    func discardChanges() async -> Bool {
+        guard !isSaving else { return false }
+        isSaving = true
+        defer { isSaving = false }
+        recoveryTask?.cancel()
+        await recoveryTask?.value
+        do {
+            try await recoveryRepository?.deleteRecovery(projectID: projectID)
+        } catch {
+            recoveryMessage = "Unable to discard recovery: " + error.localizedDescription
+            return false
+        }
         assetGeneration += 1
         draft = savedDraft
         saveError = nil
         assetError = nil
+        recoveryMessage = nil
         cleanUnusedAssets(importedAssets)
         importedAssets = []
+        return true
     }
 
     /// Apply only explicitly selected, available suggestions to the current draft.
@@ -239,12 +281,14 @@ final class ReportEditorViewModel {
 
     /// Delete only files unreferenced by both the saved report and the current draft.
     private func cleanUnusedAssets(_ candidates: [ImageAsset]) {
-        let retained = Set((draft?.assets ?? []).map(\.localReference)
-                           + (savedDraft?.assets ?? []).map(\.localReference))
-        let unused = candidates.filter { !retained.contains($0.localReference) }
         let previousTask = cleanupTask
+        let pendingRecovery = recoveryTask
         cleanupTask = Task {
             await previousTask?.value
+            await pendingRecovery?.value
+            let retained = Set((draft?.assets ?? []).map(\.localReference)
+                               + (savedDraft?.assets ?? []).map(\.localReference))
+            let unused = candidates.filter { !retained.contains($0.localReference) }
             for asset in unused {
                 do {
                     try await assetRepository.removeImage(asset)
@@ -252,6 +296,67 @@ final class ReportEditorViewModel {
                     cleanupWarning = "Some unused image files could not be removed: " + error.localizedDescription
                 }
             }
+        }
+    }
+
+    func restoreRecovery() {
+        guard let snapshot = pendingRecovery else { return }
+        pendingRecovery = nil
+        importedAssets.append(contentsOf: snapshot.draft.assets)
+        draft = snapshot.draft
+    }
+
+    func discardRecovery() async {
+        guard let snapshot = pendingRecovery else { return }
+        do {
+            try await recoveryRepository?.deleteRecovery(projectID: projectID)
+            pendingRecovery = nil
+            recoveryMessage = nil
+            cleanUnusedAssets(snapshot.draft.assets)
+        } catch {
+            recoveryMessage = "Unable to discard recovery: " + error.localizedDescription
+        }
+    }
+
+    /// Debounce recovery writes without committing the report or clearing its dirty state.
+    private func scheduleRecovery() {
+        guard hasLoaded, !isLoading, !isSaving, pendingRecovery == nil, let recoveryRepository, let project, let draft else { return }
+        recoveryTask?.cancel()
+        let previous = recoveryTask
+        let snapshot = RecoverySnapshot(projectID: projectID, baseUpdatedAt: project.updatedAt,
+                                        capturedAt: .now, draft: draft)
+        let dirty = isDirty
+        let delay = recoveryDelay
+        recoveryMessage = dirty ? "Backing up draft…" : nil
+        recoveryTask = Task { [weak self] in
+            await previous?.value
+            do {
+                try Task.checkCancellation()
+                if dirty {
+                    try await Task.sleep(for: delay)
+                    try await recoveryRepository.saveRecovery(snapshot)
+                    try Task.checkCancellation()
+                    self?.recoveryMessage = "Draft backed up locally"
+                } else {
+                    try await recoveryRepository.deleteRecovery(projectID: snapshot.projectID)
+                    try Task.checkCancellation()
+                    self?.recoveryMessage = nil
+                }
+            } catch is CancellationError {
+                // A newer edit or explicit save/discard superseded this snapshot.
+            } catch {
+                self?.recoveryMessage = "Recovery unavailable: " + error.localizedDescription
+            }
+        }
+    }
+
+    private func clearRecovery() async {
+        do {
+            try await recoveryRepository?.deleteRecovery(projectID: projectID)
+            recoveryMessage = nil
+        } catch {
+            // The canonical save already succeeded; keep that success distinct from cleanup.
+            recoveryMessage = "Saved, but recovery cleanup failed: " + error.localizedDescription
         }
     }
 

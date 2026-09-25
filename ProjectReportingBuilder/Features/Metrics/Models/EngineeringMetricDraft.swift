@@ -1,7 +1,7 @@
 import Foundation
 
 /// Preserve partially typed numbers until the user confirms a metric.
-struct EngineeringMetricDraft: Identifiable, Equatable {
+nonisolated struct EngineeringMetricDraft: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name = ""
     var currentValueText = ""
@@ -70,7 +70,7 @@ struct EngineeringMetricDraft: Identifiable, Equatable {
     }
 }
 
-struct MetricValidationError: LocalizedError {
+nonisolated struct MetricValidationError: LocalizedError, Sendable {
     let message: String
     var errorDescription: String? { message }
 }

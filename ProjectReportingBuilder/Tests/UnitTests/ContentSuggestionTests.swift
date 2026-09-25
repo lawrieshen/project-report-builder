@@ -37,7 +37,7 @@ struct ContentSuggestionTests {
         let changed = model.draft
         #expect(await model.save() == false)
         #expect(model.draft == changed)
-        model.discardChanges()
+        await model.discardChanges()
         #expect(model.draft == before)
     }
 

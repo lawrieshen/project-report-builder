@@ -10,6 +10,7 @@ final class ProjectBrowserViewModel {
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var errorMessage: String?
+    private(set) var storageWarnings: [String] = []
     var actionErrorMessage: String?
     
     private let repository: ProjectRepository
@@ -48,6 +49,7 @@ final class ProjectBrowserViewModel {
             let loadedProjects = try await repository.fetchProjects()
             try Task.checkCancellation()
             projects = loadedProjects
+            storageWarnings = repository.loadWarnings
         } catch is CancellationError {
             // A cancelled view task should not display an error.
         } catch {
@@ -97,6 +99,23 @@ final class ProjectBrowserViewModel {
         }
     }
     
+    func duplicateProject(_ project: ProjectReport, codeName: String) async -> Bool {
+        guard !isSaving else { return false }
+        isSaving = true
+        actionErrorMessage = nil
+        defer { isSaving = false }
+        do {
+            _ = try await repository.duplicate(id: project.id, codeName: codeName)
+            searchText = ""
+            clearFilters()
+            await loadProjects()
+            return true
+        } catch {
+            actionErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func deleteProject(_ project: ProjectReport) async {
         guard !isSaving else { return }
         isSaving = true
@@ -105,12 +124,26 @@ final class ProjectBrowserViewModel {
         
         do {
             try await repository.delete(project)
-            projects.removeAll { $0.id == project.id }
+            await loadProjects()
         } catch {
             actionErrorMessage = error.localizedDescription
         }
     }
     
+    func archiveProject(_ project: ProjectReport) async {
+        guard !isSaving else { return }
+        isSaving = true
+        actionErrorMessage = nil
+        defer { isSaving = false }
+        do {
+            guard var current = try await repository.fetchProject(id: project.id) else { throw StorageError.projectMissing }
+            current.status = .archived
+            // Keep the content revision so an existing unsaved recovery remains valid.
+            try await repository.save(current)
+            await loadProjects()
+        } catch { actionErrorMessage = error.localizedDescription }
+    }
+
     private func matchesSearch(_ project: ProjectReport) -> Bool {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return query.isEmpty
