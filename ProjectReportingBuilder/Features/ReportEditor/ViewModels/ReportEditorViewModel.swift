@@ -14,14 +14,24 @@ final class ReportEditorViewModel {
     private(set) var hasLoaded = false
     private var savedDraft: ReportEditorDraft?
     private let repository: ProjectRepository
+    private let assetRepository: any AssetRepository
+    private var importedAssets: [ImageAsset] = []
+    private var assetGeneration = 0
+    private(set) var isImporting = false
+    var assetError: String?
+    private(set) var cleanupWarning: String?
+    private(set) var cleanupTask: Task<Void, Never>?
 
-    init(projectID: UUID, repository: ProjectRepository) {
+
+    init(projectID: UUID, repository: ProjectRepository,
+         assetRepository: (any AssetRepository)? = nil) {
         self.projectID = projectID
         self.repository = repository
+        self.assetRepository = assetRepository ?? LocalAssetRepository()
     }
 
     var isDirty: Bool { draft != savedDraft }
-    var canSave: Bool { isDirty && draft?.isValid == true && !isLoading && !isSaving }
+    var canSave: Bool { isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
     /// Load once without overwriting edits when the view reappears.
     func load() async {
@@ -54,7 +64,7 @@ final class ReportEditorViewModel {
     /// Save a validated snapshot; keep edits intact if the repository fails.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
     func save() async -> Bool {
-        guard !isLoading, !isSaving, let project, let submittedDraft = draft else { return false }
+        guard !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
             return false
@@ -66,12 +76,15 @@ final class ReportEditorViewModel {
         do {
             let updated = try submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
             try await repository.save(updated)
+            let previousAssets = savedDraft?.assets ?? []
             self.project = updated
             savedDraft = ReportEditorDraft(project: updated)
             // Preserve any newer edits made while the save was awaiting completion.
             if draft == submittedDraft {
                 draft = savedDraft
             }
+            cleanUnusedAssets(previousAssets + importedAssets)
+            importedAssets = []
             return true
         } catch {
             saveError = error.localizedDescription
@@ -121,8 +134,123 @@ final class ReportEditorViewModel {
 
     func discardChanges() {
         guard !isSaving else { return }
+        assetGeneration += 1
         draft = savedDraft
         saveError = nil
+        assetError = nil
+        cleanUnusedAssets(importedAssets)
+        importedAssets = []
+    }
+
+    /// Apply only explicitly selected, available suggestions to the current draft.
+    func applyContentSuggestions(_ suggestions: ReportContentSuggestions,
+                                 selection: ContentSuggestionSelection) {
+        guard !isSaving, !isLoading, var current = draft else { return }
+        for field in selection.fields {
+            switch field {
+            case .codeName:
+                if let value = suggestions.codeName { current.codeName = value }
+            case .lineOfBusiness:
+                if let value = suggestions.lineOfBusiness { current.lineOfBusiness = value }
+            case .health:
+                if let value = suggestions.ragStatus { current.ragStatus = value }
+            case .milestone:
+                if let value = suggestions.milestonePhase { current.milestonePhase = value }
+            case .deadline:
+                if let value = suggestions.milestoneDeadline { current.milestoneDeadline = value }
+            case .summaryType:
+                if let value = suggestions.summaryType { current.summaryType = value }
+            case .summary:
+                if let value = suggestions.summaryMessage { current.summaryMessage = value }
+            case .leadEPM:
+                if let value = suggestions.leadEPMName { current.leadEPMName = value }
+            case .projectDRI:
+                if let value = suggestions.projectDRIName { current.projectDRIName = value }
+            }
+        }
+        draft = current
+    }
+
+    /// Import or replace an image only after the managed copy has been validated.
+    func importImages(from urls: [URL], replacing assetID: UUID? = nil) async {
+        guard !isLoading, !isSaving, !isImporting, draft != nil else { return }
+        if assetID != nil && urls.count != 1 { return }
+        isImporting = true
+        assetError = nil
+        let generation = assetGeneration
+        defer { isImporting = false }
+        var failures: [String] = []
+        for url in urls {
+            do {
+                let imported = try await assetRepository.importImage(from: url)
+                guard generation == assetGeneration, !Task.isCancelled, var current = draft else {
+                    cleanUnusedAssets([imported])
+                    return
+                }
+                if let assetID {
+                    guard let index = current.assets.firstIndex(where: { $0.id == assetID }) else {
+                        cleanUnusedAssets([imported])
+                        return
+                    }
+                    let old = current.assets[index]
+                    // Preserve the logical asset identity, alt text, and array position.
+                    current.assets[index] = ImageAsset(id: old.id, fileName: imported.fileName,
+                                                       localReference: imported.localReference, altText: old.altText)
+                } else {
+                    current.assets.append(imported)
+                }
+                importedAssets.append(imported)
+                draft = current
+                cleanUnusedAssets(importedAssets)
+            } catch is CancellationError {
+                return
+            } catch {
+                failures.append(url.lastPathComponent + ": " + error.localizedDescription)
+            }
+        }
+        if !failures.isEmpty { assetError = failures.joined(separator: "\n") }
+    }
+
+    func removeAsset(id: UUID) {
+        guard !isSaving, !isImporting else { return }
+        draft?.assets.removeAll { $0.id == id }
+        cleanUnusedAssets(importedAssets)
+    }
+
+    func updateAltText(assetID: UUID, altText: String) {
+        guard !isSaving, let index = draft?.assets.firstIndex(where: { $0.id == assetID }) else { return }
+        draft?.assets[index].altText = altText
+    }
+
+    func moveAsset(id: UUID, offset: Int) {
+        guard !isSaving, !isImporting, var current = draft,
+              let index = current.assets.firstIndex(where: { $0.id == id }) else { return }
+        let destination = index + offset
+        guard current.assets.indices.contains(destination) else { return }
+        current.assets.swapAt(index, destination)
+        draft = current
+    }
+
+    func imageData(for asset: ImageAsset, maximumPixelSize: Int = 320) async throws -> Data {
+        try await assetRepository.thumbnailData(for: asset, maximumPixelSize: maximumPixelSize)
+    }
+
+    /// Delete only files unreferenced by both the saved report and the current draft.
+    private func cleanUnusedAssets(_ candidates: [ImageAsset]) {
+        let retained = Set((draft?.assets ?? []).map(\.localReference)
+                           + (savedDraft?.assets ?? []).map(\.localReference))
+        let unused = candidates.filter { !retained.contains($0.localReference) }
+        let previousTask = cleanupTask
+        cleanupTask = Task {
+            await previousTask?.value
+            for asset in unused {
+                do {
+                    try await assetRepository.removeImage(asset)
+                } catch {
+                    cleanupWarning = "Some unused image files could not be removed: " + error.localizedDescription
+                }
+            }
+        }
     }
 
     func retry() async {

@@ -4,10 +4,12 @@ struct ReportEditorView: View {
     @Bindable var viewModel: ReportEditorViewModel
     let onBack: () -> Void
     var editMetric: (EngineeringMetricDraft, Bool) -> Void = { _, _ in }
+    var addContent: () -> Void = {}
+    var previewAsset: (ImageAsset) -> Void = { _ in }
 
     var body: some View {
         VStack(spacing: 0) {
-            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack)
+            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent)
             Divider()
             workspaceContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -61,10 +63,13 @@ struct ReportEditorView: View {
                     ExecutiveSummarySectionView(draft: draft)
                     Divider()
                     AccountabilitySectionView(draft: draft)
+                    Divider()
+                    SupportingContentSectionView(editor: viewModel, preview: previewAsset)
                 }
                 .textFieldStyle(.roundedBorder)
                 .padding(AppSpacing.pageInset)
             }
+            .accessibilityIdentifier("reportEditorScroll")
             .disabled(viewModel.isSaving)
         }
     }
