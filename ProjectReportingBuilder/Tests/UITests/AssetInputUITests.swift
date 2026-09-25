@@ -23,8 +23,21 @@ final class AssetInputUITests: XCTestCase {
         let alt = app.textFields["assetAltText.diagram.png"]
         scrollTo(alt, in: app)
         XCTAssertTrue(alt.waitForExistence(timeout: 10))
+        app.buttons["checkAccessibility"].click()
+        let goToImages = app.buttons["accessibilitySection.supportingContent"]
+        XCTAssertTrue(goToImages.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Missing alt text"].exists)
+        goToImages.click()
+        XCTAssertTrue(alt.waitForExistence(timeout: 5))
+        XCTAssertTrue(alt.isHittable)
         alt.click()
         alt.typeText("System diagram")
+        app.buttons["checkAccessibility"].click()
+        XCTAssertTrue(app.staticTexts["accessibilityAllClear"].waitForExistence(timeout: 5))
+        app.buttons["recheckAccessibility"].click()
+        XCTAssertTrue(app.staticTexts["accessibilityAllClear"].exists)
+        app.buttons["closeAccessibility"].click()
+        XCTAssertTrue(app.buttons["saveReport"].isEnabled)
         app.buttons["saveReport"].click()
         waitForSave(app)
         let preview = app.buttons["Preview diagram.png"]

@@ -142,7 +142,7 @@ there is no template gallery or presentation-style selection. Live Preview
 renders identity, health, metrics, summary, accountability, and supporting
 images using this fixed layout.
 
-Product flow (accessibility checks and export remain planned):
+Product flow (export remains planned):
 
 ~~~text
 Structured Report
@@ -164,8 +164,8 @@ template fields are ignored when decoding and are omitted from new output.
 | 03 | Metrics Editor | Implemented |
 | 04 | Content & Asset Input | Implemented |
 | 05 | Live Preview | Implemented |
-| 06 | Accessibility Validation | Next |
-| 07 | Export & Share | Planned |
+| 06 | Accessibility Validation | Implemented |
+| 07 | Export & Share | Next |
 | 08 | Local Persistence | Planned |
 | 09 | App Polish | Planned |
 
@@ -192,4 +192,34 @@ Closing it preserves edits; Discard restores the saved report as usual.
   Image loading is separate from the pure ReportCardView renderer.
 - Countdown compares calendar days and refreshes every minute while open.
 
-Export, clipboard, printing, and accessibility validation are not included yet.
+Export, clipboard, and printing are not included yet.
+
+
+## Accessibility Validation
+
+Choose **Check Accessibility** in the workspace Inspector. The floating panel
+checks the current unsaved draft without saving or changing dirty state.
+
+- Missing or whitespace-only image alt text produces an error.
+- Empty project and metric names, missing status text, and missing role labels
+  produce actionable issues with severity and an affected section.
+- **Go to Section** closes the panel and scrolls to the corresponding editor
+  section. Fix the content, reopen the panel, and use **Recheck** as needed.
+- Each opening checks a fresh draft snapshot. Results are not persisted or
+  reused after editing; validation does not run on every keystroke.
+- The canonical renderer shares heading markers, font sizes, semantic labels,
+  and opaque sRGB palettes with the checker. Both Light and Dark palettes are
+  checked for primary and secondary text on card and tile backgrounds.
+- Status badges retain colored icons alongside high-contrast text. Visible
+  report sections expose level-two headings below the level-one project title.
+
+Text contrast uses the [W3C relative-luminance formula](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
+and a conservative 4.5:1 threshold for all checked text. Body text is at least
+14 pt and captions at least 12 pt at actual size; these font-size thresholds
+are product policy, not WCAG requirements. Preview zoom does not change them.
+Style issues require a renderer update, rather than an edit to report content.
+
+The all-clear state means only that enabled checks passed. It is not WCAG
+certification. The checker does not inspect pixels or text inside images,
+judge alt-text quality, automate VoiceOver, tag exports, or block export.
+Review image readability and description quality manually.
