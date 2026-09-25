@@ -3,6 +3,7 @@ import SwiftUI
 struct NewProjectCard: View {
     @Bindable var viewModel: ProjectBrowserViewModel
     let onDismiss: () -> Void
+    let onCreated: (ProjectReport) -> Void
     @FocusState private var isCodeNameFocused: Bool
     @State private var codeName = ""
     @State private var lineOfBusiness = ""
@@ -21,7 +22,6 @@ struct NewProjectCard: View {
         }
         .padding(24)
         .frame(width: 420)
-        .frame(maxHeight: .infinity)
         .background {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(nsColor: .windowBackgroundColor))
@@ -42,14 +42,22 @@ struct NewProjectCard: View {
     
     @ViewBuilder
     private var scrollableContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                projectForm
-                errorMessage
+        ViewThatFits(in: .vertical) {
+            formContent
+                .fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                formContent
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            projectForm
+            errorMessage
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     @ViewBuilder
@@ -90,12 +98,12 @@ struct NewProjectCard: View {
                     .controlSize(.small)
             }
             
-            Button("Create") {
+            Button("Create & Open") {
                 Task {
                     let created = await viewModel.createProject(
                         codeName: codeName, lineOfBusiness: lineOfBusiness, status: status)
-                    if created {
-                        onDismiss()
+                    if let created {
+                        onCreated(created)
                     }
                 }
             }
@@ -108,6 +116,7 @@ struct NewProjectCard: View {
 #Preview {
     NewProjectCard(
         viewModel: ProjectBrowserViewModel(repository: InMemoryProjectRepository()),
-        onDismiss: {}
+        onDismiss: {},
+        onCreated: { _ in }
     )
 }
