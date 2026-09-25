@@ -4,6 +4,7 @@ nonisolated struct StorageInformation: Sendable {
     let location: URL
     var projectCount = 0
     var assetCount = 0
+    var recoveryCount = 0
     var bytes: Int64 = 0
     var warnings: [String] = []
 }
@@ -18,6 +19,9 @@ extension ProjectFileStore {
         for case let url as URL in enumerator {
             let values = try url.resourceValues(forKeys: Set(keys))
             guard values.isSymbolicLink != true, values.isRegularFile == true else { continue }
+            if url.deletingLastPathComponent() == storage.recovery && url.pathExtension == "json" {
+                info.recoveryCount += 1
+            }
             info.bytes += Int64(values.fileSize ?? 0)
             if url.deletingLastPathComponent().lastPathComponent == "Assets" { info.assetCount += 1 }
         }

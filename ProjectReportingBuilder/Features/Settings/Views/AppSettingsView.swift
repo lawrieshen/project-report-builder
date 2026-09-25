@@ -10,6 +10,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 struct AppSettingsView: View {
     @Bindable var store: AppSettingsStore
     let fileStore: ProjectFileStore
+    let maintenance: RecoveryMaintenanceCoordinator
     @State private var selection: SettingsSection? = .general
 
     var body: some View {
@@ -78,7 +79,7 @@ struct AppSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         case .storage:
-            StorageSettingsView(store: fileStore)
+            StorageSettingsView(store: fileStore, maintenance: maintenance)
         case .about:
             VStack(alignment: .leading, spacing: AppSpacing.section) {
                 Text("Project Reporting Builder").font(.title2.bold())

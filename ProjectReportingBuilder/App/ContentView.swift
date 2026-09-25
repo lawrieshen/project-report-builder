@@ -19,6 +19,8 @@ struct ContentView: View {
         case metric(EngineeringMetricDraft, Bool)
     }
 
+    private let settings: AppSettingsStore?
+    private let maintenance: RecoveryMaintenanceCoordinator?
     @State private var exportViewModel: ExportViewModel?
     @State private var focusedSection: ReportSection?
     @State private var card: Card?
@@ -26,8 +28,11 @@ struct ContentView: View {
     @State private var browserViewModel: ProjectBrowserViewModel
     
     init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil) {
-        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings, session: session))
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil,
+         maintenance: RecoveryMaintenanceCoordinator? = nil) {
+        self.settings = settings
+        self.maintenance = maintenance
+        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings, session: session, maintenance: maintenance))
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
     
@@ -47,7 +52,7 @@ struct ContentView: View {
         mainContent
             .task { await router.restoreSession() }
             .focusedSceneValue(\.reportActions, commandActions)
-            .disabled(isShowingCard)
+            .disabled(isShowingCard || maintenance?.isClearing == true)
             .accessibilityHidden(isShowingCard)
             .overlay {
                 floatingCardOverlay
@@ -68,7 +73,7 @@ struct ContentView: View {
     
     private var commandActions: ReportActions {
         let editor = router.editor
-        let available = !isShowingCard && !router.showingLeaveConfirmation
+        let available = !isShowingCard && !router.showingLeaveConfirmation && maintenance?.isClearing != true
             && !browserViewModel.isLoading && !browserViewModel.isSaving
             && editor?.isLoading != true && editor?.isSaving != true
             && editor?.isImporting != true && editor?.pendingRecovery == nil
@@ -258,7 +263,8 @@ struct ContentView: View {
                                newProject: router.newProject,
                                isCreatingProject: isShowingCard,
                                showFilters: { card = .filters },
-                               duplicateProject: { card = .duplicate($0) })
+                               duplicateProject: { card = .duplicate($0) },
+                               confirmBeforeDelete: settings?.settings.confirmBeforeDelete ?? true)
             }
         }
     }
