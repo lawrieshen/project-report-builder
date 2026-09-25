@@ -7,6 +7,7 @@ struct ReportEditorDraft: Equatable {
     var ragStatus: RAGStatus?
     var milestonePhase: String
     var milestoneDeadline: Date?
+    var assets: [ImageAsset]
     var metrics: [EngineeringMetricDraft]
     var summaryType: SummaryType
     var summaryMessage: String
@@ -19,6 +20,7 @@ struct ReportEditorDraft: Equatable {
         ragStatus = project.card?.health.ragStatus
         milestonePhase = project.card?.health.milestone?.phase ?? ""
         milestoneDeadline = project.card?.health.milestone?.deadline
+        assets = project.card?.assets ?? []
         metrics = project.card?.metrics.map { EngineeringMetricDraft(metric: $0) } ?? []
         summaryType = project.card?.summary.type ?? .update
         summaryMessage = project.card?.summary.message ?? ""
@@ -72,6 +74,7 @@ struct ReportEditorDraft: Equatable {
                 leadEPM: person(named: leadEPMName, existing: project.card?.accountability.leadEPM),
                 projectDRI: person(named: projectDRIName, existing: project.card?.accountability.projectDRI)
             ),
+            assets: assets,
             metrics: try metrics.map { try $0.makeMetric() }
         )
         return result
