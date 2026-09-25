@@ -142,7 +142,7 @@ there is no template gallery or presentation-style selection. Live Preview
 renders identity, health, metrics, summary, accountability, and supporting
 images using this fixed layout.
 
-Product flow (export remains planned):
+Product flow:
 
 ~~~text
 Structured Report
@@ -165,8 +165,8 @@ template fields are ignored when decoding and are omitted from new output.
 | 04 | Content & Asset Input | Implemented |
 | 05 | Live Preview | Implemented |
 | 06 | Accessibility Validation | Implemented |
-| 07 | Export & Share | Next |
-| 08 | Local Persistence | Planned |
+| 07 | Export & Share | Implemented |
+| 08 | Local Persistence | Next |
 | 09 | App Polish | Planned |
 
 Multiple layouts can be reconsidered when there is a concrete requirement.
@@ -192,7 +192,7 @@ Closing it preserves edits; Discard restores the saved report as usual.
   Image loading is separate from the pure ReportCardView renderer.
 - Countdown compares calendar days and refreshes every minute while open.
 
-Export, clipboard, and printing are not included yet.
+PNG and HTML export are available through the workspace Export action. Printing is not included.
 
 
 ## Accessibility Validation
@@ -223,3 +223,40 @@ The all-clear state means only that enabled checks passed. It is not WCAG
 certification. The checker does not inspect pixels or text inside images,
 judge alt-text quality, automate VoiceOver, tag exports, or block export.
 Review image readability and description quality manually.
+
+
+## Export & Share
+
+Choose **Export** in the workspace toolbar. The floating card exports the current
+unsaved draft; it never calls Save or changes the workspace dirty state.
+
+- **PNG** uses the same `ReportCardView` as Live Preview at a fixed 720-point
+  width. Standard produces 720-pixel-wide output; High Resolution uses 2× scale.
+  Preview zoom has no effect on export resolution.
+- **White** uses the light palette and an opaque white background. **System**
+  captures the current app appearance. **Transparent** removes the card's outer
+  background and keeps dark text and tile surfaces; choose a suitable destination
+  background for readability.
+- **HTML** is a standalone UTF-8 document with embedded PNG images, shared design
+  tokens, semantic headings, status text, and escaped text/alt attributes. It
+  follows the preview's content order; browser typography may differ from SwiftUI.
+  PNG-only controls are hidden when HTML is selected.
+- **Copy Image** always writes PNG. **Save to Finder** and **Share** use the selected
+  format. Native sharing lists services available on the current Mac; no direct
+  email, messaging, or cloud integrations are used.
+- Save cancellation is neutral. “Share menu opened” confirms only presentation,
+  not delivery. Share files stay available until the native service finishes or
+  is cancelled; interrupted leftovers are cleaned up on a later launch.
+- Every action validates the same current draft snapshot. Issues offer **Review
+  Issues** or **Export Anyway**. Fixing content and exporting again runs a fresh
+  check, rather than reusing a potentially stale report.
+- Image bytes are loaded and decoded before rendering. Missing images fail with
+  an actionable message instead of silently exporting placeholders. Output and
+  decoded-image size limits prevent unbounded allocations; lower resolution or
+  reduce content if a report exceeds these limits.
+
+The export ViewModel coordinates rendering and destination protocols. AppKit
+clipboard, save-panel, and sharing behavior lives under `Platform/`. PNG rendering
+is read-only and runs on the main actor; no project persistence is involved.
+
+PDF, printing, batch export, and export history remain outside this feature.
