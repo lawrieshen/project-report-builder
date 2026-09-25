@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 
 @MainActor
 final class ExportUITests: XCTestCase {
@@ -48,6 +49,44 @@ final class ExportUITests: XCTestCase {
         XCTAssertTrue(app.buttons["saveReport"].isEnabled)
         app.buttons["discardReport"].click()
         XCTAssertEqual(title.value as? String, "Titan")
+    }
+
+    func testHighResolutionTransparentPNGAndNativeShareCancellation() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let app = openReport()
+        app.buttons["openExport"].click()
+        XCTAssertTrue(app.buttons["closeExport"].waitForExistence(timeout: 5))
+        app.popUpButtons["exportScale"].click()
+        app.menuItems["High Resolution"].click()
+        app.popUpButtons["exportBackground"].click()
+        app.menuItems["Transparent"].click()
+        app.buttons["saveExport"].click()
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 5))
+        app.typeKey("g", modifierFlags: [.command, .shift])
+        app.typeText(directory.path)
+        app.typeKey(.return, modifierFlags: [])
+        let save = app.sheets.buttons["Save"].firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        save.click()
+        let url = directory.appendingPathComponent("Titan.png")
+        let written = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            FileManager.default.fileExists(atPath: url.path)
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [written], timeout: 10), .completed)
+        let image = try XCTUnwrap(NSBitmapImageRep(data: Data(contentsOf: url)))
+        XCTAssertEqual(image.pixelsWide, 1440)
+        XCTAssertEqual(image.colorAt(x: 1, y: 1)?.alphaComponent, 0)
+        app.buttons["shareExport"].click()
+        let picker = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.menus.firstMatch.exists || app.popovers.firstMatch.exists
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [picker], timeout: 8), .completed)
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(app.buttons["closeExport"].waitForExistence(timeout: 5))
+        app.buttons["closeExport"].click()
+        XCTAssertFalse(app.buttons["saveReport"].isEnabled)
     }
 
     func testAccessibilityReviewAndExportAnyway() {
