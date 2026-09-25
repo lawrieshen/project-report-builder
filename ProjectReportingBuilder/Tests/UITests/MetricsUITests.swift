@@ -136,9 +136,8 @@ final class MetricsUITests: XCTestCase {
         name.typeText("Titan")
         app.textFields["newProjectLineOfBusiness"].click()
         app.textFields["newProjectLineOfBusiness"].typeText("Camera")
-        app.buttons["Create"].click()
-        XCTAssertTrue(app.buttons["Open Titan"].waitForExistence(timeout: 5))
-        app.buttons["Open Titan"].click()
+        app.buttons["Create & Open"].click()
+        XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["addMetric"].waitForExistence(timeout: 5))
         return app
     }

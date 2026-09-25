@@ -4,7 +4,7 @@ struct ProjectIdentitySectionView: View {
     @Binding var draft: ReportEditorDraft
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.field) {
             Text("Project Identity").font(.title3.bold())
             TextField("Project Code Name", text: $draft.codeName)
                 .accessibilityIdentifier("reportCodeName")

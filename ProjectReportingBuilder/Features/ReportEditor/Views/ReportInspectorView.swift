@@ -5,7 +5,7 @@ struct ReportInspectorView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: AppSpacing.field) {
                 Text("Report").font(.headline)
                 LabeledContent("Status", value: project.status.displayName)
                 LabeledContent("Template", value: project.template.displayName)
@@ -21,7 +21,7 @@ struct ReportInspectorView: View {
                 Text("Accountability")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
+            .padding(AppSpacing.cardInset)
         }
         .frame(width: 190)
         .background(.quaternary.opacity(0.3))
