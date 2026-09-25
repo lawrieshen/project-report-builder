@@ -65,7 +65,7 @@ final class ProjectBrowserViewModel {
     }
     
     func createProject(codeName: String, lineOfBusiness: String,
-                       status: ReportStatus) async -> Bool {
+                       status: ProjectStatus) async -> Bool {
         guard !isSaving else { return false }
         let name = codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         let business = lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -129,6 +129,14 @@ final class ProjectBrowserViewModel {
         let matchesStatus = filter.statuses.isEmpty || filter.statuses.contains(project.status)
         let matchesBusiness = filter.linesOfBusiness.isEmpty
         || filter.linesOfBusiness.contains(project.lineOfBusiness)
-        return matchesStatus && matchesBusiness
+        let matchesHealth: Bool
+        if filter.healthStatuses.isEmpty {
+            matchesHealth = true
+        } else if let health = project.card?.health.ragStatus {
+            matchesHealth = filter.healthStatuses.contains(health)
+        } else {
+            matchesHealth = false
+        }
+        return matchesStatus && matchesBusiness && matchesHealth
     }
 }

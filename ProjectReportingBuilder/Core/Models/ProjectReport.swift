@@ -12,7 +12,7 @@ struct ProjectReport: Identifiable, Codable, Equatable {
     
     var codeName: String
     var lineOfBusiness: String
-    var status: ReportStatus
+    var status: ProjectStatus
     
     var template: ReportTemplate?
     var card: SnippetCard?

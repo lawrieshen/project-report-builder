@@ -36,9 +36,14 @@ struct ProjectFilterBar: View {
                     searchText = ""
                 }
             }
-            ForEach(ReportStatus.allCases.filter { filter.statuses.contains($0) }, id: \.self) { status in
-                filterTag("Status: " + status.displayName, statusColor: status.color) {
+            ForEach(ProjectStatus.allCases.filter { filter.statuses.contains($0) }, id: \.self) { status in
+                filterTag("Status: " + status.displayName) {
                     filter.statuses.remove(status)
+                }
+            }
+            ForEach(RAGStatus.allCases.filter { filter.healthStatuses.contains($0) }, id: \.self) { health in
+                filterTag("Health: " + health.displayName, statusColor: health.color) {
+                    filter.healthStatuses.remove(health)
                 }
             }
             ForEach(filter.linesOfBusiness.sorted(), id: \.self) { business in

@@ -8,10 +8,11 @@
 import SwiftUI
 
 struct ProjectBrowserFilter {
-    var statuses: Set<ReportStatus> = []
+    var statuses: Set<ProjectStatus> = []
+    var healthStatuses: Set<RAGStatus> = []
     var linesOfBusiness: Set<String> = []
     
     var isEmpty: Bool {
-        statuses.isEmpty && linesOfBusiness.isEmpty
+        statuses.isEmpty && healthStatuses.isEmpty && linesOfBusiness.isEmpty
     }
 }
