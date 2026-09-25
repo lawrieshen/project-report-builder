@@ -63,8 +63,8 @@ final class ReportEditorViewModel {
         isSaving = true
         saveError = nil
         defer { isSaving = false }
-        let updated = submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
         do {
+            let updated = try submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
             try await repository.save(updated)
             self.project = updated
             savedDraft = ReportEditorDraft(project: updated)
