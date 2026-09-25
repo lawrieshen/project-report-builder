@@ -12,6 +12,10 @@ final class InMemoryProjectRepository: ProjectRepository {
         projects
     }
 
+    func fetchProject(id: UUID) async throws -> ProjectReport? {
+        projects.first { $0.id == id }
+    }
+
     func save(_ project: ProjectReport) async throws {
         if let index = projects.firstIndex(where: { $0.id == project.id }) {
             projects[index] = project

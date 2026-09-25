@@ -39,7 +39,7 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar before opening project")
         card.click()
-        XCTAssertTrue(app.staticTexts["Report Editor is not available yet."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         // Sidebar navigation returns from the editor to the browser.
         let projectsNavigation = app.buttons["projectsNavigation"]
         let sidebarVisible = NSPredicate(format: "hittable == true")
@@ -78,9 +78,9 @@ final class ProjectBrowserUITests: XCTestCase {
         let card = app.buttons["Open Atlas"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         app.buttons["projectFilterButton"].click()
-        let blocked = app.checkBoxes["Blocked"]
-        XCTAssertTrue(blocked.waitForExistence(timeout: 5))
-        blocked.click()
+        let active = app.checkBoxes["Active"]
+        XCTAssertTrue(active.waitForExistence(timeout: 5))
+        active.click()
         app.checkBoxes["Services"].click()
         app.buttons["Done"].click()
         XCTAssertTrue(app.buttons["Clear Filters"].waitForExistence(timeout: 5))
@@ -88,7 +88,7 @@ final class ProjectBrowserUITests: XCTestCase {
         let search = app.textFields["Search projects"]
         search.click()
         search.typeText("Atlas")
-        app.buttons["Remove Status: Blocked"].click()
+        app.buttons["Remove Status: Active"].click()
         XCTAssertTrue(app.buttons["Remove Search: Atlas"].exists)
         XCTAssertTrue(app.buttons["Remove Line of Business: Services"].exists)
         XCTAssertTrue(card.waitForExistence(timeout: 5))

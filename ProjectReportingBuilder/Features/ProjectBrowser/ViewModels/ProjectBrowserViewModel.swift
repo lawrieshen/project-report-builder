@@ -11,7 +11,6 @@ final class ProjectBrowserViewModel {
     private(set) var isSaving = false
     private(set) var errorMessage: String?
     var actionErrorMessage: String?
-    var selectedProject: ProjectReport?
     
     private let repository: ProjectRepository
     
@@ -56,16 +55,12 @@ final class ProjectBrowserViewModel {
         }
     }
     
-    func selectProject(_ project: ProjectReport) {
-        selectedProject = project
-    }
-    
     func clearFilters() {
         filter = ProjectBrowserFilter()
     }
     
     func createProject(codeName: String, lineOfBusiness: String,
-                       status: ReportStatus) async -> Bool {
+                       status: ProjectStatus) async -> Bool {
         guard !isSaving else { return false }
         let name = codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         let business = lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -79,9 +74,15 @@ final class ProjectBrowserViewModel {
         defer { isSaving = false }
         
         let now = Date()
-        let project = ProjectReport(id: UUID(), codeName: name,
-                                    lineOfBusiness: business, status: status,
-                                    createdAt: now, updatedAt: now)
+        let project = ProjectReport(
+            id: UUID(),
+            codeName: name,
+            lineOfBusiness: business,
+            status: status,
+            createdAt: now,
+            updatedAt: now
+        )
+        
         do {
             try await repository.save(project)
             projects.append(project)
@@ -104,9 +105,6 @@ final class ProjectBrowserViewModel {
         do {
             try await repository.delete(project)
             projects.removeAll { $0.id == project.id }
-            if selectedProject?.id == project.id {
-                selectedProject = nil
-            }
         } catch {
             actionErrorMessage = error.localizedDescription
         }
@@ -123,6 +121,14 @@ final class ProjectBrowserViewModel {
         let matchesStatus = filter.statuses.isEmpty || filter.statuses.contains(project.status)
         let matchesBusiness = filter.linesOfBusiness.isEmpty
         || filter.linesOfBusiness.contains(project.lineOfBusiness)
-        return matchesStatus && matchesBusiness
+        let matchesHealth: Bool
+        if filter.healthStatuses.isEmpty {
+            matchesHealth = true
+        } else if let health = project.card?.health.ragStatus {
+            matchesHealth = filter.healthStatuses.contains(health)
+        } else {
+            matchesHealth = false
+        }
+        return matchesStatus && matchesBusiness && matchesHealth
     }
 }
