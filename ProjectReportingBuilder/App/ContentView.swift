@@ -45,6 +45,7 @@ struct ContentView: View {
     var body: some View {
         // Keep the split view at the root so sidebar rows stay below the toolbar.
         mainContent
+            .focusedSceneValue(\.reportActions, commandActions)
             .disabled(isShowingCard)
             .accessibilityHidden(isShowingCard)
             .overlay {
@@ -64,6 +65,22 @@ struct ContentView: View {
                        value: isShowingCard)
     }
     
+    private var commandActions: ReportActions {
+        let editor = router.editor
+        let available = !isShowingCard && !router.showingLeaveConfirmation
+            && !browserViewModel.isLoading && !browserViewModel.isSaving
+            && editor?.isLoading != true && editor?.isSaving != true
+            && editor?.isImporting != true && editor?.pendingRecovery == nil
+        let hasReport = available && editor?.draft != nil
+        return ReportActions(
+            newProject: available ? { router.newProject() } : nil,
+            openProject: available ? { router.showProjects() } : nil,
+            save: available && editor?.canSave == true ? { Task { await editor?.save() } } : nil,
+            preview: hasReport ? { card = .livePreview } : nil,
+            export: hasReport ? { showExport() } : nil,
+            accessibility: hasReport ? { card = .accessibility } : nil)
+    }
+
     private var isShowingCard: Bool {
         router.showingNewProject || card != nil
     }
@@ -251,7 +268,6 @@ struct ContentView: View {
                 Label("New Project", systemImage: "plus")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .keyboardShortcut("n", modifiers: .command)
             .accessibilityIdentifier("newProjectButton")
             .disabled(browserViewModel.isLoading || browserViewModel.isSaving || router.editor?.isSaving == true || router.editor?.isImporting == true)
             .padding(AppSpacing.cardInset)
