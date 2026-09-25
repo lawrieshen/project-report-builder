@@ -27,6 +27,51 @@ struct AssetRepositoryTests {
         }
     }
 
+    @MainActor
+    @Test func thumbnailsKeepDistinctContentWhenSourceFilenameIsReused() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let repository = LocalAssetRepository(directory: root.appendingPathComponent("managed"))
+        let source = try makeImage(in: root, type: .png, red: 0.1, green: 0.3, blue: 0.9)
+        let original = try await repository.importImage(from: source)
+        // Overwrite the source with orange pixels but retain the same filename.
+        _ = try makeImage(in: root, type: .png, red: 0.95, green: 0.5, blue: 0.05)
+        let replacement = try await repository.importImage(from: source)
+        try FileManager.default.removeItem(at: source)
+        #expect(original.fileName == replacement.fileName)
+        #expect(original.localReference != replacement.localReference)
+
+        let originalData = try await repository.thumbnailData(for: original, maximumPixelSize: 4)
+        let replacementData = try await repository.thumbnailData(for: replacement, maximumPixelSize: 4)
+        try expectColor(in: originalData, red: 0.1, green: 0.3, blue: 0.9)
+        try expectColor(in: replacementData, red: 0.95, green: 0.5, blue: 0.05)
+        try await repository.removeImage(replacement)
+        let retainedData = try await repository.thumbnailData(for: original, maximumPixelSize: 4)
+        try expectColor(in: retainedData, red: 0.1, green: 0.3, blue: 0.9)
+    }
+
+    @MainActor
+    private func expectColor(in data: Data, red: CGFloat, green: CGFloat, blue: CGFloat) throws {
+        let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        #expect(image.width == 4)
+        #expect(image.height == 4)
+        let colorSpace = try #require(CGColorSpace(name: CGColorSpace.sRGB))
+        var pixel = [UInt8](repeating: 0, count: 4)
+        try pixel.withUnsafeMutableBytes { bytes in
+            let context = try #require(CGContext(
+                data: bytes.baseAddress, width: 1, height: 1, bitsPerComponent: 8,
+                bytesPerRow: 4, space: colorSpace,
+                bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        }
+        #expect(abs(CGFloat(pixel[0]) / 255 - red) < 0.04)
+        #expect(abs(CGFloat(pixel[1]) / 255 - green) < 0.04)
+        #expect(abs(CGFloat(pixel[2]) / 255 - blue) < 0.04)
+    }
+
     @Test func invalidOversizedAndEscapingFilesAreRejected() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -45,10 +90,15 @@ struct AssetRepositoryTests {
         #expect(FileManager.default.fileExists(atPath: fake.path))
     }
 
-    private func makeImage(in directory: URL, type: UTType) throws -> URL {
+    private func makeImage(in directory: URL, type: UTType,
+                           red: CGFloat = 0.1, green: CGFloat = 0.3, blue: CGFloat = 0.9) throws -> URL {
+        let colorSpace = try #require(CGColorSpace(name: CGColorSpace.sRGB))
         let context = try #require(CGContext(data: nil, width: 8, height: 8, bitsPerComponent: 8,
-                                            bytesPerRow: 32, space: CGColorSpaceCreateDeviceRGB(),
+                                            bytesPerRow: 32, space: colorSpace,
                                             bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+        let color = try #require(CGColor(colorSpace: colorSpace, components: [red, green, blue, 1]))
+        context.setFillColor(color)
+        context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
         let image = try #require(context.makeImage())
         let url = directory.appendingPathComponent("sample." + (type.preferredFilenameExtension ?? "image"))
         let destination = try #require(CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil))
