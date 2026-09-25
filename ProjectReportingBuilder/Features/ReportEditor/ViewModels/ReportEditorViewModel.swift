@@ -3,15 +3,25 @@ import Observation
 
 @MainActor
 @Observable
-final class ReportEditorViewModel {
+final class ReportEditorViewModel: AppSettingsObserving {
     let projectID: UUID
     private(set) var project: ProjectReport?
-    var draft: ReportEditorDraft? { didSet { scheduleRecovery() } }
+    var draft: ReportEditorDraft? {
+        didSet {
+            guard draft != oldValue else { return }
+            scheduleRecovery()
+            scheduleAutosave()
+        }
+    }
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var loadError: String?
     private(set) var saveError: String?
     private(set) var hasLoaded = false
+    private var autosaveTask: Task<Void, Never>?
+    private var autosaveEnabled = false
+    private var autosaveDelay: AutosaveDelay = .seconds2
+    private var autosavePaused = false
     private var savedDraft: ReportEditorDraft?
     private let repository: ProjectRepository
     private let assetRepository: any AssetRepository
@@ -31,12 +41,47 @@ final class ReportEditorViewModel {
     init(projectID: UUID, repository: ProjectRepository,
          assetRepository: (any AssetRepository)? = nil,
          recoveryRepository: (any DraftRecoveryRepository)? = nil,
-         recoveryDelay: Duration = .milliseconds(1500)) {
+         recoveryDelay: Duration = .milliseconds(1500),
+         settings: AppSettingsStore? = nil) {
         self.recoveryRepository = recoveryRepository
         self.recoveryDelay = recoveryDelay
         self.projectID = projectID
         self.repository = repository
         self.assetRepository = assetRepository ?? LocalAssetRepository()
+        settings?.observe(self)
+    }
+
+    func settingsDidChange(_ settings: AppSettings) {
+        let changed = autosaveEnabled != settings.autosaveEnabled || autosaveDelay != settings.autosaveDelay
+        autosaveEnabled = settings.autosaveEnabled
+        autosaveDelay = settings.autosaveDelay
+        if changed { scheduleAutosave() }
+    }
+
+    /// Pause pending saves while the user decides whether to leave the workspace.
+    func setAutosavePaused(_ paused: Bool) {
+        autosavePaused = paused
+        scheduleAutosave()
+    }
+
+    private func scheduleAutosave() {
+        autosaveTask?.cancel()
+        autosaveTask = nil
+        guard autosaveEnabled, !autosavePaused, hasLoaded, canSave else { return }
+        let delay = autosaveDelay.rawValue
+        autosaveTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+                try Task.checkCancellation()
+                guard let self else { return }
+                self.autosaveTask = nil
+                _ = await self.save()
+            } catch is CancellationError {
+                // A newer edit, settings change, or manual action superseded this save.
+            } catch {
+                self?.saveError = error.localizedDescription
+            }
+        }
     }
 
     var previewModel: ReportPreviewModel? { draft.map { ReportPreviewModel(draft: $0) } }
@@ -49,7 +94,10 @@ final class ReportEditorViewModel {
         guard !isLoading, !isSaving, !hasLoaded else { return }
         isLoading = true
         loadError = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            scheduleAutosave()
+        }
         do {
             var loaded = try await repository.fetchProject(id: projectID)
             try Task.checkCancellation()
@@ -87,6 +135,8 @@ final class ReportEditorViewModel {
     /// Save a validated snapshot; keep edits intact if the repository fails.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
     func save() async -> Bool {
+        autosaveTask?.cancel()
+        autosaveTask = nil
         guard pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
@@ -97,7 +147,11 @@ final class ReportEditorViewModel {
         saveError = nil
         defer {
             isSaving = false
-            if isDirty { scheduleRecovery() }
+            if isDirty {
+                scheduleRecovery()
+                // Retry only for newer edits, never loop on an unchanged failure.
+                if draft != submittedDraft { scheduleAutosave() }
+            }
         }
         recoveryTask?.cancel()
         await recoveryTask?.value
@@ -166,6 +220,8 @@ final class ReportEditorViewModel {
     @discardableResult
     func discardChanges() async -> Bool {
         guard !isSaving else { return false }
+        autosaveTask?.cancel()
+        autosaveTask = nil
         isSaving = true
         defer { isSaving = false }
         recoveryTask?.cancel()
@@ -222,7 +278,10 @@ final class ReportEditorViewModel {
         isImporting = true
         assetError = nil
         let generation = assetGeneration
-        defer { isImporting = false }
+        defer {
+            isImporting = false
+            scheduleAutosave()
+        }
         var failures: [String] = []
         for url in urls {
             do {
