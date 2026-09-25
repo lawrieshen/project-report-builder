@@ -150,6 +150,11 @@ private final class FailingProjectRepository: ProjectRepository {
         return projects
     }
 
+    func fetchProject(id: UUID) async throws -> ProjectReport? {
+        if shouldFail { throw Failure.unavailable }
+        return projects.first { $0.id == id }
+    }
+
     func save(_ project: ProjectReport) async throws {
         if shouldFail { throw Failure.unavailable }
         projects.append(project)

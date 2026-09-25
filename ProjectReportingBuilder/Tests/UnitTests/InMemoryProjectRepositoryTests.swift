@@ -15,6 +15,16 @@ struct InMemoryProjectRepositoryTests {
         #expect(projects == [project])
     }
 
+    @Test func lookupFindsOnlyTheRequestedProject() async throws {
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+                                    status: .draft, createdAt: .now, updatedAt: .now)
+        let repository = InMemoryProjectRepository(projects: [project])
+        #expect(try await repository.fetchProject(id: project.id) == project)
+        #expect(try await repository.fetchProject(id: UUID()) == nil)
+        try await repository.delete(project)
+        #expect(try await repository.fetchProject(id: project.id) == nil)
+    }
+
     @Test func deletingOneProjectPreservesTheOthers() async throws {
         let first = ProjectReport(id: UUID(), codeName: "One", lineOfBusiness: "Camera",
                                   status: .draft, createdAt: .now, updatedAt: .now)
