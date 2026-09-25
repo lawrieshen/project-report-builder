@@ -10,4 +10,5 @@ xcodebuild build \
   -scheme "Project Report Builder" \
   -configuration Debug \
   -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath build
+  -derivedDataPath build \ 
+  "$@"
