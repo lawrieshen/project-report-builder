@@ -6,11 +6,16 @@ struct ProjectBrowserView: View {
     let newProject: () -> Void
     var isCreatingProject = false
     let showFilters: () -> Void
+    var duplicateProject: (ProjectReport) -> Void = { _ in }
     @State private var projectToDelete: ProjectReport?
     
     var body: some View {
         VStack(spacing: 0) {
             browserHeader
+            if !viewModel.storageWarnings.isEmpty {
+                Text("Some projects could not be loaded.\n" + viewModel.storageWarnings.joined(separator: "\n"))
+                    .font(.caption).foregroundStyle(.orange).padding(AppSpacing.cardInset)
+            }
             Divider()
             browserContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -27,7 +32,7 @@ struct ProjectBrowserView: View {
             }
             Button("Cancel", role: .cancel) { projectToDelete = nil }
         } message: {
-            Text("This action cannot be undone.")
+            Text("This project, its images, and recovered edits will be permanently removed from this Mac. This action cannot be undone.")
         }
         .alert("Unable to Complete Action", isPresented: Binding(
             get: { viewModel.actionErrorMessage != nil && !isCreatingProject },
@@ -78,7 +83,8 @@ struct ProjectBrowserView: View {
         } else {
             ProjectGridView(projects: viewModel.visibleProjects,
                             open: openProject,
-                            delete: { projectToDelete = $0 })
+                            delete: { projectToDelete = $0 }, duplicate: duplicateProject,
+                            archive: { project in Task { await viewModel.archiveProject(project) } })
             .disabled(viewModel.isSaving)
         }
     }

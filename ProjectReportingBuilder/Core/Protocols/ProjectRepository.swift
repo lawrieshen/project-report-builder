@@ -9,6 +9,7 @@ import Foundation
 
 @MainActor
 protocol ProjectRepository {
+    var loadWarnings: [String] { get }
     func fetchProjects() async throws -> [ProjectReport]
     
     /// Fetch a project by stable identity.
@@ -18,5 +19,14 @@ protocol ProjectRepository {
 
     func save(_ project: ProjectReport) async throws
     
+    func duplicate(id: UUID, codeName: String) async throws -> ProjectReport
+
     func delete(_ project: ProjectReport) async throws
+}
+
+extension ProjectRepository {
+    var loadWarnings: [String] { [] }
+    func duplicate(id: UUID, codeName: String) async throws -> ProjectReport {
+        throw StorageError.writeFailed("project copy")
+    }
 }

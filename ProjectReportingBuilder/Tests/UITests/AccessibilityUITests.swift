@@ -5,7 +5,7 @@ final class AccessibilityUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
     func testCheckNavigateFixAndRecheckWithoutSaving() {
-        let app = XCUIApplication()
+        let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         app.activate()

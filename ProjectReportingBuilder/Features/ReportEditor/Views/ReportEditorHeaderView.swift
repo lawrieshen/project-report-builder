@@ -30,7 +30,7 @@ struct ReportEditorHeaderView: View {
                 .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isSaving || viewModel.isImporting)
                 .accessibilityIdentifier("addContent")
             if viewModel.isSaving { ProgressView().controlSize(.small) }
-            Button("Discard") { viewModel.discardChanges() }
+            Button("Discard") { Task { await viewModel.discardChanges() } }
                 .disabled(!viewModel.isDirty || viewModel.isSaving)
                 .accessibilityIdentifier("discardReport")
             Button("Save") { Task { await viewModel.save() } }

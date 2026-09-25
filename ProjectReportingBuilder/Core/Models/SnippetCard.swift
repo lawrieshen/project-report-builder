@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SnippetCard: Identifiable, Codable, Equatable {
+nonisolated struct SnippetCard: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     
     var health: ProjectHealth
@@ -25,7 +25,7 @@ struct SnippetCard: Identifiable, Codable, Equatable {
 
 // Keep the memberwise initializer available while supporting Feature 02 data.
 extension SnippetCard {
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id)
         health = try values.decode(ProjectHealth.self, forKey: .health)

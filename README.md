@@ -40,9 +40,9 @@ accountability. Project status is read-only in the inspector.
 - Opening a project without a report card creates defaults only in memory;
   saving edits creates its single card. Repeated saves update that same card.
 
-The app currently uses an in-memory repository. Saved changes last only for the
-current app session; disk persistence, autosave, and export are not implemented. App-internal navigation is guarded; window closing
-and quitting the app are not intercepted.
+The app saves reports locally and keeps separate recovery copies of unsaved
+edits. App-internal navigation is guarded; window closing and quitting are not
+intercepted. Reopening a project offers any available recovery copy.
 
 ## Development and tests
 
@@ -87,7 +87,7 @@ icon, rather than color alone.
 
 Metrics tests cover model compatibility, comparison boundaries, formatting,
 validation, duplicate names, stable IDs, ordering, failed saves, discard,
-editing cancellation, and save/reopen UI workflows. Storage remains in memory.
+editing cancellation, and save/reopen UI workflows. Reports persist locally.
 
 ## Content & Asset Input
 
@@ -129,8 +129,8 @@ Failed saves preserve edits and files. Unused draft files are cleaned up, and
 removed saved files are deleted only after a successful save. Cleanup failures
 are shown separately without undoing a successful report save.
 
-Storage remains session-scoped: reports use the in-memory repository and assets
-use a managed temporary directory. Cross-launch persistence is not implemented.
+Reports and managed images persist across launches. Recovery copies also protect
+images referenced by unsaved drafts.
 PDF/OCR, remote URLs, automatic captions, and metric ingestion are outside
 this feature.
 
@@ -166,8 +166,8 @@ template fields are ignored when decoding and are omitted from new output.
 | 05 | Live Preview | Implemented |
 | 06 | Accessibility Validation | Implemented |
 | 07 | Export & Share | Implemented |
-| 08 | Local Persistence | Next |
-| 09 | App Polish | Planned |
+| 08 | Local Persistence & Recovery | Implemented |
+| 09 | App Polish | Next |
 
 Multiple layouts can be reconsidered when there is a concrete requirement.
 
@@ -260,3 +260,42 @@ clipboard, save-panel, and sharing behavior lives under `Platform/`. PNG renderi
 is read-only and runs on the main actor; no project persistence is involved.
 
 PDF, printing, batch export, and export history remain outside this feature.
+
+
+## Local Persistence & Recovery
+
+Production stores versioned JSON and managed images in the app's Application
+Support directory. Sandboxed builds resolve this inside the app container;
+Settings → Local Storage shows the actual location, counts, and size, and can
+reveal it in Finder. No demo projects are created automatically.
+
+- **Save** atomically replaces the canonical report. Failed saves retain the
+  draft and its dirty state. Files are read and written by a background actor.
+- **Recovery** writes a separate snapshot about 1.5 seconds after editing pauses.
+  It preserves raw input, including incomplete metrics, and does not update the
+  saved report or clear Unsaved Changes. An abrupt exit before the debounce
+  completes can lose the most recent edits.
+- On reopening a project, **Restore** loads recovered input as an unsaved draft;
+  **Discard Recovery** keeps the last explicit save. Save and Discard cancel
+  queued backups and remove obsolete recovery data. Old snapshots are tied to
+  the canonical content revision and cannot overwrite a newer save.
+- Imported images are copied into each project's Assets directory; references
+  are relative to that managed directory. Files still referenced by a saved
+  report or recovery copy are protected from draft cleanup.
+- **Duplicate** copies the last saved report and its images, with new project,
+  card, metric, person, and asset identities. Unsaved recovery is not duplicated.
+- **Delete** permanently removes the project, its images, and recovery. Pending
+  cleanup after an interrupted deletion is retried when projects are loaded.
+  **Archive** only changes status and retains data and recovery; the content
+  revision timestamp remains unchanged.
+- Corrupt or unsupported project documents produce warnings while valid projects
+  remain available. They are not silently overwritten. Only the initial schema
+  is supported; future versions require an explicit migration.
+
+The app has one editing window to avoid simultaneous edits to the same recovery
+copy. Previews keep using in-memory repositories. Debug UI tests receive unique
+storage directories so they never read or modify production projects.
+
+Cloud synchronization, external storage relocation, version history, and remote
+backup are not included. A local recovery copy is not protection against losing
+this Mac or its disk.

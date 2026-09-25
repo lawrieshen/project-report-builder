@@ -9,6 +9,7 @@ struct ContentView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private enum Card {
+        case duplicate(ProjectReport)
         case export
         case accessibility
         case livePreview
@@ -24,8 +25,9 @@ struct ContentView: View {
     @State private var router: AppRouter
     @State private var browserViewModel: ProjectBrowserViewModel
     
-    init(repository: ProjectRepository) {
-        _router = State(initialValue: AppRouter(repository: repository))
+    init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
+         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
+        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository))
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
     
@@ -51,7 +53,7 @@ struct ContentView: View {
             .alert("You have unsaved changes.", isPresented: $router.showingLeaveConfirmation) {
                 Button("Save") { Task { await router.saveAndLeave() } }
                     .accessibilityIdentifier("leaveSave")
-                Button("Discard", role: .destructive) { router.discardAndLeave() }
+                Button("Discard", role: .destructive) { Task { await router.discardAndLeave() } }
                     .accessibilityIdentifier("leaveDiscard")
                 Button("Cancel", role: .cancel) { router.cancelNavigation() }
                     .accessibilityIdentifier("leaveCancel")
@@ -93,6 +95,8 @@ struct ContentView: View {
             })
         } else if let card {
             switch card {
+            case .duplicate(let project):
+                DuplicateProjectCard(project: project, viewModel: browserViewModel, onDismiss: dismissCard)
             case .export:
                 if let draft = router.editor?.draft, let exportViewModel {
                     ExportPanelView(viewModel: exportViewModel, model: ReportPreviewModel(draft: draft),
@@ -230,8 +234,9 @@ struct ContentView: View {
             ProjectBrowserView(viewModel: browserViewModel,
                                openProject: { router.openProject(id: $0.id) },
                                newProject: router.newProject,
-                               isCreatingProject: router.showingNewProject,
-                               showFilters: { card = .filters })
+                               isCreatingProject: isShowingCard,
+                               showFilters: { card = .filters },
+                               duplicateProject: { card = .duplicate($0) })
         }
     }
 

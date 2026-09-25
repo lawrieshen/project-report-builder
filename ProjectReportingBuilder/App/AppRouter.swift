@@ -10,8 +10,9 @@ final class AppRouter {
     var showingNewProject = false
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
+    private let recoveryRepository: (any DraftRecoveryRepository)?
     private let repository: ProjectRepository
-    private let assetRepository: any AssetRepository
+    private let assetFactory: (UUID) -> any AssetRepository
 
     private enum Destination {
         case browser
@@ -19,9 +20,13 @@ final class AppRouter {
         case editor(UUID)
     }
 
-    init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil) {
+    init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil,
+         assetFactory: ((UUID) -> any AssetRepository)? = nil,
+         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
+        self.recoveryRepository = recoveryRepository
         self.repository = repository
-        self.assetRepository = assetRepository ?? LocalAssetRepository()
+        let fallback = assetRepository ?? LocalAssetRepository()
+        self.assetFactory = assetFactory ?? { _ in fallback }
     }
 
     func openProject(id: UUID) {
@@ -37,9 +42,12 @@ final class AppRouter {
         showingLeaveConfirmation = false
     }
 
-    func discardAndLeave() {
+    func discardAndLeave() async {
         guard editor?.isSaving != true, editor?.isImporting != true else { return }
-        editor?.discardChanges()
+        guard await editor?.discardChanges() == true else {
+            cancelNavigation()
+            return
+        }
         completePendingNavigation()
     }
 
@@ -75,7 +83,7 @@ final class AppRouter {
             editor = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
-            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetRepository)
+            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository)
             route = .reportEditor(projectID: id)
         }
     }
