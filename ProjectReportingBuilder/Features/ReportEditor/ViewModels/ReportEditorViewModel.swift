@@ -10,6 +10,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         didSet {
             guard draft != oldValue else { return }
             if !isLoading && !isSaving && !maintenanceInProgress { automaticWritesSuppressed = false }
+            if !isLoading && !isSaving && !isDirty { saveError = nil }
             scheduleRecovery()
             scheduleAutosave()
         }

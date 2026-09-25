@@ -13,6 +13,7 @@ struct SaveConcurrencyTests {
         editor.draft?.codeName = "Submitted"
         let firstSave = Task { await editor.save() }
         for _ in 0..<100 where repository.continuation == nil { await Task.yield() }
+        let continuation = try #require(repository.continuation)
         #expect(editor.saveState == .saving)
         #expect(await editor.save() == false)
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -23,7 +24,7 @@ struct SaveConcurrencyTests {
             try await maintenance.clearRecovery(using: ProjectFileStore(storage: ApplicationStorage(root: root)))
         }
         editor.draft?.codeName = "Newer edit"
-        repository.continuation?.resume()
+        continuation.resume()
         #expect(await firstSave.value)
         #expect(repository.saveCount == 1)
         #expect(repository.project.codeName == "Submitted")
