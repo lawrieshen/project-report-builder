@@ -4,6 +4,7 @@ struct ReportEditorHeaderView: View {
     @Bindable var viewModel: ReportEditorViewModel
     let onBack: () -> Void
     let addContent: () -> Void
+    let showPreview: () -> Void
 
     var body: some View {
         HStack(spacing: AppSpacing.field) {
@@ -18,6 +19,9 @@ struct ReportEditorHeaderView: View {
                 }
             }
             Spacer()
+            Button("Preview", action: showPreview)
+                .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isImporting)
+                .accessibilityIdentifier("openLivePreview")
             Button("Add Content", action: addContent)
                 .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isSaving || viewModel.isImporting)
                 .accessibilityIdentifier("addContent")

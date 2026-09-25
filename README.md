@@ -41,8 +41,7 @@ accountability. Project status is read-only in the inspector.
   saving edits creates its single card. Repeated saves update that same card.
 
 The app currently uses an in-memory repository. Saved changes last only for the
-current app session; disk persistence, autosave, preview, and
-export are not implemented. App-internal navigation is guarded; window closing
+current app session; disk persistence, autosave, and export are not implemented. App-internal navigation is guarded; window closing
 and quitting the app are not intercepted.
 
 ## Development and tests
@@ -139,11 +138,11 @@ this feature.
 ## MVP scope and roadmap
 
 The MVP uses one canonical report layout. Users manage structured content;
-there is no template gallery or presentation-style selection. Live Preview is
-the next feature and will render identity, health, metrics, summary,
-accountability, and supporting images using this fixed layout.
+there is no template gallery or presentation-style selection. Live Preview
+renders identity, health, metrics, summary, accountability, and supporting
+images using this fixed layout.
 
-Planned flow (preview, accessibility checks, and export are not implemented yet):
+Product flow (accessibility checks and export remain planned):
 
 ~~~text
 Structured Report
@@ -154,8 +153,8 @@ Structured Report
 ~~~
 
 The domain remains ProjectReport with an optional SnippetCard. No template
-property or template engine is needed. The planned Report Renderer consumes
-the structured report and produces the canonical layout. Historical JSON
+property or template engine is needed. The reusable ReportCardView consumes
+an immutable preview model and decoded images to produce the canonical layout. Historical JSON
 template fields are ignored when decoding and are omitted from new output.
 
 | Feature | Scope | Status |
@@ -164,10 +163,33 @@ template fields are ignored when decoding and are omitted from new output.
 | 02 | Report Workspace | Implemented |
 | 03 | Metrics Editor | Implemented |
 | 04 | Content & Asset Input | Implemented |
-| 05 | Live Preview | Next |
-| 06 | Accessibility Validation | Planned |
+| 05 | Live Preview | Implemented |
+| 06 | Accessibility Validation | Next |
 | 07 | Export & Share | Planned |
 | 08 | Local Persistence | Planned |
 | 09 | App Polish | Planned |
 
 Multiple layouts can be reconsidered when there is a concrete requirement.
+
+
+## Live Preview
+
+Choose **Preview** in the workspace header to see the current draft, including
+unsaved changes. Preview uses a read-only floating workspace and never saves.
+Closing it preserves edits; Discard restores the saved report as usual.
+
+- The canonical card shows identity, health with text and color, milestone and
+  derived countdown, metrics and target status, summary, images, and people.
+- Empty optional sections are omitted. An empty code name shows Untitled Project.
+  Invalid draft metrics show a correction message rather than disappearing.
+- **Fit** adapts to the available window and fits the complete card; long cards
+  can fit below 50%. **Actual Size** uses a 720-point card at 100%.
+  Manual zoom is 50–200%, with horizontal and vertical scrolling.
+- **System / Light / Dark** changes the preview canvas only.
+- Images retain their order and alt text. Missing images display a labelled
+  placeholder. Previews load bounded images rather than original-size files.
+- Preview data is computed from the draft without repository reads or writes.
+  Image loading is separate from the pure ReportCardView renderer.
+- Countdown compares calendar days and refreshes every minute while open.
+
+Export, clipboard, printing, and accessibility validation are not included yet.

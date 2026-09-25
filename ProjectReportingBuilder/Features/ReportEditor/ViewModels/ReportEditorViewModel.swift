@@ -30,6 +30,8 @@ final class ReportEditorViewModel {
         self.assetRepository = assetRepository ?? LocalAssetRepository()
     }
 
+    var previewModel: ReportPreviewModel? { draft.map { ReportPreviewModel(draft: $0) } }
+
     var isDirty: Bool { draft != savedDraft }
     var canSave: Bool { isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
