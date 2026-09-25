@@ -13,7 +13,7 @@ struct MetricWorkspaceTests {
 
     @Test func changesSaveReopenAndDiscardWithStableIdentity() async throws {
         let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
-                                    status: .active, template: .technical, createdAt: .now, updatedAt: .now)
+                                    status: .active, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         let model = ReportEditorViewModel(projectID: project.id, repository: repository)
         await model.load()
@@ -30,7 +30,6 @@ struct MetricWorkspaceTests {
         #expect(model.draft?.metrics.map(\.id) == [second.id, first.id])
         #expect(await model.save())
         #expect(!model.isDirty)
-        #expect(repository.project?.template == .technical)
         #expect(repository.project?.card?.metrics.map(\.id) == [second.id, first.id])
         #expect(repository.project?.card?.metrics.last?.currentValue == 99)
         model.deleteMetric(id: first.id)

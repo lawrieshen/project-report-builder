@@ -6,7 +6,7 @@ import Testing
 struct ContentSuggestionTests {
     @Test func unselectedExistingSummaryIsNeverOverwritten() async throws {
         let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
-                                    status: .active, template: .technical, createdAt: .now, updatedAt: .now)
+                                    status: .active, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         let model = ReportEditorViewModel(projectID: project.id, repository: repository)
         await model.load()
@@ -39,7 +39,6 @@ struct ContentSuggestionTests {
         #expect(model.draft == changed)
         model.discardChanges()
         #expect(model.draft == before)
-        #expect(repository.project?.template == .technical)
     }
 
     @Test func selectedFieldsApplyWithoutClearingMissingSuggestions() async throws {
