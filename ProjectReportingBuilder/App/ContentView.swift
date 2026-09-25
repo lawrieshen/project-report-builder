@@ -9,6 +9,7 @@ struct ContentView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private enum Card {
+        case accessibility
         case livePreview
         case imagePreview(ImageAsset)
         case sourceContent
@@ -16,6 +17,7 @@ struct ContentView: View {
         case metric(EngineeringMetricDraft, Bool)
     }
 
+    @State private var focusedSection: ReportSection?
     @State private var card: Card?
     @State private var router: AppRouter
     @State private var browserViewModel: ProjectBrowserViewModel
@@ -89,6 +91,14 @@ struct ContentView: View {
             })
         } else if let card {
             switch card {
+            case .accessibility:
+                if let draft = router.editor?.draft {
+                    AccessibilityPanelView(model: AccessibilityValidationModel(draft: draft),
+                                           onDismiss: dismissCard) { section in
+                        dismissCard()
+                        focusedSection = section
+                    }
+                }
             case .livePreview:
                 if let editor = router.editor, let model = editor.previewModel {
                     GeometryReader { geometry in
@@ -194,7 +204,9 @@ struct ContentView: View {
                              editMetric: { card = .metric($0, $1) },
                              addContent: { card = .sourceContent },
                              previewAsset: { card = .imagePreview($0) },
-                             showPreview: { card = .livePreview })
+                             showPreview: { card = .livePreview },
+                             checkAccessibility: { card = .accessibility },
+                             focusedSection: $focusedSection)
                 .id(editor.projectID)
         } else {
             ProjectBrowserView(viewModel: browserViewModel,

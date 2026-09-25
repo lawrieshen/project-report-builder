@@ -7,6 +7,9 @@ struct ReportEditorView: View {
     var addContent: () -> Void = {}
     var previewAsset: (ImageAsset) -> Void = { _ in }
     var showPreview: () -> Void = {}
+    var checkAccessibility: () -> Void = {}
+    @Binding var focusedSection: ReportSection?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +37,7 @@ struct ReportEditorView: View {
             HStack(spacing: 0) {
                 editorContent(draft: draft)
                 Divider()
-                ReportInspectorView(project: project)
+                ReportInspectorView(project: project, checkAccessibility: checkAccessibility)
             }
         } else {
             ContentUnavailableView("Project not found", systemImage: "folder.badge.questionmark",
@@ -53,25 +56,32 @@ struct ReportEditorView: View {
                 }
                 .padding(AppSpacing.cardInset)
             }
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.section) {
-                    ProjectIdentitySectionView(draft: draft)
-                    Divider()
-                    HealthUrgencySectionView(draft: draft)
-                    Divider()
-                    MetricsSectionView(viewModel: viewModel, editMetric: editMetric)
-                    Divider()
-                    ExecutiveSummarySectionView(draft: draft)
-                    Divider()
-                    AccountabilitySectionView(draft: draft)
-                    Divider()
-                    SupportingContentSectionView(editor: viewModel, preview: previewAsset)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.section) {
+                        ProjectIdentitySectionView(draft: draft).id(ReportSection.identity)
+                        Divider()
+                        HealthUrgencySectionView(draft: draft).id(ReportSection.health)
+                        Divider()
+                        MetricsSectionView(viewModel: viewModel, editMetric: editMetric).id(ReportSection.metrics)
+                        Divider()
+                        ExecutiveSummarySectionView(draft: draft).id(ReportSection.summary)
+                        Divider()
+                        AccountabilitySectionView(draft: draft).id(ReportSection.accountability)
+                        Divider()
+                        SupportingContentSectionView(editor: viewModel, preview: previewAsset).id(ReportSection.supportingContent)
+                    }
+                    .textFieldStyle(.roundedBorder)
+                    .padding(AppSpacing.pageInset)
                 }
-                .textFieldStyle(.roundedBorder)
-                .padding(AppSpacing.pageInset)
+                .accessibilityIdentifier("reportEditorScroll")
+                .disabled(viewModel.isSaving)
+                .onChange(of: focusedSection) { _, section in
+                    guard let section else { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut) { proxy.scrollTo(section, anchor: .top) }
+                    focusedSection = nil
+                }
             }
-            .accessibilityIdentifier("reportEditorScroll")
-            .disabled(viewModel.isSaving)
         }
     }
 }
@@ -80,6 +90,6 @@ struct ReportEditorView: View {
     let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
                                 status: .active, createdAt: .now, updatedAt: .now)
     ReportEditorView(viewModel: ReportEditorViewModel(
-        projectID: project.id, repository: InMemoryProjectRepository(projects: [project])), onBack: {})
+        projectID: project.id, repository: InMemoryProjectRepository(projects: [project])), onBack: {}, focusedSection: .constant(nil))
         .frame(width: 900, height: 650)
 }
