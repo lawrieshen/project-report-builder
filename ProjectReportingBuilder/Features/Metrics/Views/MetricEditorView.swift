@@ -1,30 +1,35 @@
 import SwiftUI
 
 struct MetricEditorView: View {
-    @Environment(\.dismiss) private var dismiss
+    let onDismiss: () -> Void
     @State private var draft: EngineeringMetricDraft
     @State private var saveError: String?
     let existingMetrics: [EngineeringMetricDraft]
     let onSave: (EngineeringMetricDraft) -> String?
 
     init(metric: EngineeringMetricDraft, existingMetrics: [EngineeringMetricDraft],
+         onDismiss: @escaping () -> Void,
          onSave: @escaping (EngineeringMetricDraft) -> String?) {
         _draft = State(initialValue: metric)
         self.existingMetrics = existingMetrics
         self.onSave = onSave
+        self.onDismiss = onDismiss
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
             Text("Metric Editor").font(.title2)
-            metricFields
+            ScrollView {
+                metricFields
+            }
             if let message = draft.validationError(in: existingMetrics) ?? saveError {
-                Text(message).foregroundStyle(.red).font(.callout)
+                Text(message)
+                    .font(.callout)
+                    .floatingCardError(alignment: .center)
             }
             actionButtons
         }
-        .padding(24)
-        .frame(width: 460)
+        .floatingCard(width: 460, maxHeight: .infinity)
     }
 
     @ViewBuilder
@@ -63,13 +68,13 @@ struct MetricEditorView: View {
     @ViewBuilder
     private var actionButtons: some View {
         HStack {
-            Button("Cancel") { dismiss() }
+            Button("Cancel") { onDismiss() }
                 .keyboardShortcut(.cancelAction)
                 .accessibilityIdentifier("cancelMetric")
             Spacer()
             Button("Save Metric") {
                 saveError = onSave(draft)
-                if saveError == nil { dismiss() }
+                if saveError == nil { onDismiss() }
             }
             .keyboardShortcut(.defaultAction)
             .disabled(draft.validationError(in: existingMetrics) != nil)

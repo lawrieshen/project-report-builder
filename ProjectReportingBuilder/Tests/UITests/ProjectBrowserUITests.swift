@@ -20,12 +20,17 @@ final class ProjectBrowserUITests: XCTestCase {
             XCTFail(app.debugDescription)
             return
         }
+        // The card stays near the top and its actions follow the compact form.
+        XCTAssertLessThan(name.frame.minY, app.windows.firstMatch.frame.midY)
+        XCTAssertLessThan(app.buttons["Create & Open"].frame.maxY - name.frame.minY, 220)
         name.click()
         name.typeText("Titan")
         let business = app.textFields["newProjectLineOfBusiness"]
         business.click()
         business.typeText("Camera")
-        app.buttons["Create"].click()
+        app.buttons["Create & Open"].click()
+        XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
+        app.buttons["workspaceBack"].click()
 
         let card = app.buttons["Open Titan"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))
@@ -73,7 +78,9 @@ final class ProjectBrowserUITests: XCTestCase {
         let business = app.textFields["newProjectLineOfBusiness"]
         business.click()
         business.typeText("Services")
-        app.buttons["Create"].click()
+        app.buttons["Create & Open"].click()
+        XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
+        app.buttons["workspaceBack"].click()
 
         let card = app.buttons["Open Atlas"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))

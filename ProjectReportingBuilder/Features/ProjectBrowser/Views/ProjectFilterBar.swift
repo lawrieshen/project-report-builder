@@ -1,10 +1,16 @@
 import SwiftUI
 
 struct ProjectFilterBar: View {
+    private enum TagLayout {
+        static let contentGap: CGFloat = 6
+        static let leadingInset: CGFloat = 12
+        static let trailingInset: CGFloat = 6
+    }
+
     @Binding var searchText: String
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
-    @State private var showingFilters = false
+    let showFilters: () -> Void
     
     var body: some View {
         HStack {
@@ -14,23 +20,21 @@ struct ProjectFilterBar: View {
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {
-                showingFilters = true
+                showFilters()
             } label: {
                 Label(filter.isEmpty ? "Filter" : "Filter (Active)",
                       systemImage: "line.3.horizontal.decrease")
             }
             .fixedSize()
             .accessibilityIdentifier("projectFilterButton")
-            .popover(isPresented: $showingFilters) {
-                ProjectFilterPopover(filter: $filter, linesOfBusiness: linesOfBusiness)
-            }
+
             
         }
     }
     
     @ViewBuilder
     private var activeFilterTags: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.inline) {
             if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 filterTag("Search: " + searchText) {
                     searchText = ""
@@ -52,7 +56,7 @@ struct ProjectFilterBar: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppSpacing.compact)
     }
     
     @ViewBuilder
@@ -61,7 +65,7 @@ struct ProjectFilterBar: View {
         statusColor: Color? = nil,
         remove: @escaping () -> Void
     ) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: TagLayout.contentGap) {
             if let statusColor {
                 Circle()
                     .fill(statusColor)
@@ -73,7 +77,7 @@ struct ProjectFilterBar: View {
             Button(action: remove) {
                 Image(systemName: "xmark")
                     .font(.caption.weight(.semibold))
-                    .padding(4)
+                    .padding(AppSpacing.compact)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -81,9 +85,9 @@ struct ProjectFilterBar: View {
             .help("Remove " + title)
         }
         .font(.callout)
-        .padding(.leading, 12)
-        .padding(.trailing, 6)
-        .padding(.vertical, 4)
+        .padding(.leading, TagLayout.leadingInset)
+        .padding(.trailing, TagLayout.trailingInset)
+        .padding(.vertical, AppSpacing.compact)
         .background(Color.accentColor.opacity(0.12), in: Capsule())
         .fixedSize()
     }

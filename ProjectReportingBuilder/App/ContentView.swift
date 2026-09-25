@@ -1,7 +1,19 @@
 import SwiftUI
 
 struct ContentView: View {
+    private enum Layout {
+        // The detail background extends beneath the title bar; its controls do not.
+        static let titleBarClearance: CGFloat = 36
+        static let detailInset: CGFloat = 12
+    }
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private enum Card {
+        case filters
+        case metric(EngineeringMetricDraft, Bool)
+    }
+
+    @State private var card: Card?
     @State private var router: AppRouter
     @State private var browserViewModel: ProjectBrowserViewModel
     
@@ -24,10 +36,10 @@ struct ContentView: View {
     var body: some View {
         // Keep the split view at the root so sidebar rows stay below the toolbar.
         mainContent
-            .disabled(router.showingNewProject)
-            .accessibilityHidden(router.showingNewProject)
+            .disabled(isShowingCard)
+            .accessibilityHidden(isShowingCard)
             .overlay {
-                newProjectOverlay
+                floatingCardOverlay
             }
             .alert("You have unsaved changes.", isPresented: $router.showingLeaveConfirmation) {
                 Button("Save") { Task { await router.saveAndLeave() } }
@@ -40,36 +52,66 @@ struct ContentView: View {
                 Text("Save your changes before leaving this report?")
             }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.25),
-                       value: router.showingNewProject)
+                       value: isShowingCard)
     }
     
+    private var isShowingCard: Bool {
+        router.showingNewProject || card != nil
+    }
+
     @ViewBuilder
-    private var newProjectOverlay: some View {
-        ZStack(alignment: .trailing) {
-            if router.showingNewProject {
+    private var floatingCardOverlay: some View {
+        ZStack(alignment: .topTrailing) {
+            if isShowingCard {
                 Color.black.opacity(0.01)
                     .ignoresSafeArea()
-                    .onTapGesture {
-                        if !browserViewModel.isSaving {
-                            dismissNewProject()
-                        }
-                    }
+                    .onTapGesture { dismissCard() }
                     .accessibilityHidden(true)
-                    .transition(.opacity)
-                
-                NewProjectCard(
-                    viewModel: browserViewModel,
-                    onDismiss: dismissNewProject
-                )
-                .padding(24)
-                .frame(width: 468)
-                .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
-                .zIndex(1)
+                cardContent
+                    .padding(AppSpacing.pageInset)
+                    .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
+                    .zIndex(1)
             }
         }
         .clipped()
     }
-    
+
+    @ViewBuilder
+    private var cardContent: some View {
+        if router.showingNewProject {
+            NewProjectCard(viewModel: browserViewModel, onDismiss: dismissNewProject,
+                           onCreated: { project in
+                dismissNewProject()
+                router.openProject(id: project.id)
+            })
+        } else if let card {
+            switch card {
+            case .filters:
+                ProjectFilterCard(filter: $browserViewModel.filter,
+                                  linesOfBusiness: browserViewModel.linesOfBusiness,
+                                  onDismiss: dismissCard)
+            case .metric(let metric, let isAdding):
+                if let editor = router.editor {
+                    MetricEditorView(metric: metric, existingMetrics: editor.draft?.metrics ?? [],
+                                     onDismiss: dismissCard) { confirmed in
+                        if isAdding { return editor.addMetric(confirmed) }
+                        return editor.updateMetric(confirmed)
+                    }
+                }
+
+            }
+        }
+    }
+
+    private func dismissCard() {
+        guard !browserViewModel.isSaving, router.editor?.isSaving != true else { return }
+        if router.showingNewProject {
+            dismissNewProject()
+        } else {
+            card = nil
+        }
+    }
+
     private func dismissNewProject() {
         browserViewModel.actionErrorMessage = nil
         router.showingNewProject = false
@@ -112,12 +154,11 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         workspaceDestination
+            .padding(.top, Layout.titleBarClearance)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
-            .padding(.top, 12)
+            .padding(Layout.detailInset)
             .ignoresSafeArea(.container, edges: .top)
             .background {
                 Color(nsColor: .windowBackgroundColor)
@@ -129,13 +170,15 @@ struct ContentView: View {
     @ViewBuilder
     private var workspaceDestination: some View {
         if let editor = router.editor {
-            ReportEditorView(viewModel: editor, onBack: router.showProjects)
+            ReportEditorView(viewModel: editor, onBack: router.showProjects,
+                             editMetric: { card = .metric($0, $1) })
                 .id(editor.projectID)
         } else {
             ProjectBrowserView(viewModel: browserViewModel,
                                openProject: { router.openProject(id: $0.id) },
                                newProject: router.newProject,
-                               isCreatingProject: router.showingNewProject)
+                               isCreatingProject: router.showingNewProject,
+                               showFilters: { card = .filters })
         }
     }
 
@@ -153,7 +196,7 @@ struct ContentView: View {
             .keyboardShortcut("n", modifiers: .command)
             .accessibilityIdentifier("newProjectButton")
             .disabled(browserViewModel.isLoading || browserViewModel.isSaving || router.editor?.isSaving == true)
-            .padding()
+            .padding(AppSpacing.cardInset)
         }
     }
 }
