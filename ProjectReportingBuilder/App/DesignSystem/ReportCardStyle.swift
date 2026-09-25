@@ -11,6 +11,6 @@ enum ReportCardStyle {
     static let imageMinimumWidth: CGFloat = 220
     static let imageHeight: CGFloat = 180
     static let canvasInset: CGFloat = 24
-    static let titleFont: Font = .system(size: 30, weight: .bold, design: .rounded)
-    static let metricFont: Font = .system(size: 26, weight: .semibold, design: .rounded)
+    static let titleFont: Font = .system(size: ReportAccessibilityStyle.canonical.titleSize, weight: .bold, design: .rounded)
+    static let metricFont: Font = .system(size: ReportAccessibilityStyle.canonical.metricSize, weight: .semibold, design: .rounded)
 }
