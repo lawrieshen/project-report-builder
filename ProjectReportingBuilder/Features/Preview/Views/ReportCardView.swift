@@ -13,6 +13,7 @@ struct ReportCardView: View {
     let model: ReportPreviewModel
     var images: [String: PreviewImageState] = [:]
     var now: Date = .now
+    var drawsBackground = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
@@ -41,7 +42,7 @@ struct ReportCardView: View {
         .foregroundStyle(palette.primary.color)
         .padding(ReportCardStyle.contentInset)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(palette.background.color,
+        .background(drawsBackground ? palette.background.color : Color.clear,
                     in: RoundedRectangle(cornerRadius: ReportCardStyle.cornerRadius))
         .overlay {
             RoundedRectangle(cornerRadius: ReportCardStyle.cornerRadius)
