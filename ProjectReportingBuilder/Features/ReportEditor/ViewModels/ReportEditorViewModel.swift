@@ -19,6 +19,7 @@ final class ReportEditorViewModel {
     private let recoveryDelay: Duration
     private(set) var recoveryTask: Task<Void, Never>?
     private(set) var recoveryMessage: String?
+    private(set) var pendingRecovery: RecoverySnapshot?
     private var importedAssets: [ImageAsset] = []
     private var assetGeneration = 0
     private(set) var isImporting = false
@@ -41,7 +42,7 @@ final class ReportEditorViewModel {
     var previewModel: ReportPreviewModel? { draft.map { ReportPreviewModel(draft: $0) } }
 
     var isDirty: Bool { draft != savedDraft }
-    var canSave: Bool { isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
+    var canSave: Bool { pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
     /// Load once without overwriting edits when the view reappears.
     func load() async {
@@ -63,6 +64,18 @@ final class ReportEditorViewModel {
             project = loaded
             draft = loaded.map { ReportEditorDraft(project: $0) }
             savedDraft = draft
+            if let loaded {
+                do {
+                    if let snapshot = try await recoveryRepository?.fetchRecovery(projectID: projectID),
+                       snapshot.draft != savedDraft {
+                        pendingRecovery = snapshot
+                    }
+                } catch {
+                    recoveryMessage = "Recovery unavailable: " + error.localizedDescription
+                }
+                // Keep the canonical revision, even when an empty card was prepared for editing.
+                project = loaded
+            }
             hasLoaded = true
         } catch is CancellationError {
             // A cancelled load can be retried when the view reappears.
@@ -74,7 +87,7 @@ final class ReportEditorViewModel {
     /// Save a validated snapshot; keep edits intact if the repository fails.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
     func save() async -> Bool {
-        guard !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
+        guard pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
             return false
@@ -272,9 +285,28 @@ final class ReportEditorViewModel {
         }
     }
 
+    func restoreRecovery() {
+        guard let snapshot = pendingRecovery else { return }
+        pendingRecovery = nil
+        importedAssets.append(contentsOf: snapshot.draft.assets)
+        draft = snapshot.draft
+    }
+
+    func discardRecovery() async {
+        guard let snapshot = pendingRecovery else { return }
+        do {
+            try await recoveryRepository?.deleteRecovery(projectID: projectID)
+            pendingRecovery = nil
+            recoveryMessage = nil
+            cleanUnusedAssets(snapshot.draft.assets)
+        } catch {
+            recoveryMessage = "Unable to discard recovery: " + error.localizedDescription
+        }
+    }
+
     /// Debounce recovery writes without committing the report or clearing its dirty state.
     private func scheduleRecovery() {
-        guard hasLoaded, !isLoading, !isSaving, let recoveryRepository, let project, let draft else { return }
+        guard hasLoaded, !isLoading, !isSaving, pendingRecovery == nil, let recoveryRepository, let project, let draft else { return }
         recoveryTask?.cancel()
         let previous = recoveryTask
         let snapshot = RecoverySnapshot(projectID: projectID, baseUpdatedAt: project.updatedAt,
