@@ -68,7 +68,7 @@ struct ContentView: View {
     private var sidebarContent: some View {
         List {
             Button {
-                browserViewModel.selectedProject = nil
+                browserViewModel.route = nil
             } label: {
                 Label {
                     Text("Projects")
@@ -121,7 +121,7 @@ struct ContentView: View {
             Divider()
             Button {
                 browserViewModel.actionErrorMessage = nil
-                browserViewModel.selectedProject = nil
+                browserViewModel.route = nil
                 showingNewProject = true
             } label: {
                 Label("New Project", systemImage: "plus")

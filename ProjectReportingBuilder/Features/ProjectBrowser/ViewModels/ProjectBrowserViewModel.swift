@@ -11,7 +11,7 @@ final class ProjectBrowserViewModel {
     private(set) var isSaving = false
     private(set) var errorMessage: String?
     var actionErrorMessage: String?
-    var selectedProject: ProjectReport?
+    var route: AppRoute?
     
     private let repository: ProjectRepository
     
@@ -57,7 +57,7 @@ final class ProjectBrowserViewModel {
     }
     
     func selectProject(_ project: ProjectReport) {
-        selectedProject = project
+        route = .reportEditor(projectID: project.id)
     }
     
     func clearFilters() {
@@ -110,8 +110,8 @@ final class ProjectBrowserViewModel {
         do {
             try await repository.delete(project)
             projects.removeAll { $0.id == project.id }
-            if selectedProject?.id == project.id {
-                selectedProject = nil
+            if route == .reportEditor(projectID: project.id) {
+                route = nil
             }
         } catch {
             actionErrorMessage = error.localizedDescription
