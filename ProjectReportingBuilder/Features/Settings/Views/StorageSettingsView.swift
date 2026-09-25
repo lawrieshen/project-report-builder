@@ -26,7 +26,7 @@ struct StorageSettingsView: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(AppSpacing.pageInset)
-        .frame(width: 560)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .task { await refresh() }
     }
 
