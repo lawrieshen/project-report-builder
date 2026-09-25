@@ -7,6 +7,7 @@ struct ReportEditorDraft: Equatable {
     var ragStatus: RAGStatus?
     var milestonePhase: String
     var milestoneDeadline: Date?
+    var metrics: [EngineeringMetricDraft]
     var summaryType: SummaryType
     var summaryMessage: String
     var leadEPMName: String
@@ -18,6 +19,7 @@ struct ReportEditorDraft: Equatable {
         ragStatus = project.card?.health.ragStatus
         milestonePhase = project.card?.health.milestone?.phase ?? ""
         milestoneDeadline = project.card?.health.milestone?.deadline
+        metrics = project.card?.metrics.map { EngineeringMetricDraft(metric: $0) } ?? []
         summaryType = project.card?.summary.type ?? .update
         summaryMessage = project.card?.summary.message ?? ""
         leadEPMName = project.card?.accountability.leadEPM?.name ?? ""
@@ -38,13 +40,22 @@ struct ReportEditorDraft: Equatable {
         return hasPhase == hasDeadline ? nil : "Provide both a milestone phase and deadline, or clear both."
     }
 
+    var metricsError: String? {
+        for metric in metrics {
+            if let error = metric.validationError(in: metrics) { return error }
+        }
+        return nil
+    }
+
     var isValid: Bool {
-        codeNameError == nil && lineOfBusinessError == nil && milestoneError == nil
+        codeNameError == nil && lineOfBusinessError == nil && milestoneError == nil && metricsError == nil
     }
 
     /// Apply editable fields while preserving identity, template, status, and metadata.
     /// - Returns: A report ready to save. Validate the draft before calling.
-    func applying(to project: ProjectReport, cardID: UUID, updatedAt: Date) -> ProjectReport {
+    /// - Throws: A validation error if a metric cannot be converted.
+    func applying(to project: ProjectReport, cardID: UUID, updatedAt: Date) throws -> ProjectReport {
+        if let metricsError { throw MetricValidationError(message: metricsError) }
         var result = project
         result.codeName = trimmed(codeName)
         result.lineOfBusiness = trimmed(lineOfBusiness)
@@ -60,7 +71,8 @@ struct ReportEditorDraft: Equatable {
             accountability: Accountability(
                 leadEPM: person(named: leadEPMName, existing: project.card?.accountability.leadEPM),
                 projectDRI: person(named: projectDRIName, existing: project.card?.accountability.projectDRI)
-            )
+            ),
+            metrics: try metrics.map { try $0.makeMetric() }
         )
         return result
     }

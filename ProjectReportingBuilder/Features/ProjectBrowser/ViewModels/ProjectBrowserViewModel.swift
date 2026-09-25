@@ -59,14 +59,15 @@ final class ProjectBrowserViewModel {
         filter = ProjectBrowserFilter()
     }
     
+    /// Create a project and return it only after the repository saves successfully.
     func createProject(codeName: String, lineOfBusiness: String,
-                       status: ProjectStatus) async -> Bool {
-        guard !isSaving else { return false }
+                       status: ProjectStatus) async -> ProjectReport? {
+        guard !isSaving else { return nil }
         let name = codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         let business = lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, !business.isEmpty else {
             actionErrorMessage = "Enter a project code name and line of business."
-            return false
+            return nil
         }
         
         isSaving = true
@@ -89,10 +90,10 @@ final class ProjectBrowserViewModel {
             // Reveal the newly created project even when filters were active.
             searchText = ""
             clearFilters()
-            return true
+            return project
         } catch {
             actionErrorMessage = error.localizedDescription
-            return false
+            return nil
         }
     }
     
