@@ -27,9 +27,9 @@ in the card for retry.
 
 Open a project card to view and edit its report in one screen. The workspace
 supports project identity, health and milestone, executive summary, and
-accountability. Status and template are read-only in the inspector.
+accountability. Project status is read-only in the inspector.
 
-- **Save** validates the draft and updates the report. Template, project identity,
+- **Save** validates the draft and updates the report. Project identity,
   creation date, and existing card/person IDs are preserved.
 - **Discard** restores the last saved values while keeping the workspace open.
 - Leaving through Projects, the workspace back button, or New Project asks for
@@ -41,7 +41,7 @@ accountability. Status and template are read-only in the inspector.
   saving edits creates its single card. Repeated saves update that same card.
 
 The app currently uses an in-memory repository. Saved changes last only for the
-current app session; disk persistence, autosave, template editing, preview, and
+current app session; disk persistence, autosave, preview, and
 export are not implemented. App-internal navigation is guarded; window closing
 and quitting the app are not intercepted.
 
@@ -57,7 +57,7 @@ and quitting the app are not intercepted.
 need macOS automation permission and an interactive desktop; avoid typing or
 clicking while they run.
 
-Workspace tests cover defaults, mapping, validation, template and identity
+Workspace tests cover defaults, mapping, validation, status and identity
 preservation, load/save failures, dirty state, discard, guarded navigation,
 save/reopen, and browser refresh. ViewModels access reports through
 `ProjectRepository.fetchProject(id:)`; `AppRouter` passes only project IDs and
@@ -83,7 +83,7 @@ icon, rather than color alone.
   preserved across saves. Deletion changes the draft immediately; Discard can
   restore the last saved metrics.
 - Metric changes participate in unsaved-navigation protection. Failed report
-  saves preserve all metric edits, and saving never changes the template.
+  saves preserve all metric edits.
 - Older report cards without a metrics field decode with an empty list.
 
 Metrics tests cover model compatibility, comparison boundaries, formatting,
@@ -132,5 +132,42 @@ are shown separately without undoing a successful report save.
 
 Storage remains session-scoped: reports use the in-memory repository and assets
 use a managed temporary directory. Cross-launch persistence is not implemented.
-PDF/OCR, remote URLs, automatic captions, metric ingestion, and template changes
-are outside this feature.
+PDF/OCR, remote URLs, automatic captions, and metric ingestion are outside
+this feature.
+
+
+## MVP scope and roadmap
+
+The MVP uses one canonical report layout. Users manage structured content;
+there is no template gallery or presentation-style selection. Live Preview is
+the next feature and will render identity, health, metrics, summary,
+accountability, and supporting images using this fixed layout.
+
+Planned flow (preview, accessibility checks, and export are not implemented yet):
+
+~~~text
+Structured Report
+    → One canonical Apple-style layout
+    → Live Preview
+    → Accessibility Check
+    → Export / Share
+~~~
+
+The domain remains ProjectReport with an optional SnippetCard. No template
+property or template engine is needed. The planned Report Renderer consumes
+the structured report and produces the canonical layout. Historical JSON
+template fields are ignored when decoding and are omitted from new output.
+
+| Feature | Scope | Status |
+| --- | --- | --- |
+| 01 | Project Browser | Implemented |
+| 02 | Report Workspace | Implemented |
+| 03 | Metrics Editor | Implemented |
+| 04 | Content & Asset Input | Implemented |
+| 05 | Live Preview | Next |
+| 06 | Accessibility Validation | Planned |
+| 07 | Export & Share | Planned |
+| 08 | Local Persistence | Planned |
+| 09 | App Polish | Planned |
+
+Multiple layouts can be reconsidered when there is a concrete requirement.

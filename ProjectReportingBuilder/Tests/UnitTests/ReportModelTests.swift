@@ -2,21 +2,21 @@ import Foundation
 import Testing
 @testable import Project_Report_Builder
 
+@MainActor
 struct ReportModelTests {
-    @Test func newReportDefaultsToExecutiveTemplate() {
+    @Test func newReportStartsWithoutACard() {
         let report = ProjectReport(
             id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
             status: .draft, createdAt: .now, updatedAt: .now
         )
 
-        #expect(report.template == .executive)
         #expect(report.card == nil)
     }
 
-    @Test func reportCodingPreservesTemplateAndDates() throws {
+    @Test func reportCodingPreservesIdentityStatusAndDates() throws {
         let report = ProjectReport(
             id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
-            status: .active, template: .technical,
+            status: .active,
             createdAt: Date(timeIntervalSince1970: 100),
             updatedAt: Date(timeIntervalSince1970: 200)
         )
@@ -24,6 +24,25 @@ struct ReportModelTests {
         let decoded = try JSONDecoder().decode(ProjectReport.self, from: data)
 
         #expect(decoded == report)
+    }
+
+    @Test func legacyTemplateFieldIsIgnoredAndNotReencoded() throws {
+        let report = ProjectReport(
+            id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+            status: .active, createdAt: .distantPast, updatedAt: .distantPast
+        )
+        var legacy = try #require(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(report)) as? [String: Any])
+        // Historical template choices must not prevent loading the structured report.
+        for value in ["executive", "technical", "product", "status", "unknown-layout"] {
+            legacy["template"] = value
+            let data = try JSONSerialization.data(withJSONObject: legacy)
+            let decoded = try JSONDecoder().decode(ProjectReport.self, from: data)
+            #expect(decoded == report)
+            let encoded = try #require(JSONSerialization.jsonObject(
+                with: JSONEncoder().encode(decoded)) as? [String: Any])
+            #expect(encoded["template"] == nil)
+        }
     }
 
     @Test func personCodingPreservesIdentityAndRole() throws {
