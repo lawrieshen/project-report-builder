@@ -9,6 +9,7 @@ struct ContentView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private enum Card {
+        case export
         case accessibility
         case livePreview
         case imagePreview(ImageAsset)
@@ -17,6 +18,7 @@ struct ContentView: View {
         case metric(EngineeringMetricDraft, Bool)
     }
 
+    @State private var exportViewModel: ExportViewModel?
     @State private var focusedSection: ReportSection?
     @State private var card: Card?
     @State private var router: AppRouter
@@ -91,6 +93,10 @@ struct ContentView: View {
             })
         } else if let card {
             switch card {
+            case .export:
+                if let model = router.editor?.previewModel, let exportViewModel {
+                    ExportPanelView(viewModel: exportViewModel, model: model, onDismiss: dismissCard)
+                }
             case .accessibility:
                 if let draft = router.editor?.draft {
                     AccessibilityPanelView(model: AccessibilityValidationModel(draft: draft),
@@ -133,7 +139,16 @@ struct ContentView: View {
         }
     }
 
+    private func showExport() {
+        guard let editor = router.editor else { return }
+        exportViewModel = ExportViewModel(
+            renderer: ReportExportRenderer { try await editor.imageData(for: $0, maximumPixelSize: 1440) },
+            clipboard: MacClipboardService(), fileExporter: MacFileExportService(), sharing: MacShareService.shared)
+        card = .export
+    }
+
     private func dismissCard() {
+        guard exportViewModel?.isExporting != true else { return }
         guard !browserViewModel.isSaving, router.editor?.isSaving != true else { return }
         if router.showingNewProject {
             dismissNewProject()
@@ -205,6 +220,7 @@ struct ContentView: View {
                              addContent: { card = .sourceContent },
                              previewAsset: { card = .imagePreview($0) },
                              showPreview: { card = .livePreview },
+                             showExport: showExport,
                              checkAccessibility: { card = .accessibility },
                              focusedSection: $focusedSection)
                 .id(editor.projectID)
