@@ -26,7 +26,7 @@ struct ReportEditorViewModelTests {
         await model.load()
         #expect(model.draft?.codeName == "Updated")
         #expect(model.isDirty)
-        model.discardChanges()
+        await model.discardChanges()
         #expect(!model.isDirty)
         #expect(model.draft?.codeName == "Titan")
         #expect(repository.saveCount == 0)

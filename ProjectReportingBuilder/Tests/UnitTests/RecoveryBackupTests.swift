@@ -23,7 +23,7 @@ struct RecoveryBackupTests {
         #expect(try await repository.fetchProject(id: project.id) == project)
         #expect(editor.isDirty)
         editor.draft?.codeName = "Pending discard"
-        editor.discardChanges()
+        await editor.discardChanges()
         await editor.recoveryTask?.value
         #expect(try await recovery.fetchRecovery(projectID: project.id) == nil)
         #expect(!editor.isDirty)

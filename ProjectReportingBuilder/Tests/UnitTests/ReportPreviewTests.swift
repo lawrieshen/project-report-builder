@@ -32,7 +32,7 @@ struct ReportPreviewTests {
         #expect(repository.project == saved)
         #expect(repository.saveCount == saveCount)
         #expect(editor.isDirty)
-        editor.discardChanges()
+        await editor.discardChanges()
         #expect(editor.previewModel?.summaryMessage == "Saved A")
         #expect(!editor.isDirty)
     }

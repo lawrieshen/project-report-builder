@@ -53,7 +53,7 @@ struct ContentView: View {
             .alert("You have unsaved changes.", isPresented: $router.showingLeaveConfirmation) {
                 Button("Save") { Task { await router.saveAndLeave() } }
                     .accessibilityIdentifier("leaveSave")
-                Button("Discard", role: .destructive) { router.discardAndLeave() }
+                Button("Discard", role: .destructive) { Task { await router.discardAndLeave() } }
                     .accessibilityIdentifier("leaveDiscard")
                 Button("Cancel", role: .cancel) { router.cancelNavigation() }
                     .accessibilityIdentifier("leaveCancel")

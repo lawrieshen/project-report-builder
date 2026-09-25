@@ -93,7 +93,7 @@ final class PersistenceUITests: XCTestCase {
         title.typeText("Saved Titan")
         app.buttons["saveReport"].click()
         let saved = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            !app.buttons["saveReport"].isEnabled
+            app.buttons["saveReport"].exists && !app.staticTexts["Unsaved Changes"].exists
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed)
         app.terminate()
