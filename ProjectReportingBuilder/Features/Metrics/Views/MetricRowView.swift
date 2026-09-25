@@ -32,13 +32,13 @@ struct MetricRowView: View {
             .accessibilityLabel("Actions for metric " + draft.name)
             .accessibilityIdentifier("metricActions." + draft.name)
         }
-        .padding()
+        .padding(AppSpacing.cardInset)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
     }
 
     @ViewBuilder
     private var rowContent: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.inline) {
             Text(draft.name).font(.headline)
             if let metric = try? draft.makeMetric() {
                 HStack {

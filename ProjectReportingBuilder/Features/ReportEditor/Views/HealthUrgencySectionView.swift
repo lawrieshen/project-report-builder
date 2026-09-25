@@ -4,7 +4,7 @@ struct HealthUrgencySectionView: View {
     @Binding var draft: ReportEditorDraft
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.field) {
             Text("Health & Urgency").font(.title3.bold())
             Picker("Health", selection: $draft.ragStatus) {
                 Text("Not assessed").tag(nil as RAGStatus?)

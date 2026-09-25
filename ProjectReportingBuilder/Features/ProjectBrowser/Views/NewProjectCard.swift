@@ -15,12 +15,12 @@ struct NewProjectCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
             cardHeader
             scrollableContent
             actionButtons
         }
-        .padding(24)
+        .padding(AppSpacing.dialogInset)
         .frame(width: 420)
         .background {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -53,7 +53,7 @@ struct NewProjectCard: View {
 
     @ViewBuilder
     private var formContent: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
             projectForm
             errorMessage
         }

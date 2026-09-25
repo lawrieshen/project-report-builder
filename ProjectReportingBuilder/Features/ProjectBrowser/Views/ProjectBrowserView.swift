@@ -40,16 +40,15 @@ struct ProjectBrowserView: View {
     
     @ViewBuilder
     private var browserHeader: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: AppSpacing.field) {
             titleAndSearch
             ProjectFilterBar(searchText: $viewModel.searchText,
                              filter: $viewModel.filter,
                              linesOfBusiness: viewModel.linesOfBusiness)
             .disabled(viewModel.isLoading || viewModel.isSaving)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 36)
-        .padding(.bottom, 16)
+        .padding(.horizontal, AppSpacing.pageInset)
+        .padding(.vertical, AppSpacing.cardInset)
         .fixedSize(horizontal: false, vertical: true)
     }
     

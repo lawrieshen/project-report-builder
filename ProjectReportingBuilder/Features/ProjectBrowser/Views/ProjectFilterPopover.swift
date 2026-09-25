@@ -6,11 +6,11 @@ struct ProjectFilterPopover: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppSpacing.field) {
             Text("Filter Projects").font(.headline)
             Divider()
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: AppSpacing.field) {
                     statusFilters
                     Divider()
                     healthFilters
@@ -22,7 +22,7 @@ struct ProjectFilterPopover: View {
             }
             actionButtons
         }
-        .padding()
+        .padding(AppSpacing.cardInset)
         .frame(width: 280, height: 400)
     }
     
