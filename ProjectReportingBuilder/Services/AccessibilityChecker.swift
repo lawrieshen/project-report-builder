@@ -13,6 +13,10 @@ struct AccessibilityChecker: AccessibilityChecking {
         if model.codeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             add(.emptyLabel, .warning, "Missing project title", "Enter a project name to identify this report.", .identity)
         }
+        for asset in model.assets where asset.altText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            add(.missingAltText, .error, "Missing alt text",
+                "Image \"\(asset.fileName)\" needs a description of its purpose or content.", .supportingContent)
+        }
         return AccessibilityReport(issues: issues)
     }
 }
