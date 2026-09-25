@@ -13,8 +13,8 @@ struct ProjectBrowserView: View {
                 browserContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationDestination(item: $viewModel.selectedProject) { project in
-                reportEditorPlaceholder(for: project)
+            .navigationDestination(item: $viewModel.route) { route in
+                destination(for: route)
             }
         }
         .task { await viewModel.loadProjects() }
@@ -84,6 +84,24 @@ struct ProjectBrowserView: View {
         }
     }
     
+    @ViewBuilder
+    private func destination(for route: AppRoute) -> some View {
+        switch route {
+        case .reportEditor(let projectID):
+            if let project = viewModel.projects.first(where: { $0.id == projectID }) {
+                reportEditorPlaceholder(for: project)
+            } else {
+                ContentUnavailableView {
+                    Label("Project not found", systemImage: "folder.badge.questionmark")
+                } description: {
+                    Text("This project may have been deleted.")
+                } actions: {
+                    Button("Back to Projects") { viewModel.route = nil }
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private func reportEditorPlaceholder(for project: ProjectReport) -> some View {
         // The reporting workflow is implemented in a later feature.
