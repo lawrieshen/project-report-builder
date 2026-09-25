@@ -1,6 +1,6 @@
 # Project Report Builder
 
-A native macOS application for creating strucutured, shareable project reporting snippet cards.
+A native macOS application for creating structured, shareable project reporting snippet cards.
 
 ## Tech Stack
 
@@ -29,9 +29,11 @@ Open a project card to view and edit its report in one screen. The workspace
 supports project identity, health and milestone, executive summary, and
 accountability. Project status is read-only in the inspector.
 
-- **Save** validates the draft and updates the report. Project identity,
-  creation date, and existing card/person IDs are preserved.
+- **Save** validates the draft and updates the report. Autosave is enabled by
+  default and uses the same validation and save pipeline after a 2-second pause.
+  Project identity, creation date, and existing card/person IDs are preserved.
 - **Discard** restores the last saved values while keeping the workspace open.
+  It does not undo edits already committed by autosave.
 - Leaving through Projects, the workspace back button, or New Project asks for
   Save / Discard / Cancel when there are unsaved changes. Failed saves keep the
   workspace open and preserve the draft.
@@ -42,7 +44,8 @@ accountability. Project status is read-only in the inspector.
 
 The app saves reports locally and keeps separate recovery copies of unsaved
 edits. App-internal navigation is guarded; window closing and quitting are not
-intercepted. Reopening a project offers any available recovery copy.
+intercepted. Reopening a project offers any available recovery copy, or restores it
+automatically when the recovery prompt preference is disabled.
 
 ## Development and tests
 
@@ -67,7 +70,8 @@ coordinates navigation. Views edit `ReportEditorDraft` instead of stored data.
 The Report Workspace includes an Engineering Metrics section between Health and
 Summary. Add or click a metric to edit a temporary copy. **Save Metric** applies
 that copy to the report draft; **Cancel** leaves the report unchanged. Use
-**Save** in the workspace header to save the report to the repository.
+**Save** in the workspace header to save immediately, or let autosave commit
+the valid draft after its configured delay.
 
 Each metric has a name and current value, plus optional unit, target, and
 severity (P0–P3 or Info). Targets support `<`, `≤`, `>`, `≥`, and `=`. Target status
@@ -124,7 +128,8 @@ inline and may remain empty while drafting. Replacing an image preserves its
 identity, alt text, and position. Duplicate filenames are allowed.
 
 Reports store lightweight image references rather than image bytes. Image
-changes remain in the draft until Save; Discard restores saved references.
+changes remain in the draft until Save or autosave; Discard restores saved
+references.
 Failed saves preserve edits and files. Unused draft files are cleaned up, and
 removed saved files are deleted only after a successful save. Cleanup failures
 are shown separately without undoing a successful report save.
@@ -167,7 +172,7 @@ template fields are ignored when decoding and are omitted from new output.
 | 06 | Accessibility Validation | Implemented |
 | 07 | Export & Share | Implemented |
 | 08 | Local Persistence & Recovery | Implemented |
-| 09 | App Polish | Next |
+| 09 | App Polish & Settings | Implemented |
 
 Multiple layouts can be reconsidered when there is a concrete requirement.
 
@@ -266,17 +271,17 @@ PDF, printing, batch export, and export history remain outside this feature.
 
 Production stores versioned JSON and managed images in the app's Application
 Support directory. Sandboxed builds resolve this inside the app container;
-Settings → Local Storage shows the actual location, counts, and size, and can
+Settings → Storage shows the actual location, counts, and size, and can
 reveal it in Finder. No demo projects are created automatically.
 
-- **Save** atomically replaces the canonical report. Failed saves retain the
-  draft and its dirty state. Files are read and written by a background actor.
+- **Save** and enabled autosave atomically replace the canonical report. Failed
+  saves retain the draft and its dirty state. Files are read and written by a background actor.
 - **Recovery** writes a separate snapshot about 1.5 seconds after editing pauses.
   It preserves raw input, including incomplete metrics, and does not update the
   saved report or clear Unsaved Changes. An abrupt exit before the debounce
   completes can lose the most recent edits.
 - On reopening a project, **Restore** loads recovered input as an unsaved draft;
-  **Discard Recovery** keeps the last explicit save. Save and Discard cancel
+  **Discard Recovery** keeps the last canonical save. Save and Discard cancel
   queued backups and remove obsolete recovery data. Old snapshots are tied to
   the canonical content revision and cannot overwrite a newer save.
 - Imported images are copied into each project's Assets directory; references
@@ -294,8 +299,73 @@ reveal it in Finder. No demo projects are created automatically.
 
 The app has one editing window to avoid simultaneous edits to the same recovery
 copy. Previews keep using in-memory repositories. Debug UI tests receive unique
-storage directories so they never read or modify production projects.
+storage directories and preferences suites so they never read or modify production
+projects or preferences. Existing explicit-save UI workflows disable autosave and
+workspace restoration in their isolated suite; App Polish tests exercise the
+production defaults.
 
 Cloud synchronization, external storage relocation, version history, and remote
 backup are not included. A local recovery copy is not protection against losing
 this Mac or its disk.
+
+
+## App Polish & Settings
+
+Open the native **Settings…** window with **⌘,**. General, Appearance, Shortcuts,
+Window, Storage, and About share one persisted preference store. Changes apply
+immediately; launch preferences take effect on the next launch. About reads the
+installed app's version and build metadata.
+
+| Preference | Default | Behavior |
+| --- | --- | --- |
+| Autosave | On | Save valid drafts to canonical local storage |
+| Autosave delay | 2 seconds | Choose 1, 2, or 5 seconds after the last edit |
+| Appearance | System | Follow macOS, or choose Light or Dark |
+| Restore last workspace | On | Reopen the last project if it still exists |
+| Default launch destination | Project Browser | Used when workspace restoration is off |
+| Confirm project deletion | On | Turning this off makes project deletion immediate |
+| Ask before restoring recovery | On | Turning this off restores available drafts automatically |
+
+**Restore Defaults** resets preferences without deleting or resetting projects. Session state
+stores the last project ID separately from reports. Missing projects fall back
+to the browser; a failed lookup shows a message. Startup restoration never
+replaces navigation the user has already started. The app retains one editing
+window and uses native macOS window restoration for geometry. Floating cards
+are not restored.
+
+Autosave cancels and restarts its timer on edits. Manual Save cancels a pending
+timer and saves immediately through the same pipeline. Invalid drafts remain
+unsaved and recoverable. Failed saves keep all edits, show **Autosave failed** or
+**Save failed**, and offer **Retry Save**. They do not retry endlessly. The header
+shows **Saved**, **Unsaved Changes**, or **Saving…**. With autosave off, only
+recovery snapshots are written until an explicit Save.
+
+Preview, validation, and export do not explicitly save reports. A pending
+autosave can still finish while these read-only panels are open. To keep edits
+uncommitted while reviewing them, turn autosave off.
+
+Storage shows project, asset, and recovery counts. **Clear Recovery Drafts…**
+always requires confirmation, even when project deletion confirmation is off.
+It cancels pending workspace writes and removes recovery documents only. Saved
+reports, images, and current in-memory edits remain. Automatic backup and save
+resume after the next edit, so cleared snapshots are not immediately recreated.
+
+| Shortcut | Action |
+| --- | --- |
+| ⌘N | New Project |
+| ⌘O | Open Project Browser |
+| ⌘S | Save Report |
+| ⌘P | Preview Report |
+| ⌘E | Export Report |
+| ⇧⌘A | Validate Accessibility |
+| ⌘, | Settings |
+| ⌘W | Close the active window |
+
+Shortcuts are fixed and scoped to the focused editing window. Report commands
+are unavailable while a floating card, recovery decision, navigation decision,
+or blocking operation is active. **⌘A** remains Select All. System accent color
+and Reduce Motion continue to follow macOS.
+
+Tests cover preference persistence and defaults, appearance mapping, autosave
+debounce/cancellation/failure, manual save concurrency, recovery preservation and
+cleanup, restoration fallback, and native Settings/shortcut/relaunch workflows.
