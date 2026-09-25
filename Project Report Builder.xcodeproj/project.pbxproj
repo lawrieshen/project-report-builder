@@ -36,7 +36,6 @@
 				Export/.gitkeep,
 				Preview/.gitkeep,
 				ReportEditor/.gitkeep,
-				Templates/.gitkeep,
 			);
 			target = 21317EED3064C0A500C041BB /* Project Report Builder */;
 		};

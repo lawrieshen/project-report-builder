@@ -5,7 +5,7 @@ import Testing
 struct ReportEditorDraftTests {
     private func report() -> ProjectReport {
         ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
-                      status: .active, template: .technical, createdAt: .distantPast, updatedAt: .distantPast)
+                      status: .active, createdAt: .distantPast, updatedAt: .distantPast)
     }
 
     @Test func defaultsDoNotModifyTheSource() {
@@ -58,7 +58,6 @@ struct ReportEditorDraftTests {
         draft.projectDRIName = "Alex"
         let result = try draft.applying(to: project, cardID: UUID(), updatedAt: date)
         #expect(result.id == project.id)
-        #expect(result.template == .technical)
         #expect(result.status == .active)
         #expect(result.createdAt == project.createdAt)
         #expect(result.updatedAt == date)

@@ -14,7 +14,6 @@ struct ProjectReport: Identifiable, Codable, Equatable {
     var lineOfBusiness: String
     var status: ProjectStatus
     
-    var template: ReportTemplate = .executive
     var card: SnippetCard?
     
     var createdAt: Date

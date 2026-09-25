@@ -15,7 +15,6 @@ struct ImageAssetModelTests {
         let decoded = try JSONDecoder().decode(ProjectReport.self, from: JSONEncoder().encode(saved))
         #expect(decoded.card?.assets == [asset])
         #expect(ReportEditorDraft(project: decoded).assets == [asset])
-        #expect(decoded.template == project.template)
     }
 
     @Test func olderCardsDecodeWithNoAssets() throws {

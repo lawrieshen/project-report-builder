@@ -8,7 +8,8 @@ final class ReportWorkspaceUITests: XCTestCase {
         let save = app.buttons["saveReport"]
         XCTAssertFalse(save.isEnabled)
         XCTAssertFalse(app.staticTexts["Unsaved Changes"].exists)
-        XCTAssertTrue(app.staticTexts["Executive"].exists)
+        XCTAssertFalse(app.staticTexts["Template"].exists)
+        XCTAssertFalse(app.staticTexts["Template is read-only"].exists)
 
         replaceText(in: name, with: "Titan Updated")
         replaceText(in: app.textFields["reportLineOfBusiness"], with: "Services")
