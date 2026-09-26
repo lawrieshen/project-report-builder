@@ -44,9 +44,11 @@ struct MetricRowView: View {
                 Image(systemName: "ellipsis")
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
             .accessibilityLabel("Actions for metric " + draft.name)
             .accessibilityIdentifier("metricActions." + draft.name)
+            .menuIndicator(.hidden)
         }
         .padding(AppSpacing.cardInset)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
