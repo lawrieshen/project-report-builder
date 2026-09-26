@@ -10,6 +10,7 @@ struct ProjectFilterCard: View {
     let group: ProjectFilterGroup
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
+    var maximumHeight: CGFloat = 400
     let onDismiss: () -> Void
     
     var body: some View {
@@ -30,7 +31,7 @@ struct ProjectFilterCard: View {
             .fixedSize(horizontal: false, vertical: true)
             actionButtons
         }
-        .floatingCard(width: 320, maxHeight: 400, padding: AppSpacing.cardInset)
+        .floatingCard(width: 320, maxHeight: min(400, maximumHeight), padding: AppSpacing.cardInset)
     }
     
     @ViewBuilder
