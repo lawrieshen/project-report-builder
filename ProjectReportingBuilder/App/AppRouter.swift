@@ -44,7 +44,8 @@ final class AppRouter {
         guard !hasRestoredSession else { return }
         hasRestoredSession = true
         guard navigationRevision == 0, let settings, let session,
-              settings.settings.restoreLastWorkspace || settings.settings.defaultLaunchDestination == .lastOpenedProject,
+              session.previousSessionWasInterrupted,
+              settings.settings.restoreWorkspaceAfterInterruption,
               let id = session.state.lastOpenedProjectID else { return }
         let revision = navigationRevision
         do {

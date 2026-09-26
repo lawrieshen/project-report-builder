@@ -33,7 +33,7 @@ struct AppEnvironment {
             var initial = AppSettings.default
             if variables["PROJECT_REPORT_MANUAL_SAVE"] == "1" {
                 initial.autosaveEnabled = false
-                initial.restoreLastWorkspace = false
+                initial.restoreWorkspaceAfterInterruption = false
             }
             return AppEnvironment(storage: ApplicationStorage(root: FileManager.default.temporaryDirectory
                 .appendingPathComponent("ProjectReportUITests").appendingPathComponent(id.uuidString)),
