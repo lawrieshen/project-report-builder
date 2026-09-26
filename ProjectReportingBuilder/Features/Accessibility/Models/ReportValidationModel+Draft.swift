@@ -1,6 +1,6 @@
 import Foundation
 
-extension AccessibilityValidationModel {
+extension ReportValidationModel {
     init(draft: ReportEditorDraft) {
         let preview = ReportPreviewModel(draft: draft)
         let style = ReportAccessibilityStyle.canonical
@@ -23,5 +23,18 @@ extension AccessibilityValidationModel {
         if preview.leadEPMName != nil { roleLabels.append(style.leadRole) }
         if preview.projectDRIName != nil { roleLabels.append(style.driRole) }
         if !roleLabels.isEmpty { visibleSections.append(.accountability) }
+        func addDataIssue(_ message: String?, title: String, section: ReportSection) {
+            guard let message else { return }
+            dataIssues.append(ReportValidationIssue(id: UUID(), type: .invalidData, severity: .error,
+                                                   title: title, message: message, section: section))
+        }
+        addDataIssue(draft.codeNameError, title: "Missing project title", section: .identity)
+        addDataIssue(draft.lineOfBusinessError, title: "Invalid product line", section: .identity)
+        addDataIssue(draft.milestoneError, title: "Incomplete milestone", section: .health)
+        for (index, metric) in draft.metrics.enumerated() {
+            addDataIssue(metric.validationError(in: draft.metrics),
+                         title: "Metric \(index + 1): " + (metric.name.isEmpty ? "Unnamed" : metric.name),
+                         section: .metrics)
+        }
     }
 }

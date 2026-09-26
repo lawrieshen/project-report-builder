@@ -1,17 +1,18 @@
 import Foundation
 
 /// Check content and canonical design tokens; never certify an exported document.
-struct AccessibilityChecker: AccessibilityChecking {
+struct ReportValidator: ReportValidating {
     var style = ReportAccessibilityStyle.canonical
 
-    func validate(model: AccessibilityValidationModel) async -> AccessibilityReport {
-        var issues: [AccessibilityIssue] = []
-        func add(_ type: AccessibilityIssueType, _ severity: AccessibilitySeverity,
+    func validate(model: ReportValidationModel) async -> ReportValidationReport {
+        var issues = model.dataIssues
+        func add(_ type: ReportValidationIssueType, _ severity: ReportValidationSeverity,
                  _ title: String, _ message: String, _ section: ReportSection) {
-            issues.append(AccessibilityIssue(id: UUID(), type: type, severity: severity,
+            issues.append(ReportValidationIssue(id: UUID(), type: type, severity: severity,
                                              title: title, message: message, section: section))
         }
-        if model.codeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if model.codeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !model.dataIssues.contains(where: { $0.title == "Missing project title" }) {
             add(.emptyLabel, .warning, "Missing project title", "Enter a project name to identify this report.", .identity)
         }
         for asset in model.assets where asset.altText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -21,7 +22,8 @@ struct AccessibilityChecker: AccessibilityChecking {
         if let label = model.statusLabel, label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             add(.colorOnlyStatus, .error, "Status needs text", "Health must include a text label alongside its color.", .health)
         }
-        for (index, name) in model.metricNames.enumerated() where name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        for (index, name) in model.metricNames.enumerated() where name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !model.dataIssues.contains(where: { $0.section == .metrics && $0.title.hasPrefix("Metric \(index + 1):") }) {
             add(.emptyLabel, .warning, "Missing metric name", "Metric \(index + 1) needs a name to explain its value.", .metrics)
         }
         if model.metricStatusLabels.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
@@ -56,7 +58,7 @@ struct AccessibilityChecker: AccessibilityChecking {
                 }
             }
         }
-        return AccessibilityReport(issues: issues)
+        return ReportValidationReport(issues: issues)
     }
 
     /// Calculate sRGB text contrast using W3C relative luminance.

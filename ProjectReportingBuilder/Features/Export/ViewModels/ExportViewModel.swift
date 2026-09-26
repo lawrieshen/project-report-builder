@@ -14,10 +14,10 @@ final class ExportViewModel {
     private(set) var errorMessage: String?
     private(set) var successMessage: String?
     private(set) var lastAction: ExportAction?
-    private(set) var accessibilityReport: AccessibilityReport?
+    private(set) var accessibilityReport: ReportValidationReport?
     private(set) var isCheckingAccessibility = false
     private var pendingExport: PendingExport?
-    private let checker: any AccessibilityChecking
+    private let checker: any ReportValidating
 
     private struct PendingExport {
         let action: ExportAction
@@ -34,7 +34,7 @@ final class ExportViewModel {
 
     init(renderer: any ReportExportRendering, clipboard: any ClipboardWriting,
          fileExporter: any FileExporting, sharing: any ReportSharing,
-         checker: any AccessibilityChecking = AccessibilityChecker()) {
+         checker: any ReportValidating = ReportValidator()) {
         self.checker = checker
         self.renderer = renderer
         self.clipboard = clipboard
@@ -53,7 +53,7 @@ final class ExportViewModel {
 
     /// Recheck the same unsaved snapshot before every output action.
     func request(_ action: ExportAction, model: ReportPreviewModel,
-                 validation: AccessibilityValidationModel, appearance: ExportAppearance) async {
+                 validation: ReportValidationModel, appearance: ExportAppearance) async {
         guard !isBusy, !requiresConfirmation else { return }
         errorMessage = nil
         successMessage = nil

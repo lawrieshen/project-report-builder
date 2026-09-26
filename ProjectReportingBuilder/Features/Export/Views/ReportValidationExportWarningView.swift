@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct AccessibilityExportWarningView: View {
+struct ReportValidationExportWarningView: View {
     let issueCount: Int
     let review: () -> Void
     let proceed: () -> Void
@@ -8,7 +8,7 @@ struct AccessibilityExportWarningView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
-            Label(issueCount == 1 ? "1 accessibility issue remains" : "\(issueCount) accessibility issues remain",
+            Label(issueCount == 1 ? "1 validation issue remains" : "\(issueCount) validation issues remain",
                   systemImage: "exclamationmark.triangle")
                 .font(.headline)
                 .accessibilityIdentifier("exportAccessibilityWarning")

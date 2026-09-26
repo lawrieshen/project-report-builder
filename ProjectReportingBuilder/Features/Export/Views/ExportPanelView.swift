@@ -3,7 +3,7 @@ import SwiftUI
 struct ExportPanelView: View {
     @Bindable var viewModel: ExportViewModel
     let model: ReportPreviewModel
-    let validation: AccessibilityValidationModel
+    let validation: ReportValidationModel
     let reviewIssues: () -> Void
     let onDismiss: () -> Void
     @Environment(\.colorScheme) private var colorScheme
@@ -35,7 +35,7 @@ struct ExportPanelView: View {
                 .font(.callout).foregroundStyle(.secondary)
             options
             if viewModel.requiresConfirmation, let report = viewModel.accessibilityReport {
-                AccessibilityExportWarningView(issueCount: report.issues.count,
+                ReportValidationExportWarningView(issueCount: report.issues.count,
                     review: {
                         viewModel.cancelPendingExport()
                         reviewIssues()
@@ -90,7 +90,7 @@ struct ExportPanelView: View {
     private var feedback: some View {
         if viewModel.isBusy {
             ProgressView(viewModel.isCheckingAccessibility && !viewModel.isExporting
-                         ? "Checking accessibility…" : viewModel.progressMessage)
+                         ? "Validating report…" : viewModel.progressMessage)
         } else if let error = viewModel.errorMessage {
             Text(error).floatingCardError()
             if let action = viewModel.lastAction { Button("Retry") { run(action) } }
