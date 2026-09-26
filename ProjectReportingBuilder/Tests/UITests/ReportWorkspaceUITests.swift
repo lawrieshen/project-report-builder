@@ -40,7 +40,7 @@ final class ReportWorkspaceUITests: XCTestCase {
         cancel.click()
         XCTAssertEqual(name.value as? String, "Keep editing")
 
-        app.buttons["projectsNavigation"].click()
+        app.typeKey("o", modifierFlags: .command)
         let discard = app.buttons["leaveDiscard"]
         XCTAssertTrue(discard.waitForExistence(timeout: 5))
         discard.click()
@@ -50,7 +50,7 @@ final class ReportWorkspaceUITests: XCTestCase {
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertEqual(name.value as? String, "Titan")
         replaceText(in: name, with: "Saved before leaving")
-        app.buttons["newProjectButton"].click()
+        app.typeKey("n", modifierFlags: .command)
         let save = app.buttons["leaveSave"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         XCTAssertFalse(app.textFields["newProjectCodeName"].exists)

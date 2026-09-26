@@ -43,18 +43,25 @@ struct ProjectBrowserView: View {
         } message: {
             Text(viewModel.actionErrorMessage ?? "")
         }
-
+        
     }
     
     @ViewBuilder
     private var browserHeader: some View {
         VStack(spacing: AppSpacing.field) {
             titleAndSearch
-            ProjectFilterBar(searchText: $viewModel.searchText,
-                             filter: $viewModel.filter,
-                             linesOfBusiness: viewModel.linesOfBusiness,
-                             showFilters: showFilters)
-            .disabled(viewModel.isLoading || viewModel.isSaving)
+            HStack {
+                ProjectFilterBar(searchText: $viewModel.searchText,
+                                 filter: $viewModel.filter,
+                                 linesOfBusiness: viewModel.linesOfBusiness,
+                                 showFilters: showFilters)
+                .disabled(viewModel.isLoading || viewModel.isSaving)
+                
+                Button(action: newProject) {
+                    Label("New Project", systemImage: "plus")
+                }
+                .accessibilityIdentifier("newProjectButton")
+            }
         }
         .padding(.horizontal, AppSpacing.pageInset)
         .padding(.vertical, AppSpacing.cardInset)
@@ -78,7 +85,6 @@ struct ProjectBrowserView: View {
             ProjectEmptyStateView(hasProjects: !viewModel.projects.isEmpty,
                                   searchText: viewModel.searchText,
                                   hasFilters: !viewModel.filter.isEmpty,
-                                  newProject: showNewProject,
                                   clearSearch: { viewModel.searchText = "" },
                                   clearFilters: { viewModel.clearFilters() })
         } else {
@@ -97,7 +103,7 @@ struct ProjectBrowserView: View {
             Task { await viewModel.deleteProject(project) }
         }
     }
-
+    
     private func showNewProject() {
         viewModel.actionErrorMessage = nil
         newProject()
@@ -106,7 +112,7 @@ struct ProjectBrowserView: View {
     @ViewBuilder
     private var titleAndSearch: some View {
         HStack {
-            Text("Projects").font(.largeTitle.bold())
+            Text("Project Report Builder").font(.largeTitle.bold())
             Spacer()
             TextField("Search projects", text: $viewModel.searchText)
                 .textFieldStyle(.roundedBorder)
