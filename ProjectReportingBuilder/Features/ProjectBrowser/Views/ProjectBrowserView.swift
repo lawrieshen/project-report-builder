@@ -50,7 +50,7 @@ struct ProjectBrowserView: View {
     private var browserHeader: some View {
         VStack(spacing: AppSpacing.field) {
             titleAndSearch
-            HStack {
+            HStack(alignment: .center) {
                 ProjectFilterBar(searchText: $viewModel.searchText,
                                  filter: $viewModel.filter,
                                  linesOfBusiness: viewModel.linesOfBusiness,
