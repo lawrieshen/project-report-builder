@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ProjectCardView: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
     let project: ProjectReport
     let open: () -> Void
     let delete: () -> Void
@@ -55,9 +57,36 @@ struct ProjectCardView: View {
         }
         .padding(AppSpacing.cardInset)
         .frame(maxWidth: .infinity, minHeight: 180, alignment: .topLeading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+            if reduceTransparency {
+                shape.fill(.background)
+            } else {
+                shape.fill(.clear)
+                    .glassEffect(.regular, in: shape)
+                shape.fill(
+                    LinearGradient(
+                        colors: [.white.opacity(colorScheme == .dark ? 0.1 : 0.35),
+                                 .clear,
+                                 .white.opacity(colorScheme == .dark ? 0.02 : 0.08)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            }
+        }
         .overlay {
-            RoundedRectangle(cornerRadius: 12).stroke(.quaternary)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.primary.opacity(colorScheme == .dark ? 0.16 : 0.06),
+                                 .primary.opacity(colorScheme == .dark ? 0.08 : 0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+                .allowsHitTesting(false)
         }
         .contentShape(Rectangle())
     }
