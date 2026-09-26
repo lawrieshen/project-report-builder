@@ -15,8 +15,10 @@ struct ReportEditorHeaderView: View {
             .accessibilityIdentifier("workspaceBack")
             VStack(alignment: .leading) {
                 Text(viewModel.project?.codeName ?? "Report Workspace").font(.headline)
-                if viewModel.isDirty {
-                    Text("Unsaved Changes").font(.caption).foregroundStyle(.secondary)
+                if viewModel.hasLoaded && viewModel.project != nil {
+                    Text(viewModel.saveState.label)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("saveStatus")
                 }
             }
             Spacer()
@@ -34,7 +36,6 @@ struct ReportEditorHeaderView: View {
                 .disabled(!viewModel.isDirty || viewModel.isSaving)
                 .accessibilityIdentifier("discardReport")
             Button("Save") { Task { await viewModel.save() } }
-                .keyboardShortcut("s", modifiers: .command)
                 .disabled(!viewModel.canSave)
                 .accessibilityIdentifier("saveReport")
         }

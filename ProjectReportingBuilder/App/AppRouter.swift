@@ -11,6 +11,12 @@ final class AppRouter {
     var showingLeaveConfirmation = false
     private var pendingDestination: Destination?
     private let recoveryRepository: (any DraftRecoveryRepository)?
+    private let maintenance: RecoveryMaintenanceCoordinator?
+    private let session: AppSessionStore?
+    private var hasRestoredSession = false
+    private var navigationRevision = 0
+    private(set) var restorationMessage: String?
+    private let settings: AppSettingsStore?
     private let repository: ProjectRepository
     private let assetFactory: (UUID) -> any AssetRepository
 
@@ -22,11 +28,37 @@ final class AppRouter {
 
     init(repository: ProjectRepository, assetRepository: (any AssetRepository)? = nil,
          assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil,
+         maintenance: RecoveryMaintenanceCoordinator? = nil) {
+        self.maintenance = maintenance
+        self.session = session
+        self.settings = settings
         self.recoveryRepository = recoveryRepository
         self.repository = repository
         let fallback = assetRepository ?? LocalAssetRepository()
         self.assetFactory = assetFactory ?? { _ in fallback }
+    }
+
+    /// Restore once, without replacing navigation that occurred during the lookup.
+    func restoreSession() async {
+        guard !hasRestoredSession else { return }
+        hasRestoredSession = true
+        guard navigationRevision == 0, let settings, let session,
+              settings.settings.restoreLastWorkspace || settings.settings.defaultLaunchDestination == .lastOpenedProject,
+              let id = session.state.lastOpenedProjectID else { return }
+        let revision = navigationRevision
+        do {
+            let project = try await repository.fetchProject(id: id)
+            guard navigationRevision == revision else { return }
+            if project != nil {
+                navigate(to: .editor(id))
+            } else {
+                session.state.lastOpenedProjectID = nil
+            }
+        } catch {
+            guard navigationRevision == revision else { return }
+            restorationMessage = "Unable to restore the last workspace: " + error.localizedDescription
+        }
     }
 
     func openProject(id: UUID) {
@@ -40,10 +72,11 @@ final class AppRouter {
     func cancelNavigation() {
         pendingDestination = nil
         showingLeaveConfirmation = false
+        editor?.setAutosavePaused(false)
     }
 
     func discardAndLeave() async {
-        guard editor?.isSaving != true, editor?.isImporting != true else { return }
+        guard maintenance?.isClearing != true, editor?.isSaving != true, editor?.isImporting != true else { return }
         guard await editor?.discardChanges() == true else {
             cancelNavigation()
             return
@@ -60,9 +93,12 @@ final class AppRouter {
     }
 
     private func request(_ destination: Destination) {
-        guard editor?.isSaving != true, editor?.isImporting != true else { return }
+        navigationRevision += 1
+        restorationMessage = nil
+        guard maintenance?.isClearing != true, editor?.isSaving != true, editor?.isImporting != true else { return }
         if editor?.isDirty == true {
             pendingDestination = destination
+            editor?.setAutosavePaused(true)
             showingLeaveConfirmation = true
         } else {
             navigate(to: destination)
@@ -76,14 +112,18 @@ final class AppRouter {
     }
 
     private func navigate(to destination: Destination) {
+        editor?.setAutosavePaused(true)
         showingNewProject = false
         switch destination {
         case .browser, .newProject:
             route = nil
             editor = nil
+            maintenance?.participant = nil
             if case .newProject = destination { showingNewProject = true }
         case .editor(let id):
-            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository)
+            session?.state.lastOpenedProjectID = id
+            editor = ReportEditorViewModel(projectID: id, repository: repository, assetRepository: assetFactory(id), recoveryRepository: recoveryRepository, settings: settings)
+            maintenance?.participant = editor
             route = .reportEditor(projectID: id)
         }
     }

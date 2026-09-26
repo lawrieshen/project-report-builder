@@ -82,6 +82,21 @@ struct ReportEditorViewModelTests {
         #expect(model.saveError == nil)
     }
 
+    @Test func revertingFailedEditsClearsStaleSaveError() async {
+        let original = report()
+        let repository = WorkspaceTestRepository(project: original)
+        let model = ReportEditorViewModel(projectID: original.id, repository: repository)
+        await model.load()
+        repository.failSave = true
+        model.draft?.codeName = "Changed"
+        #expect(await model.save() == false)
+        #expect(model.saveState == .failed("Save failed"))
+        model.draft?.codeName = original.codeName
+        #expect(model.saveError == nil)
+        #expect(model.saveState == .saved)
+        #expect(repository.saveCount == 0)
+    }
+
     @Test func missingAndInvalidReportsDoNotSave() async {
         let missing = ReportEditorViewModel(projectID: UUID(), repository: WorkspaceTestRepository(project: nil))
         await missing.load()

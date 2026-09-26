@@ -3,15 +3,31 @@ import Observation
 
 @MainActor
 @Observable
-final class ReportEditorViewModel {
+final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenanceParticipant {
     let projectID: UUID
     private(set) var project: ProjectReport?
-    var draft: ReportEditorDraft? { didSet { scheduleRecovery() } }
+    var draft: ReportEditorDraft? {
+        didSet {
+            guard draft != oldValue else { return }
+            if !isLoading && !isSaving && !maintenanceInProgress { automaticWritesSuppressed = false }
+            if !isLoading && !isSaving && !isDirty { saveError = nil }
+            scheduleRecovery()
+            scheduleAutosave()
+        }
+    }
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var loadError: String?
     private(set) var saveError: String?
     private(set) var hasLoaded = false
+    private var showRecoveryPrompt = true
+    private var maintenanceInProgress = false
+    private var automaticWritesSuppressed = false
+    private var lastSaveWasAutomatic = false
+    private var autosaveTask: Task<Void, Never>?
+    private var autosaveEnabled = false
+    private var autosaveDelay: AutosaveDelay = .seconds2
+    private var autosavePaused = false
     private var savedDraft: ReportEditorDraft?
     private let repository: ProjectRepository
     private let assetRepository: any AssetRepository
@@ -31,17 +47,59 @@ final class ReportEditorViewModel {
     init(projectID: UUID, repository: ProjectRepository,
          assetRepository: (any AssetRepository)? = nil,
          recoveryRepository: (any DraftRecoveryRepository)? = nil,
-         recoveryDelay: Duration = .milliseconds(1500)) {
+         recoveryDelay: Duration = .milliseconds(1500),
+         settings: AppSettingsStore? = nil) {
         self.recoveryRepository = recoveryRepository
         self.recoveryDelay = recoveryDelay
         self.projectID = projectID
         self.repository = repository
         self.assetRepository = assetRepository ?? LocalAssetRepository()
+        settings?.observe(self)
+    }
+
+    func settingsDidChange(_ settings: AppSettings) {
+        let changed = autosaveEnabled != settings.autosaveEnabled || autosaveDelay != settings.autosaveDelay
+        autosaveEnabled = settings.autosaveEnabled
+        autosaveDelay = settings.autosaveDelay
+        showRecoveryPrompt = settings.showRecoveryPrompt
+        if !showRecoveryPrompt { restoreRecovery() }
+        if changed { scheduleAutosave() }
+    }
+
+    /// Pause pending saves while the user decides whether to leave the workspace.
+    func setAutosavePaused(_ paused: Bool) {
+        autosavePaused = paused
+        scheduleAutosave()
+    }
+
+    private func scheduleAutosave() {
+        autosaveTask?.cancel()
+        autosaveTask = nil
+        guard autosaveEnabled, !autosavePaused, !maintenanceInProgress, !automaticWritesSuppressed, hasLoaded, canSave else { return }
+        let delay = autosaveDelay.rawValue
+        autosaveTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+                try Task.checkCancellation()
+                guard let self else { return }
+                self.autosaveTask = nil
+                _ = await self.save(automatically: true)
+            } catch is CancellationError {
+                // A newer edit, settings change, or manual action superseded this save.
+            } catch {
+                self?.saveError = error.localizedDescription
+            }
+        }
     }
 
     var previewModel: ReportPreviewModel? { draft.map { ReportPreviewModel(draft: $0) } }
 
     var isDirty: Bool { draft != savedDraft }
+    var saveState: SaveState {
+        if isSaving { return .saving }
+        if saveError != nil { return .failed(lastSaveWasAutomatic ? "Autosave failed" : "Save failed") }
+        return isDirty ? .unsaved : .saved
+    }
     var canSave: Bool { pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
     /// Load once without overwriting edits when the view reappears.
@@ -49,7 +107,11 @@ final class ReportEditorViewModel {
         guard !isLoading, !isSaving, !hasLoaded else { return }
         isLoading = true
         loadError = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            if !showRecoveryPrompt { restoreRecovery() }
+            scheduleAutosave()
+        }
         do {
             var loaded = try await repository.fetchProject(id: projectID)
             try Task.checkCancellation()
@@ -86,8 +148,11 @@ final class ReportEditorViewModel {
 
     /// Save a validated snapshot; keep edits intact if the repository fails.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
-    func save() async -> Bool {
-        guard pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
+    func save(automatically: Bool = false) async -> Bool {
+        autosaveTask?.cancel()
+        autosaveTask = nil
+        guard !maintenanceInProgress, pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
+        lastSaveWasAutomatic = automatically
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
             return false
@@ -97,7 +162,11 @@ final class ReportEditorViewModel {
         saveError = nil
         defer {
             isSaving = false
-            if isDirty { scheduleRecovery() }
+            if isDirty {
+                scheduleRecovery()
+                // Retry only for newer edits, never loop on an unchanged failure.
+                if draft != submittedDraft { scheduleAutosave() }
+            }
         }
         recoveryTask?.cancel()
         await recoveryTask?.value
@@ -165,7 +234,9 @@ final class ReportEditorViewModel {
     /// Finish durable cleanup before reporting that edits have been discarded.
     @discardableResult
     func discardChanges() async -> Bool {
-        guard !isSaving else { return false }
+        guard !isSaving, !maintenanceInProgress else { return false }
+        autosaveTask?.cancel()
+        autosaveTask = nil
         isSaving = true
         defer { isSaving = false }
         recoveryTask?.cancel()
@@ -222,7 +293,10 @@ final class ReportEditorViewModel {
         isImporting = true
         assetError = nil
         let generation = assetGeneration
-        defer { isImporting = false }
+        defer {
+            isImporting = false
+            scheduleAutosave()
+        }
         var failures: [String] = []
         for url in urls {
             do {
@@ -320,7 +394,7 @@ final class ReportEditorViewModel {
 
     /// Debounce recovery writes without committing the report or clearing its dirty state.
     private func scheduleRecovery() {
-        guard hasLoaded, !isLoading, !isSaving, pendingRecovery == nil, let recoveryRepository, let project, let draft else { return }
+        guard !maintenanceInProgress, !automaticWritesSuppressed, hasLoaded, !isLoading, !isSaving, pendingRecovery == nil, let recoveryRepository, let project, let draft else { return }
         recoveryTask?.cancel()
         let previous = recoveryTask
         let snapshot = RecoverySnapshot(projectID: projectID, baseUpdatedAt: project.updatedAt,
@@ -347,6 +421,30 @@ final class ReportEditorViewModel {
             } catch {
                 self?.recoveryMessage = "Recovery unavailable: " + error.localizedDescription
             }
+        }
+    }
+
+    var canClearRecovery: Bool { !isLoading && !isSaving && !isImporting && !maintenanceInProgress }
+
+    func prepareForRecoveryCleanup() async throws {
+        guard canClearRecovery else { throw RecoveryMaintenanceError.workspaceBusy }
+        maintenanceInProgress = true
+        autosaveTask?.cancel()
+        autosaveTask = nil
+        recoveryTask?.cancel()
+        await recoveryTask?.value
+    }
+
+    func finishRecoveryCleanup(succeeded: Bool) {
+        maintenanceInProgress = false
+        if succeeded {
+            pendingRecovery = nil
+            recoveryMessage = nil
+            // Keep in-memory edits, but do not recreate a deliberately cleared backup.
+            automaticWritesSuppressed = true
+        } else {
+            scheduleRecovery()
+            scheduleAutosave()
         }
     }
 
