@@ -50,7 +50,7 @@ final class AppPolishUITests: XCTestCase {
         XCTAssertTrue(autosave.waitForExistence(timeout: 5))
         XCTAssertEqual(autosave.value as? Int, 1)
     }
-    func testAutosaveAndWorkspaceRestore() {
+    func testAutosaveAndNormalQuitReturnsToBrowser() {
         let app = XCUIApplication.isolated()
         app.launchEnvironment["PROJECT_REPORT_MANUAL_SAVE"] = "0"
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
@@ -61,8 +61,13 @@ final class AppPolishUITests: XCTestCase {
         name.typeKey("a", modifierFlags: .command)
         name.typeText("Automatically Saved")
         XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 8))
-        app.terminate()
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
         app.launch()
+        let savedProject = app.buttons["Open Automatically Saved"]
+        XCTAssertTrue(savedProject.waitForExistence(timeout: 10))
+        XCTAssertFalse(name.exists)
+        savedProject.click()
         XCTAssertTrue(name.waitForExistence(timeout: 10))
         XCTAssertEqual(name.value as? String, "Automatically Saved")
         XCTAssertFalse(app.buttons["saveReport"].isEnabled)
