@@ -1,94 +1,71 @@
 import SwiftUI
 
 struct ProjectFilterBar: View {
-    private enum TagLayout {
-        static let contentGap: CGFloat = 6
-        static let leadingInset: CGFloat = 12
-        static let trailingInset: CGFloat = 6
-    }
-    
-    @Binding var searchText: String
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
-    let showFilters: () -> Void
-    
+
     var body: some View {
-        HStack(alignment: .center) {
-            Button {
-                showFilters()
-            } label: {
-                Label(filter.isEmpty ? "Filter" : "Filter (Active)",
-                      systemImage: "line.3.horizontal.decrease")
-            }
-            .fixedSize()
-            .accessibilityIdentifier("projectFilterButton")
-            
-            ScrollView(.horizontal) {
-                activeFilterTags
-            }
-            .scrollIndicators(.hidden)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-    
-    @ViewBuilder
-    private var activeFilterTags: some View {
         HStack(spacing: AppSpacing.inline) {
-            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                filterTag("Search: " + searchText) {
-                    searchText = ""
-                }
+            ForEach(ProjectFilterGroup.allCases, id: \.self) { group in
+                ProjectFilterButton(group: group, filter: $filter,
+                                    linesOfBusiness: linesOfBusiness)
             }
-            ForEach(ProjectStatus.allCases.filter { filter.statuses.contains($0) }, id: \.self) { status in
-                filterTag("Status: " + status.displayName) {
-                    filter.statuses.remove(status)
-                }
-            }
-            ForEach(RAGStatus.allCases.filter { filter.healthStatuses.contains($0) }, id: \.self) { health in
-                filterTag("Health: " + health.displayName, statusColor: health.color) {
-                    filter.healthStatuses.remove(health)
-                }
-            }
-            ForEach(filter.linesOfBusiness.sorted(), id: \.self) { business in
-                filterTag("Line of Business: " + business) {
-                    filter.linesOfBusiness.remove(business)
-                }
-            }
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, AppSpacing.compact)
     }
-    
-    @ViewBuilder
-    private func filterTag(
-        _ title: String,
-        statusColor: Color? = nil,
-        remove: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: TagLayout.contentGap) {
-            if let statusColor {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
-                    .accessibilityHidden(true)
-            }
-            Text(title)
-                .lineLimit(1)
-            Button(action: remove) {
-                Image(systemName: "xmark")
-                    .font(.caption.weight(.semibold))
-                    .padding(AppSpacing.compact)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Remove " + title)
-            .help("Remove " + title)
+}
+
+private struct ProjectFilterButton: View {
+    let group: ProjectFilterGroup
+    @Binding var filter: ProjectBrowserFilter
+    let linesOfBusiness: [String]
+    @State private var isPresented = false
+
+    private var selectedNames: [String] {
+        switch group {
+        case .status: ProjectStatus.allCases.filter { filter.statuses.contains($0) }.map(\.displayName)
+        case .health: RAGStatus.allCases.filter { filter.healthStatuses.contains($0) }.map(\.displayName)
+        case .business: filter.linesOfBusiness.sorted()
         }
-        .font(.callout)
-        .padding(.leading, TagLayout.leadingInset)
-        .padding(.trailing, TagLayout.trailingInset)
-        .padding(.vertical, AppSpacing.compact)
-        .background(Color.accentColor.opacity(0.12), in: Capsule())
-        .fixedSize()
     }
-    
+
+    private var title: String {
+        selectedNames.isEmpty ? group.rawValue : group.rawValue + ": " + selectedNames.joined(separator: ", ")
+    }
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            HStack(spacing: AppSpacing.compact) {
+                if group == .health {
+                    ForEach(RAGStatus.allCases.filter { filter.healthStatuses.contains($0) }, id: \.self) { status in
+                        Circle()
+                            .fill(status.color)
+                            .frame(width: AppSpacing.inline, height: AppSpacing.inline)
+                            .accessibilityHidden(true)
+                    }
+                }
+                Text(title).lineLimit(1).truncationMode(.tail)
+                Image(systemName: "chevron.down")
+            }
+            .padding(.horizontal, AppSpacing.inline)
+            .padding(.vertical, AppSpacing.compact)
+            .background {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(selectedNames.isEmpty ? Color.primary.opacity(0.05) : Color.blue.opacity(0.15))
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .help(title)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier("projectFilter" + group.rawValue + "Button")
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            ProjectFilterCard(group: group, filter: $filter, linesOfBusiness: linesOfBusiness) {
+                isPresented = false
+            }
+            .presentationBackground(.clear)
+        }
+    }
 }

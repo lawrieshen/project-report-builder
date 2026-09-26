@@ -5,7 +5,6 @@ struct ProjectBrowserView: View {
     let openProject: (ProjectReport) -> Void
     let newProject: () -> Void
     var isCreatingProject = false
-    let showFilters: () -> Void
     var duplicateProject: (ProjectReport) -> Void = { _ in }
     var confirmBeforeDelete = true
     @State private var projectToDelete: ProjectReport?
@@ -69,10 +68,8 @@ struct ProjectBrowserView: View {
         VStack(spacing: AppSpacing.field) {
             titleAndSearch
             HStack(alignment: .center) {
-                ProjectFilterBar(searchText: $viewModel.searchText,
-                                 filter: $viewModel.filter,
-                                 linesOfBusiness: viewModel.linesOfBusiness,
-                                 showFilters: showFilters)
+                ProjectFilterBar(filter: $viewModel.filter,
+                                 linesOfBusiness: viewModel.linesOfBusiness)
                 .disabled(viewModel.isLoading || viewModel.isSaving)
                 
                 Button(action: newProject) {
