@@ -33,7 +33,7 @@ nonisolated struct ReportEditorDraft: Codable, Equatable, Sendable {
     }
 
     var lineOfBusinessError: String? {
-        trimmed(lineOfBusiness).isEmpty ? "Enter a line of business." : nil
+        LineOfBusiness.options.contains(trimmed(lineOfBusiness)) ? nil : "Select a supported product line before saving."
     }
 
     var milestoneError: String? {

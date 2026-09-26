@@ -6,7 +6,7 @@ import Testing
 struct InMemoryProjectRepositoryTests {
     @Test func saveInsertsAndUpdatesByIdentity() async throws {
         let repository = InMemoryProjectRepository()
-        var project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        var project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         try await repository.save(project)
         project.codeName = "Titan Updated"
@@ -16,7 +16,7 @@ struct InMemoryProjectRepositoryTests {
     }
 
     @Test func lookupFindsOnlyTheRequestedProject() async throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         let repository = InMemoryProjectRepository(projects: [project])
         #expect(try await repository.fetchProject(id: project.id) == project)
@@ -26,7 +26,7 @@ struct InMemoryProjectRepositoryTests {
     }
 
     @Test func deletingOneProjectPreservesTheOthers() async throws {
-        let first = ProjectReport(id: UUID(), codeName: "One", lineOfBusiness: "Camera",
+        let first = ProjectReport(id: UUID(), codeName: "One", lineOfBusiness: "iPhone",
                                   status: .draft, createdAt: .now, updatedAt: .now)
         let second = ProjectReport(id: UUID(), codeName: "Two", lineOfBusiness: "Services",
                                status: .active, createdAt: .now, updatedAt: .now)

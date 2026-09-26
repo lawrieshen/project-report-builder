@@ -10,7 +10,7 @@ struct RecoveryRestoreTests {
         let store = ProjectFileStore(storage: ApplicationStorage(root: root))
         let repository = LocalProjectRepository(store: store)
         let recovery = LocalDraftRecoveryRepository(store: store)
-        let project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        let project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await repository.save(project)
         var draft = ReportEditorDraft(project: project)
         draft.codeName = "Recovered"

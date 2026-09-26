@@ -9,7 +9,7 @@ struct StorageInformationTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let storage = ApplicationStorage(root: root)
         let store = ProjectFileStore(storage: storage)
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await store.save(project)
         let asset = ImageAsset(id: UUID(), fileName: "image.png", localReference: UUID().uuidString + ".png")
         try await store.writeAsset(Data([1, 2, 3]), asset: asset, projectID: project.id)

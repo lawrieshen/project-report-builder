@@ -9,7 +9,7 @@ struct DraftRecoveryRepositoryTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let storage = ApplicationStorage(root: root)
         let store = ProjectFileStore(storage: storage)
-        var project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        var project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await store.save(project)
         var draft = ReportEditorDraft(project: project)
         draft.codeName = ""

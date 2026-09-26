@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct ReportExportRendererTests {
     static func draft() -> ReportEditorDraft {
-        ReportEditorDraft(project: ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        ReportEditorDraft(project: ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                                  status: .active, createdAt: .now, updatedAt: .now))
     }
 
