@@ -3,6 +3,25 @@ import Testing
 @testable import Project_Report_Builder
 
 struct ReportEditorDraftTests {
+    @Test func supportedMilestonePhasesAndLegacyValues() {
+        let original = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
+                                     status: .draft, createdAt: .now, updatedAt: .now)
+        var draft = ReportEditorDraft(project: original)
+        #expect(draft.milestoneError == nil)
+        draft.milestoneDeadline = .now
+        for phase in MilestonePhase.options {
+            draft.milestonePhase = phase
+            #expect(draft.milestoneError == nil)
+        }
+        draft.milestonePhase = "Custom build"
+        #expect(draft.milestoneError != nil)
+        #expect(draft.milestonePhase == "Custom build")
+        draft.milestonePhase = "DVT"
+        #expect(draft.milestoneError == nil)
+        draft.milestoneDeadline = nil
+        #expect(draft.milestoneError != nil)
+    }
+
     @Test func legacyBusinessRequiresReselectionWithoutChangingOriginal() {
         let original = ProjectReport(id: UUID(), codeName: "Legacy", lineOfBusiness: "Camera",
                                      status: .draft, createdAt: .now, updatedAt: .now)

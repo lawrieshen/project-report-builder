@@ -9,10 +9,42 @@ struct AccessibilityTests {
                                                  status: .active, createdAt: .now, updatedAt: .now))
     }
 
+    @Test func metricDataRulesMatchTheEditor() async {
+        var draft = draft()
+        var metric = EngineeringMetricDraft()
+        metric.name = "Latency"
+        metric.currentValueText = "not a number"
+        draft.metrics = [metric]
+        let invalid = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
+        #expect(invalid.issues.contains { $0.type == .invalidData && $0.section == .metrics })
+        draft.metrics[0].currentValueText = "120"
+        let fixed = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
+        #expect(fixed.isValid)
+    }
+
+    @Test func invalidDataAndAccessibilityIssuesAreReportedTogether() async {
+        var draft = draft()
+        draft.codeName = " "
+        draft.lineOfBusiness = "Legacy"
+        draft.milestonePhase = "DVT"
+        draft.milestoneDeadline = nil
+        draft.assets = [ImageAsset(id: UUID(), fileName: "Image.png", localReference: "image")]
+        let report = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
+        #expect(report.issues.filter { $0.type == .invalidData }.count == 3)
+        #expect(report.issues.contains { $0.type == .missingAltText })
+        #expect(!report.isValid)
+        draft.codeName = "Titan"
+        draft.lineOfBusiness = "iPhone"
+        draft.milestonePhase = ""
+        draft.assets[0].altText = "Project overview"
+        let fixed = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
+        #expect(fixed.isValid)
+    }
+
     @Test func optionalSectionsAreNotRequiredAndCanonicalStylesPass() async {
-        let model = AccessibilityValidationModel(draft: draft())
+        let model = ReportValidationModel(draft: draft())
         #expect(model.visibleSections == [.identity])
-        let result = await AccessibilityChecker().validate(model: model)
+        let result = await ReportValidator().validate(model: model)
         #expect(result.isValid)
     }
 
@@ -20,27 +52,27 @@ struct AccessibilityTests {
         var draft = draft()
         draft.assets = [ImageAsset(id: UUID(), fileName: "A.png", localReference: "a", altText: " \n"),
                         ImageAsset(id: UUID(), fileName: "B.png", localReference: "b", altText: "Diagram")]
-        let result = await AccessibilityChecker().validate(model: AccessibilityValidationModel(draft: draft))
+        let result = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
         #expect(result.issues.count == 1)
         #expect(result.issues.first?.type == .missingAltText)
         #expect(result.issues.first?.severity == .error)
         #expect(result.issues.first?.section == .supportingContent)
         #expect(result.issues.first?.message.contains("A.png") == true)
         draft.assets[0].altText = "Camera setup"
-        let fixed = await AccessibilityChecker().validate(model: AccessibilityValidationModel(draft: draft))
+        let fixed = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
         #expect(fixed.isValid)
     }
 
     @Test func statusWithoutTextIsDetectedButAbsentStatusIsAllowed() async {
-        var model = AccessibilityValidationModel(draft: draft())
+        var model = ReportValidationModel(draft: draft())
         model.statusLabel = " \n"
         model.metricStatusLabels = [""]
-        let result = await AccessibilityChecker().validate(model: model)
+        let result = await ReportValidator().validate(model: model)
         #expect(result.issues.filter { $0.type == .colorOnlyStatus }.count == 2)
         for status in RAGStatus.allCases {
             var draft = draft()
             draft.ragStatus = status
-            let valid = await AccessibilityChecker().validate(model: AccessibilityValidationModel(draft: draft))
+            let valid = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
             #expect(valid.isValid)
         }
     }
@@ -49,21 +81,22 @@ struct AccessibilityTests {
         var draft = draft()
         draft.codeName = " "
         draft.metrics = [EngineeringMetricDraft()]
-        var model = AccessibilityValidationModel(draft: draft)
+        var model = ReportValidationModel(draft: draft)
         model.roleLabels = [" "]
-        let result = await AccessibilityChecker().validate(model: model)
-        #expect(result.issues.filter { $0.type == .emptyLabel }.map(\.section) == [.identity, .metrics, .accountability])
+        let result = await ReportValidator().validate(model: model)
+        #expect(result.issues.filter { $0.type == .invalidData }.map(\.section) == [.identity, .metrics])
+        #expect(result.issues.filter { $0.type == .emptyLabel }.map(\.section) == [.accountability])
     }
 
     @Test func contrastUsesKnownReferenceRatiosAndBothAppearances() async {
-        #expect(abs(AccessibilityChecker.contrast(ReportRGB(0), ReportRGB(1)) - 21) < 0.0001)
-        #expect(AccessibilityChecker.contrast(ReportRGB(0.5), ReportRGB(0.5)) == 1)
-        #expect(AccessibilityChecker.contrast(ReportRGB(0.46), ReportRGB(1)) > 4.5)
-        #expect(AccessibilityChecker.contrast(ReportRGB(0.47), ReportRGB(1)) < 4.5)
+        #expect(abs(ReportValidator.contrast(ReportRGB(0), ReportRGB(1)) - 21) < 0.0001)
+        #expect(ReportValidator.contrast(ReportRGB(0.5), ReportRGB(0.5)) == 1)
+        #expect(ReportValidator.contrast(ReportRGB(0.46), ReportRGB(1)) > 4.5)
+        #expect(ReportValidator.contrast(ReportRGB(0.47), ReportRGB(1)) < 4.5)
         var style = ReportAccessibilityStyle.canonical
         style.dark.secondary = style.dark.background
         style.light.primary = style.light.background
-        let report = await AccessibilityChecker(style: style).validate(model: AccessibilityValidationModel(draft: draft()))
+        let report = await ReportValidator(style: style).validate(model: ReportValidationModel(draft: draft()))
         let contrast = report.issues.filter { $0.type == .lowContrast }
         #expect(contrast.contains { $0.message.contains("Light") })
         #expect(contrast.contains { $0.message.contains("Dark") })
@@ -74,7 +107,7 @@ struct AccessibilityTests {
         style.bodySize = 13
         style.captionSize = 11
         style.light.secondary = ReportRGB(.nan)
-        let result = await AccessibilityChecker(style: style).validate(model: AccessibilityValidationModel(draft: draft()))
+        let result = await ReportValidator(style: style).validate(model: ReportValidationModel(draft: draft()))
         #expect(result.issues.filter { $0.type == .smallText }.count == 2)
         #expect(result.issues.contains { $0.type == .lowContrast })
     }
@@ -83,14 +116,14 @@ struct AccessibilityTests {
         var draft = draft()
         var style = ReportAccessibilityStyle.canonical
         style.headingSections.remove(.summary)
-        let empty = await AccessibilityChecker(style: style).validate(model: AccessibilityValidationModel(draft: draft))
+        let empty = await ReportValidator(style: style).validate(model: ReportValidationModel(draft: draft))
         #expect(empty.isValid)
         draft.summaryMessage = "Latest update"
-        let shown = await AccessibilityChecker(style: style).validate(model: AccessibilityValidationModel(draft: draft))
+        let shown = await ReportValidator(style: style).validate(model: ReportValidationModel(draft: draft))
         #expect(shown.issues.first?.type == .missingHeading)
         #expect(shown.issues.first?.section == .summary)
         style.sectionLevel = 4
-        let hierarchy = await AccessibilityChecker(style: style).validate(model: AccessibilityValidationModel(draft: draft))
+        let hierarchy = await ReportValidator(style: style).validate(model: ReportValidationModel(draft: draft))
         #expect(!hierarchy.isValid)
     }
 
@@ -100,18 +133,18 @@ struct AccessibilityTests {
         let repository = WorkspaceTestRepository(project: original)
         let editor = ReportEditorViewModel(projectID: original.id, repository: repository)
         await editor.load()
-        let viewModel = AccessibilityViewModel()
-        await viewModel.validate(model: AccessibilityValidationModel(draft: try #require(editor.draft)))
+        let viewModel = ReportValidationViewModel()
+        await viewModel.validate(model: ReportValidationModel(draft: try #require(editor.draft)))
         #expect(viewModel.report?.isValid == true)
         #expect(!editor.isDirty)
         editor.draft?.assets = [ImageAsset(id: UUID(), fileName: "A.png", localReference: "a")]
         let before = editor.draft
-        await viewModel.validate(model: AccessibilityValidationModel(draft: try #require(editor.draft)))
+        await viewModel.validate(model: ReportValidationModel(draft: try #require(editor.draft)))
         #expect(viewModel.report?.issues.first?.type == .missingAltText)
         #expect(editor.draft == before)
         editor.draft?.assets[0].altText = "Diagram"
         let fixed = editor.draft
-        await viewModel.validate(model: AccessibilityValidationModel(draft: try #require(editor.draft)))
+        await viewModel.validate(model: ReportValidationModel(draft: try #require(editor.draft)))
         #expect(viewModel.report?.isValid == true)
         #expect(!viewModel.isChecking)
         #expect(editor.draft == fixed && editor.isDirty)
@@ -120,8 +153,8 @@ struct AccessibilityTests {
     }
 
     @Test func cancelledCheckDoesNotPublishAResult() async {
-        let viewModel = AccessibilityViewModel(checker: SuspendedChecker())
-        let model = AccessibilityValidationModel(draft: draft())
+        let viewModel = ReportValidationViewModel(checker: SuspendedChecker())
+        let model = ReportValidationModel(draft: draft())
         let task = Task { await viewModel.validate(model: model) }
         await Task.yield()
         task.cancel()
@@ -131,9 +164,9 @@ struct AccessibilityTests {
     }
 }
 
-private struct SuspendedChecker: AccessibilityChecking {
-    func validate(model: AccessibilityValidationModel) async -> AccessibilityReport {
+private struct SuspendedChecker: ReportValidating {
+    func validate(model: ReportValidationModel) async -> ReportValidationReport {
         try? await Task.sleep(for: .seconds(1))
-        return AccessibilityReport(issues: [])
+        return ReportValidationReport(issues: [])
     }
 }

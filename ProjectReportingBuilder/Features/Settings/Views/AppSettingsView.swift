@@ -63,7 +63,7 @@ struct AppSettingsView: View {
                 shortcut("Save Report", "⌘S")
                 shortcut("Preview Report", "⌘P")
                 shortcut("Export Report", "⌘E")
-                shortcut("Validate Accessibility", "⇧⌘A")
+                shortcut("Validate Report", "⇧⌘A")
                 shortcut("Settings", "⌘,")
                 Text("Shortcuts are fixed. Editor actions are available when a report is open.")
                     .font(.caption).foregroundStyle(.secondary)

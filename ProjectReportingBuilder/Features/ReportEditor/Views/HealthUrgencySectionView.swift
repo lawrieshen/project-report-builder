@@ -20,8 +20,17 @@ struct HealthUrgencySectionView: View {
                     .tag(Optional(status))
                 }
             }
-            TextField("Milestone Phase", text: $draft.milestonePhase)
-                .accessibilityIdentifier("reportMilestonePhase")
+            Picker("Milestone Phase", selection: Binding(
+                get: { MilestonePhase.options.contains(draft.milestonePhase) ? draft.milestonePhase : "" },
+                set: { draft.milestonePhase = $0 }
+            )) {
+                Text(draft.milestonePhase.isEmpty || MilestonePhase.options.contains(draft.milestonePhase) ? "Not set" : "Please select a phase again").tag("")
+                ForEach(MilestonePhase.options, id: \.self) { phase in
+                    Text(phase).tag(phase)
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("reportMilestonePhase")
             Toggle("Set milestone deadline", isOn: Binding(
                 get: { draft.milestoneDeadline != nil },
                 set: { draft.milestoneDeadline = $0 ? Date() : nil }
