@@ -2,15 +2,15 @@ import Observation
 
 @MainActor
 @Observable
-final class AccessibilityViewModel {
-    private(set) var report: AccessibilityReport?
+final class ReportValidationViewModel {
+    private(set) var report: ReportValidationReport?
     private(set) var isChecking = false
-    private let checker: any AccessibilityChecking
+    private let checker: any ReportValidating
 
-    init(checker: any AccessibilityChecking = AccessibilityChecker()) { self.checker = checker }
+    init(checker: any ReportValidating = ReportValidator()) { self.checker = checker }
 
     /// Replace the previous result only after an uncancelled manual check completes.
-    func validate(model: AccessibilityValidationModel) async {
+    func validate(model: ReportValidationModel) async {
         guard !isChecking else { return }
         isChecking = true
         defer { isChecking = false }

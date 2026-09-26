@@ -1,28 +1,28 @@
 import SwiftUI
 
-struct AccessibilityPanelView: View {
-    let model: AccessibilityValidationModel
+struct ReportValidationPanelView: View {
+    let model: ReportValidationModel
     let onDismiss: () -> Void
     let goToSection: (ReportSection) -> Void
-    @State private var viewModel = AccessibilityViewModel()
+    @State private var viewModel = ReportValidationViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
             header
-            Text("Checks the current unsaved report and canonical Light/Dark styles.")
+            Text("Checks required fields, metric data, and accessibility of the current unsaved report.")
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
             ContentHeightScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.section) {
                     if viewModel.isChecking {
-                        ProgressView("Checking accessibility…")
+                        ProgressView("Validating report…")
                     } else if let report = viewModel.report {
                         if report.isValid {
-                            AccessibilitySuccessView()
+                            ReportValidationSuccessView()
                         } else {
                             Text("\(report.issues.count) issues").font(.headline)
                             ForEach(report.issues) { issue in
-                                AccessibilityIssueRow(issue: issue) { goToSection(issue.section) }
+                                ReportValidationIssueRow(issue: issue) { goToSection(issue.section) }
                             }
                         }
                     }
@@ -39,7 +39,7 @@ struct AccessibilityPanelView: View {
 
     private var header: some View {
         HStack {
-            Text("Accessibility").font(.title2)
+            Text("Report Validation").font(.title2)
             Spacer()
             Button("Recheck") { Task { await viewModel.validate(model: model) } }
                 .disabled(viewModel.isChecking)
@@ -51,8 +51,8 @@ struct AccessibilityPanelView: View {
     }
 }
 
-struct AccessibilityIssueRow: View {
-    let issue: AccessibilityIssue
+struct ReportValidationIssueRow: View {
+    let issue: ReportValidationIssue
     let goToSection: () -> Void
 
     var body: some View {
@@ -72,13 +72,13 @@ struct AccessibilityIssueRow: View {
     }
 }
 
-struct AccessibilitySuccessView: View {
+struct ReportValidationSuccessView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
-            Label("No accessibility issues found", systemImage: "checkmark.circle")
+            Label("No validation issues found", systemImage: "checkmark.circle")
                 .font(.headline)
                 .accessibilityIdentifier("accessibilityAllClear")
-            Text("Your report currently passes all enabled accessibility checks.")
+            Text("Your report currently passes all enabled report checks.")
         }
     }
 }

@@ -105,12 +105,12 @@ struct ContentView: View {
             case .export:
                 if let draft = router.editor?.draft, let exportViewModel {
                     ExportPanelView(viewModel: exportViewModel, model: ReportPreviewModel(draft: draft),
-                                    validation: AccessibilityValidationModel(draft: draft),
+                                    validation: ReportValidationModel(draft: draft),
                                     reviewIssues: { self.card = .accessibility }, onDismiss: dismissCard)
                 }
             case .accessibility:
                 if let draft = router.editor?.draft {
-                    AccessibilityPanelView(model: AccessibilityValidationModel(draft: draft),
+                    ReportValidationPanelView(model: ReportValidationModel(draft: draft),
                                            onDismiss: dismissCard) { section in
                         dismissCard()
                         focusedSection = section
@@ -190,7 +190,6 @@ struct ContentView: View {
                              previewAsset: { card = .imagePreview($0) },
                              showPreview: { card = .livePreview },
                              showExport: showExport,
-                             checkAccessibility: { card = .accessibility },
                              focusedSection: $focusedSection)
                 .id(editor.projectID)
         } else {

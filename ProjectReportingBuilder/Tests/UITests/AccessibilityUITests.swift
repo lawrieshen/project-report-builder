@@ -4,7 +4,7 @@ import XCTest
 final class AccessibilityUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
-    func testCheckNavigateFixAndRecheckWithoutSaving() {
+    func testAutomaticValidationUpdatesWithoutSaving() {
         let app = XCUIApplication.isolated()
         app.launchArguments = ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
@@ -18,11 +18,8 @@ final class AccessibilityUITests: XCTestCase {
         app.popUpButtons["newProjectLineOfBusiness"].click()
         app.menuItems["iPhone"].click()
         app.buttons["Create & Open"].click()
-        let check = app.buttons["checkAccessibility"]
-        XCTAssertTrue(check.waitForExistence(timeout: 5))
-        check.click()
-        XCTAssertTrue(app.staticTexts["accessibilityAllClear"].waitForExistence(timeout: 5))
-        app.buttons["closeAccessibility"].click()
+        XCTAssertTrue(app.staticTexts["reportValidationAllClear"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["checkAccessibility"].exists)
         XCTAssertFalse(app.buttons["saveReport"].isEnabled)
 
         let title = app.textFields["reportCodeName"]
@@ -31,23 +28,19 @@ final class AccessibilityUITests: XCTestCase {
         title.typeKey(.delete, modifierFlags: [])
         // Start away from Identity to verify that issue navigation actually scrolls.
         app.scrollViews["reportEditorScroll"].scroll(byDeltaX: 0, deltaY: -600)
-        check.click()
-        let navigate = app.buttons["accessibilitySection.identity"]
+        let navigate = app.buttons["reportValidationSection.identity"]
         XCTAssertTrue(navigate.waitForExistence(timeout: 5))
         navigate.click()
         XCTAssertTrue(title.waitForExistence(timeout: 5))
         XCTAssertTrue(title.isHittable)
         title.click()
         title.typeText("Updated Titan")
-        check.click()
-        XCTAssertTrue(app.staticTexts["accessibilityAllClear"].waitForExistence(timeout: 5))
-        app.buttons["recheckAccessibility"].click()
-        XCTAssertTrue(app.staticTexts["accessibilityAllClear"].exists)
+        XCTAssertTrue(app.staticTexts["reportValidationAllClear"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["reportValidationAllClear"].exists)
         let image = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
         image.name = "Accessibility — unsaved fix passes"
         image.lifetime = .keepAlways
         add(image)
-        app.buttons["closeAccessibility"].click()
         XCTAssertTrue(app.buttons["saveReport"].isEnabled)
         app.buttons["discardReport"].click()
         XCTAssertEqual(title.value as? String, "Titan")

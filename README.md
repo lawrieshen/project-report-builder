@@ -202,7 +202,7 @@ PNG and HTML export are available through the workspace Export action. Printing 
 
 ## Accessibility Validation
 
-Choose **Check Accessibility** in the workspace Inspector. The floating panel
+Choose **Validate Report** in the workspace Inspector. The floating panel
 checks the current unsaved draft without saving or changing dirty state.
 
 - Missing or whitespace-only image alt text produces an error.
@@ -356,7 +356,7 @@ resume after the next edit, so cleared snapshots are not immediately recreated.
 | ⌘S | Save Report |
 | ⌘P | Preview Report |
 | ⌘E | Export Report |
-| ⇧⌘A | Validate Accessibility |
+| ⇧⌘A | Validate Report |
 | ⌘, | Settings |
 | ⌘W | Close the active window |
 
@@ -385,3 +385,20 @@ not an internal organization chart.
 Existing custom values are not offered in pickers or Browser filters.
 Opening an older project does not rewrite its stored data. Select a supported
 product line before saving; autosave also waits until the draft is valid.
+
+### Report Validation
+
+Validate Report checks the current unsaved draft for required identity fields,
+a supported product line, complete milestone data, and valid metric values
+and names, alongside the existing accessibility and readability checks.
+Issues link back to their editor sections. Optional sections remain optional.
+Export uses the same report checks and retains its explicit Export Anyway
+confirmation; saving still requires valid report data.
+
+Milestone phases use Prototype, EVT, DVT, PVT, and Mass Production. These are
+hardware-oriented presets, informed by Apple's public
+[engineering roles](https://jobs.apple.com/en-us/details/200664229-3401/ee-design-test-engineer)
+and [iPhone development roles](https://jobs.apple.com/en-ng/details/200588442-3715/iphone-system-electrical-engineer),
+not a claim to reproduce every internal workflow. Milestones remain optional;
+when set, a supported phase and deadline are both required. Existing custom
+phases are preserved on disk but require reselection before saving.
