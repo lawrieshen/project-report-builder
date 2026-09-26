@@ -13,7 +13,19 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
 
     func load() -> AppSettings {
         guard let data = defaults.data(forKey: key),
-              let settings = try? JSONDecoder().decode(AppSettings.self, from: data) else {
+              var values = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return initialSettings
+        }
+        // Preserve the effective legacy preference without resetting other settings.
+        if values["restoreWorkspaceAfterInterruption"] == nil {
+            let restore = values["restoreLastWorkspace"] as? Bool ?? true
+            let lastProject = values["defaultLaunchDestination"] as? String == "lastOpenedProject"
+            values["restoreWorkspaceAfterInterruption"] = restore || lastProject
+        }
+        values.removeValue(forKey: "restoreLastWorkspace")
+        values.removeValue(forKey: "defaultLaunchDestination")
+        guard let migratedData = try? JSONSerialization.data(withJSONObject: values),
+              let settings = try? JSONDecoder().decode(AppSettings.self, from: migratedData) else {
             return initialSettings
         }
         return settings

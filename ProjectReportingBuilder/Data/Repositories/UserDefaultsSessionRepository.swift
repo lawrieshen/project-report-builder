@@ -3,15 +3,29 @@ import Foundation
 @MainActor
 final class UserDefaultsSessionRepository: SessionRepository {
     private let defaults: UserDefaults
-    private let key = "lastOpenedProjectID.v1"
 
-    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    private let projectIDKey = "lastOpenedProjectID.v1"
+    private let wasRunningKey = "wasRunning.v1"
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     func load() -> AppSessionState {
-        AppSessionState(lastOpenedProjectID: defaults.string(forKey: key).flatMap(UUID.init(uuidString:)))
+        let projectID = defaults.string(forKey: projectIDKey)
+            .flatMap(UUID.init(uuidString:))
+
+        return AppSessionState(
+            lastOpenedProjectID: projectID,
+            wasRunning: defaults.bool(forKey: wasRunningKey)
+        )
     }
 
     func save(_ state: AppSessionState) {
-        defaults.set(state.lastOpenedProjectID?.uuidString, forKey: key)
+        defaults.set(
+            state.lastOpenedProjectID?.uuidString,
+            forKey: projectIDKey
+        )
+        defaults.set(state.wasRunning, forKey: wasRunningKey)
     }
 }
