@@ -76,7 +76,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var floatingCardOverlay: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .center) {
             if isShowingCard {
                 Color.black.opacity(0.01)
                     .ignoresSafeArea()
@@ -84,7 +84,7 @@ struct ContentView: View {
                     .accessibilityHidden(true)
                 cardContent
                     .padding(AppSpacing.pageInset)
-                    .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
+                    .transition(.opacity)
                     .zIndex(1)
             }
         }
