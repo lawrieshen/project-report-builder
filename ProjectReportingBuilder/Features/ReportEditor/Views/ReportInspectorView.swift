@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ReportInspectorView: View {
     let project: ProjectReport
-    var checkAccessibility: () -> Void = {}
+    let draft: ReportEditorDraft
+    let goToSection: (ReportSection) -> Void
+    @State private var validationReport: ReportValidationReport?
+    @State private var isChecking = false
 
     var body: some View {
         ScrollView {
@@ -14,13 +17,80 @@ struct ReportInspectorView: View {
                 Text("Last Updated").font(.headline)
                 Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
                 Divider()
-                Button("Validate Report", action: checkAccessibility)
-                    .accessibilityIdentifier("checkAccessibility")
+                validationResults
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(AppSpacing.cardInset)
         }
         .frame(width: 190)
         .background(.quaternary.opacity(0.3))
+        .task(id: draft) {
+            isChecking = true
+            validationReport = nil
+            let result = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
+            guard !Task.isCancelled else { return }
+            validationReport = result
+            isChecking = false
+        }
     }
+
+    @ViewBuilder
+    private var validationResults: some View {
+        Text("Report Validation").font(.headline)
+        if isChecking || validationReport == nil {
+            ProgressView("Validating…")
+        } else if let report = validationReport {
+            Image(systemName: report.isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(report.isValid ? Color.green : Color.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.inline)
+                .accessibilityLabel(report.isValid ? "Validation passed" : "Validation issues found")
+            if report.isValid {
+                Text("No issues found")
+                    .accessibilityIdentifier("reportValidationAllClear")
+            } else {
+                Text("\(report.issues.count) issues").font(.subheadline.bold())
+                ForEach(report.issues) { issue in
+                    VStack(alignment: .leading, spacing: AppSpacing.compact) {
+                        Text(issue.severity.rawValue.capitalized)
+                        Text(issue.title).fontWeight(.semibold)
+                        Text(issue.message)
+                        Button("Go to " + issue.section.title) { goToSection(issue.section) }
+                            .accessibilityIdentifier("reportValidationSection." + issue.section.rawValue)
+                    }
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(AppSpacing.inline)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.orange.opacity(0.08))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Color.orange.opacity(0.25), lineWidth: 1)
+                    }
+                }
+            }
+            Text("Checks report data and accessibility; does not certify WCAG compliance.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+#Preview("Valid Report") {
+    let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
+                                status: .active, createdAt: .now, updatedAt: .now)
+    ReportInspectorView(project: project, draft: ReportEditorDraft(project: project),
+                        goToSection: { _ in })
+        .frame(height: 500)
+}
+
+#Preview("Validation Issues") {
+    let project = ProjectReport(id: UUID(), codeName: "", lineOfBusiness: "Camera",
+                                status: .draft, createdAt: .now, updatedAt: .now)
+    ReportInspectorView(project: project, draft: ReportEditorDraft(project: project),
+                        goToSection: { _ in })
+        .frame(height: 500)
 }

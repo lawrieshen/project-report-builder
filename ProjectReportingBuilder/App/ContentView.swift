@@ -190,7 +190,6 @@ struct ContentView: View {
                              previewAsset: { card = .imagePreview($0) },
                              showPreview: { card = .livePreview },
                              showExport: showExport,
-                             checkAccessibility: { card = .accessibility },
                              focusedSection: $focusedSection)
                 .id(editor.projectID)
         } else {

@@ -8,7 +8,6 @@ struct ReportEditorView: View {
     var previewAsset: (ImageAsset) -> Void = { _ in }
     var showPreview: () -> Void = {}
     var showExport: () -> Void = {}
-    var checkAccessibility: () -> Void = {}
     @Binding var focusedSection: ReportSection?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -55,7 +54,9 @@ struct ReportEditorView: View {
             HStack(spacing: 0) {
                 editorContent(draft: draft)
                 Divider()
-                ReportInspectorView(project: project, checkAccessibility: checkAccessibility)
+                ReportInspectorView(project: project, draft: draft.wrappedValue) { section in
+                    focusedSection = section
+                }
             }
         } else {
             ContentUnavailableView("Project not found", systemImage: "folder.badge.questionmark",
