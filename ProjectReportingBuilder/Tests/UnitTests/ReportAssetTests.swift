@@ -18,7 +18,7 @@ actor AssetTestRepository: AssetRepository {
 @MainActor
 struct ReportAssetTests {
     @Test func saveDiscardReplacementAndFailurePreserveFiles() async throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         let assets = AssetTestRepository()
@@ -59,7 +59,7 @@ struct ReportAssetTests {
     }
 
     @Test func assetsUseIdentityAndPreserveOrder() async throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         let assets = AssetTestRepository()
         let model = ReportEditorViewModel(projectID: project.id,
@@ -97,7 +97,7 @@ actor DelayedAssetRepository: AssetRepository {
 @MainActor
 struct AssetImportCancellationTests {
     @Test func discardDuringImportDoesNotRestoreAbandonedAssets() async throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         let assets = DelayedAssetRepository()
         let model = ReportEditorViewModel(projectID: project.id,

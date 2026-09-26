@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct AutosaveTests {
     private func fixture() async -> (ReportEditorViewModel, WorkspaceTestRepository, AppSettingsStore) {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .active, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         var preferences = AppSettings.default

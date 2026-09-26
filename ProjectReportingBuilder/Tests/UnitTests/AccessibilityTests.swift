@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct AccessibilityTests {
     private func draft() -> ReportEditorDraft {
-        ReportEditorDraft(project: ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        ReportEditorDraft(project: ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                                  status: .active, createdAt: .now, updatedAt: .now))
     }
 
@@ -95,7 +95,7 @@ struct AccessibilityTests {
     }
 
     @Test func validationAndRecheckReadUnsavedDraftWithoutSaving() async throws {
-        let original = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let original = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                      status: .active, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: original)
         let editor = ReportEditorViewModel(projectID: original.id, repository: repository)

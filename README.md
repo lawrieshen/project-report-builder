@@ -374,3 +374,14 @@ session as normally terminated; closing a window does not. An unfinished
 session marker enables workspace restoration after a crash, force quit, or
 other unexpected termination, subject to the restoration preference. Saved
 recovery drafts remain available when a project is opened manually.
+
+### Line of Business options
+
+New projects use five predefined product lines: iPhone, Mac, iPad,
+Wearables, Home and Accessories, and Services. These follow Apple's public
+[FY2025 financial reporting categories](https://www.apple.com/newsroom/pdfs/fy2025-q4/FY25_Q4_Consolidated_Financial_Statements.pdf),
+not an internal organization chart.
+
+Existing custom values are not offered in pickers or Browser filters.
+Opening an older project does not rewrite its stored data. Select a supported
+product line before saving; autosave also waits until the draft is valid.

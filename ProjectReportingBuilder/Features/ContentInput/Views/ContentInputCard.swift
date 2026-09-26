@@ -13,12 +13,12 @@ struct ContentInputCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
             Text("Add Source Content").font(.title2)
-            ScrollView {
-                cardContent
+            ContentHeightScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.field) { cardContent }
             }
             actionButtons
         }
-        .floatingCard(width: 560, maxHeight: .infinity)
+        .floatingCard(width: 560)
         .fileImporter(isPresented: $showingTextImporter, allowedContentTypes: [.plainText]) { result in
             switch result {
             case .success(let url):
@@ -65,7 +65,7 @@ struct ContentInputCard: View {
             Text("Example: Health: Amber\nDeadline: 2026-09-30\nSummary: Camera latency remains high.")
                 .font(.caption).textSelection(.enabled)
             TextEditor(text: $model.rawText)
-                .frame(minHeight: 180)
+                .frame(height: 180)
                 .accessibilityLabel("Raw Project Notes")
                 .accessibilityIdentifier("sourceText")
                 .disabled(model.isProcessing || isImportingText)

@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct ImageAssetModelTests {
     @Test func assetsRoundTripThroughDraftAndCoding() throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         let asset = ImageAsset(id: UUID(), fileName: "diagram.png", localReference: "managed.png",
                                altText: "System diagram")

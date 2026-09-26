@@ -1,14 +1,16 @@
 import SwiftUI
 
 struct ProjectBrowserView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var presentedFilter: ProjectFilterGroup?
     @Bindable var viewModel: ProjectBrowserViewModel
     let openProject: (ProjectReport) -> Void
     let newProject: () -> Void
     var isCreatingProject = false
-    let showFilters: () -> Void
     var duplicateProject: (ProjectReport) -> Void = { _ in }
     var confirmBeforeDelete = true
     @State private var projectToDelete: ProjectReport?
+    @State private var projectToArchive: ProjectReport?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -21,6 +23,30 @@ struct ProjectBrowserView: View {
             browserContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .overlayPreferenceValue(ProjectFilterAnchors.self) { anchors in
+            GeometryReader { geometry in
+                if let group = presentedFilter, let anchor = anchors[group] {
+                    let button = geometry[anchor]
+                    let top = button.maxY + AppSpacing.compact
+                    let left = max(AppSpacing.inline, min(button.minX, geometry.size.width - 320 - AppSpacing.inline))
+                    ZStack(alignment: .topLeading) {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { presentedFilter = nil }
+                            .accessibilityHidden(true)
+                        ProjectFilterCard(group: group, filter: $viewModel.filter,
+                                          linesOfBusiness: viewModel.linesOfBusiness,
+                                          maximumHeight: max(0, geometry.size.height - top - AppSpacing.inline)) {
+                            presentedFilter = nil
+                        }
+                        .onExitCommand { presentedFilter = nil }
+                        .offset(x: left, y: top)
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: -8)))
+                    }
+                }
+            }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: presentedFilter)
         .task { await viewModel.loadProjects() }
         .confirmationDialog("Delete this project?", isPresented: Binding(
             get: { projectToDelete != nil },
@@ -34,6 +60,23 @@ struct ProjectBrowserView: View {
             Button("Cancel", role: .cancel) { projectToDelete = nil }
         } message: {
             Text("This project, its images, and recovered edits will be permanently removed from this Mac. This action cannot be undone.")
+        }
+        .confirmationDialog("Archive this project?", isPresented: Binding(
+            get: { projectToArchive != nil },
+            set: { if !$0 { projectToArchive = nil } }
+        ), titleVisibility: .visible) {
+            if let project = projectToArchive {
+                Button("Archive") {
+                    projectToArchive = nil
+                    Task { await viewModel.archiveProject(project) }
+                }
+                .accessibilityIdentifier("confirmArchiveProject")
+            }
+            Button("Cancel", role: .cancel) { projectToArchive = nil }
+        } message: {
+            if let project = projectToArchive {
+                Text("\"\(project.codeName)\" will be marked as Archived. Its report data and images will be kept.")
+            }
         }
         .alert("Unable to Complete Action", isPresented: Binding(
             get: { viewModel.actionErrorMessage != nil && !isCreatingProject },
@@ -51,10 +94,8 @@ struct ProjectBrowserView: View {
         VStack(spacing: AppSpacing.field) {
             titleAndSearch
             HStack(alignment: .center) {
-                ProjectFilterBar(searchText: $viewModel.searchText,
-                                 filter: $viewModel.filter,
-                                 linesOfBusiness: viewModel.linesOfBusiness,
-                                 showFilters: showFilters)
+                ProjectFilterBar(filter: $viewModel.filter,
+                                 presentedGroup: $presentedFilter)
                 .disabled(viewModel.isLoading || viewModel.isSaving)
                 
                 Button(action: newProject) {
@@ -91,7 +132,7 @@ struct ProjectBrowserView: View {
             ProjectGridView(projects: viewModel.visibleProjects,
                             open: openProject,
                             delete: requestDelete, duplicate: duplicateProject,
-                            archive: { project in Task { await viewModel.archiveProject(project) } })
+                            archive: { projectToArchive = $0 })
             .disabled(viewModel.isSaving)
         }
     }
@@ -112,7 +153,12 @@ struct ProjectBrowserView: View {
     @ViewBuilder
     private var titleAndSearch: some View {
         HStack {
-            Text("Project Report Builder").font(.largeTitle.bold())
+            HStack(spacing: AppSpacing.inline) {
+                Image(systemName: "apple.logo")
+                    .accessibilityHidden(true)
+                Text("Project Report Builder")
+            }
+            .font(.largeTitle.bold())
             Spacer()
             TextField("Search projects", text: $viewModel.searchText)
                 .textFieldStyle(.roundedBorder)

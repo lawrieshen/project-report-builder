@@ -32,7 +32,7 @@ final class ProjectBrowserViewModel {
     }
     
     var linesOfBusiness: [String] {
-        Array(Set(projects.map { $0.lineOfBusiness })).sorted()
+        LineOfBusiness.options
     }
     
     var hasSearch: Bool {
@@ -67,8 +67,8 @@ final class ProjectBrowserViewModel {
         guard !isSaving else { return nil }
         let name = codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         let business = lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, !business.isEmpty else {
-            actionErrorMessage = "Enter a project code name and line of business."
+        guard !name.isEmpty, LineOfBusiness.options.contains(business) else {
+            actionErrorMessage = "Enter a project code name and select a supported product line."
             return nil
         }
         

@@ -9,7 +9,7 @@ struct ProjectDuplicationTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let storage = ApplicationStorage(root: root)
         let store = ProjectFileStore(storage: storage)
-        var project = ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "Camera", status: .active, createdAt: .now, updatedAt: .now)
+        var project = ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "iPhone", status: .active, createdAt: .now, updatedAt: .now)
         try await store.save(project)
         let asset = ImageAsset(id: UUID(), fileName: "photo.png", localReference: UUID().uuidString + ".png", altText: "Red sample")
         try await store.writeAsset(Data([1, 2, 3]), asset: asset, projectID: project.id)

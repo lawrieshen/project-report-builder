@@ -46,7 +46,7 @@ struct ExportViewModelTests {
     }
 
     @Test func unsavedContentIsExportedWithoutSavingOrChangingDirtyState() async throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera", status: .active, createdAt: .now, updatedAt: .now)
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone", status: .active, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         let editor = ReportEditorViewModel(projectID: project.id, repository: repository)
         await editor.load()
