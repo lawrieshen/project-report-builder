@@ -6,19 +6,14 @@ struct ProjectFilterBar: View {
         static let leadingInset: CGFloat = 12
         static let trailingInset: CGFloat = 6
     }
-
+    
     @Binding var searchText: String
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
     let showFilters: () -> Void
     
     var body: some View {
-        HStack {
-            ScrollView(.horizontal) {
-                activeFilterTags
-            }
-            .scrollIndicators(.hidden)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .center) {
             Button {
                 showFilters()
             } label: {
@@ -27,8 +22,12 @@ struct ProjectFilterBar: View {
             }
             .fixedSize()
             .accessibilityIdentifier("projectFilterButton")
-
             
+            ScrollView(.horizontal) {
+                activeFilterTags
+            }
+            .scrollIndicators(.hidden)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
