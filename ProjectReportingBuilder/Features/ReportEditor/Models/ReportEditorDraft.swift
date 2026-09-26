@@ -37,7 +37,11 @@ nonisolated struct ReportEditorDraft: Codable, Equatable, Sendable {
     }
 
     var milestoneError: String? {
-        let hasPhase = !trimmed(milestonePhase).isEmpty
+        let phase = trimmed(milestonePhase)
+        if !phase.isEmpty && !MilestonePhase.options.contains(phase) {
+            return "Select a supported milestone phase before saving."
+        }
+        let hasPhase = !phase.isEmpty
         let hasDeadline = milestoneDeadline != nil
         return hasPhase == hasDeadline ? nil : "Provide both a milestone phase and deadline, or clear both."
     }

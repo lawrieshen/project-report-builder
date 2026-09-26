@@ -48,7 +48,7 @@ struct AppCommands: Commands {
             Button("Export Report…") { actions?.export?() }
                 .keyboardShortcut("e", modifiers: .command)
                 .disabled(actions?.export == nil)
-            Button("Validate Accessibility") { actions?.accessibility?() }
+            Button("Validate Report") { actions?.accessibility?() }
                 .keyboardShortcut("a", modifiers: [.command, .shift])
                 .disabled(actions?.accessibility == nil)
         }

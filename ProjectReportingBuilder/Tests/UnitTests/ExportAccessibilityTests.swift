@@ -8,13 +8,13 @@ struct ExportAccessibilityTests {
         let model = ExportViewModel(renderer: renderer, clipboard: destination, fileExporter: destination, sharing: destination)
         var draft = ReportExportRendererTests.draft()
         draft.codeName = ""
-        await model.request(.save, model: ReportPreviewModel(draft: draft), validation: AccessibilityValidationModel(draft: draft), appearance: .light)
+        await model.request(.save, model: ReportPreviewModel(draft: draft), validation: ReportValidationModel(draft: draft), appearance: .light)
         #expect(model.requiresConfirmation && renderer.models.isEmpty)
         #expect(model.accessibilityReport?.isValid == false)
         model.cancelPendingExport()
         #expect(!model.requiresConfirmation && destination.saved == nil)
         draft.codeName = "Fixed unsaved name"
-        await model.request(.save, model: ReportPreviewModel(draft: draft), validation: AccessibilityValidationModel(draft: draft), appearance: .light)
+        await model.request(.save, model: ReportPreviewModel(draft: draft), validation: ReportValidationModel(draft: draft), appearance: .light)
         #expect(!model.requiresConfirmation && model.accessibilityReport?.isValid == true)
         #expect(renderer.models.last?.codeName == "Fixed unsaved name")
     }
@@ -25,7 +25,7 @@ struct ExportAccessibilityTests {
         var draft = ReportExportRendererTests.draft()
         draft.codeName = ""
         draft.summaryMessage = "Checked snapshot"
-        await model.request(.copy, model: ReportPreviewModel(draft: draft), validation: AccessibilityValidationModel(draft: draft), appearance: .dark)
+        await model.request(.copy, model: ReportPreviewModel(draft: draft), validation: ReportValidationModel(draft: draft), appearance: .dark)
         draft.summaryMessage = "Later change"
         await model.exportAnyway()
         await model.exportAnyway()

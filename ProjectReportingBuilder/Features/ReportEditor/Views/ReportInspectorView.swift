@@ -14,7 +14,7 @@ struct ReportInspectorView: View {
                 Text("Last Updated").font(.headline)
                 Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
                 Divider()
-                Button("Check Accessibility", action: checkAccessibility)
+                Button("Validate Report", action: checkAccessibility)
                     .accessibilityIdentifier("checkAccessibility")
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -75,9 +75,9 @@ final class ReportWorkspaceUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Correct the highlighted fields before saving."].exists)
         app.buttons["discardReport"].click()
         XCTAssertEqual(name.value as? String, "Titan")
-        let phase = app.textFields["reportMilestonePhase"]
+        let phase = app.popUpButtons["reportMilestonePhase"]
         phase.click()
-        phase.typeText("DVT")
+        app.menuItems["DVT"].click()
         XCTAssertFalse(app.buttons["saveReport"].isEnabled)
         XCTAssertTrue(app.staticTexts["Provide both a milestone phase and deadline, or clear both."].exists)
     }
