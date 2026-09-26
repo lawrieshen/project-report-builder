@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct MetricRowView: View {
     let draft: EngineeringMetricDraft
@@ -8,9 +9,24 @@ struct MetricRowView: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
+    let beginDrag: () -> NSItemProvider
+
+    @State private var isHoveringHandle = false
 
     var body: some View {
         HStack(alignment: .top) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(isHoveringHandle ? Color.accentColor : Color.secondary)
+                .onHover { hovering in
+                    isHoveringHandle = hovering
+                    if hovering { NSCursor.openHand.push() } else { NSCursor.pop() }
+                }
+                .padding(.vertical, AppSpacing.compact)
+                .contentShape(Rectangle())
+                .onDrag(beginDrag)
+                .help("Drag to reorder metrics")
+                .accessibilityLabel("Reorder metric " + draft.name)
+                .accessibilityIdentifier("metricDragHandle." + draft.name)
             Button(action: edit) {
                 rowContent
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -28,12 +44,21 @@ struct MetricRowView: View {
                 Image(systemName: "ellipsis")
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
             .accessibilityLabel("Actions for metric " + draft.name)
             .accessibilityIdentifier("metricActions." + draft.name)
+            .menuIndicator(.hidden)
         }
         .padding(AppSpacing.cardInset)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            if let metric = try? draft.makeMetric(), metric.targetStatus != .notSet {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(statusColor(metric.targetStatus), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     @ViewBuilder
@@ -49,10 +74,18 @@ struct MetricRowView: View {
                 }
                 Label(MetricPresentation.comparison(metric), systemImage: statusIcon(metric.targetStatus))
                     .font(.callout)
-                    .foregroundStyle(metric.targetStatus == .missed ? Color.orange : Color.secondary)
+                    .foregroundStyle(statusColor(metric.targetStatus))
             } else {
                 Text("Invalid metric — edit to correct its values.").foregroundStyle(.red)
             }
+        }
+    }
+
+    private func statusColor(_ status: MetricTargetStatus) -> Color {
+        switch status {
+        case .met: return .green.mix(with: .secondary, by: 0.5)
+        case .missed: return .orange.mix(with: .secondary, by: 0.5)
+        case .notSet: return .secondary
         }
     }
 
@@ -63,4 +96,26 @@ struct MetricRowView: View {
         case .notSet: return "minus.circle"
         }
     }
+}
+
+#Preview("Target States") {
+    let met = EngineeringMetricDraft(metric: EngineeringMetric(
+        id: UUID(), name: "Latency", currentValue: 80,
+        target: MetricTarget(value: 100, comparison: .lessThan), unit: "ms", severity: nil))
+    let missed = EngineeringMetricDraft(metric: EngineeringMetric(
+        id: UUID(), name: "Build Duration", currentValue: 12,
+        target: MetricTarget(value: 10, comparison: .lessThan), unit: "min", severity: nil))
+    let noTarget = EngineeringMetricDraft(metric: EngineeringMetric(
+        id: UUID(), name: "Test Count", currentValue: 250,
+        target: nil, unit: nil, severity: nil))
+
+    VStack(spacing: AppSpacing.field) {
+        ForEach([met, missed, noTarget]) { draft in
+            MetricRowView(draft: draft, canMoveUp: false, canMoveDown: false,
+                          edit: {}, delete: {}, moveUp: {}, moveDown: {},
+                          beginDrag: { NSItemProvider(object: draft.id.uuidString as NSString) })
+        }
+    }
+    .padding(AppSpacing.pageInset)
+    .frame(width: 520)
 }

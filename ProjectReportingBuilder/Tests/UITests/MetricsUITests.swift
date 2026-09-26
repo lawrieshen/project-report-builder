@@ -69,6 +69,39 @@ final class MetricsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["saveReport"].isEnabled)
     }
 
+    func testDragReorderSaveReopenAndDiscard() {
+        let app = openReport()
+        addMetric(in: app, name: "Latency", current: "120")
+        addMetric(in: app, name: "Build Success", current: "98")
+        let latency = app.buttons["Edit metric Latency"]
+        let build = app.buttons["Edit metric Build Success"]
+        let handle = app.images["metricDragHandle.Latency"]
+        XCTAssertTrue(handle.waitForExistence(timeout: 5))
+        handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.5, thenDragTo: build.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)))
+        let reordered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            build.frame.minY < latency.frame.minY
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [reordered], timeout: 5), .completed)
+        app.buttons["saveReport"].click()
+        waitForSave(app)
+        app.buttons["workspaceBack"].click()
+        app.buttons["Open Titan"].click()
+        XCTAssertTrue(build.waitForExistence(timeout: 5))
+        XCTAssertLessThan(build.frame.minY, latency.frame.minY)
+        app.scrollViews["reportEditorScroll"].scroll(byDeltaX: 0, deltaY: -150)
+        XCTAssertTrue(handle.isHittable)
+        handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.5, thenDragTo: build.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)))
+        let movedUp = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            latency.frame.minY < build.frame.minY
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [movedUp], timeout: 5), .completed)
+        app.buttons["discardReport"].click()
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            build.frame.minY < latency.frame.minY
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed)
+    }
+
     func testMetricValidationAndCancelDoNotChangeReport() {
         let app = openReport()
         app.buttons["addMetric"].click()
