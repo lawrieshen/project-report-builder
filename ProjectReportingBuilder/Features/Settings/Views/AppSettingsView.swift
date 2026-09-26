@@ -70,12 +70,9 @@ struct AppSettingsView: View {
             }
         case .window:
             Form {
-                Toggle("Restore last workspace", isOn: $store.settings.restoreLastWorkspace)
-                Picker("Default launch destination", selection: $store.settings.defaultLaunchDestination) {
-                    Text("Project Browser").tag(LaunchDestination.projectBrowser)
-                    Text("Last Opened Project").tag(LaunchDestination.lastOpenedProject)
-                }
-                Text("Restoring the last workspace takes priority. If the project is unavailable, the Project Browser opens.")
+                Toggle("Restore workspace after unexpected termination",
+                       isOn: $store.settings.restoreWorkspaceAfterInterruption)
+                Text("Normal launches open the Project Browser. After an unexpected termination, reopen the last project if it is available.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         case .storage:
