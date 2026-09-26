@@ -112,7 +112,12 @@ struct ProjectBrowserView: View {
     @ViewBuilder
     private var titleAndSearch: some View {
         HStack {
-            Text("Project Report Builder").font(.largeTitle.bold())
+            HStack(spacing: AppSpacing.inline) {
+                Image(systemName: "apple.logo")
+                    .accessibilityHidden(true)
+                Text("Project Report Builder")
+            }
+            .font(.largeTitle.bold())
             Spacer()
             TextField("Search projects", text: $viewModel.searchText)
                 .textFieldStyle(.roundedBorder)
