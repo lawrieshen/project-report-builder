@@ -12,7 +12,9 @@ final class ProjectBrowserUITests: XCTestCase {
             XCTFail(app.debugDescription)
             return
         }
-        XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar before creation")
+        XCTAssertTrue(newProject.isHittable)
+        XCTAssertGreaterThan(newProject.frame.midX, app.windows.firstMatch.frame.midX)
+        XCTAssertLessThan(newProject.frame.midY, app.windows.firstMatch.frame.midY)
         newProject.click()
 
         let name = app.textFields["newProjectCodeName"]
@@ -34,7 +36,7 @@ final class ProjectBrowserUITests: XCTestCase {
 
         let card = app.buttons["Open Titan"]
         XCTAssertTrue(card.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar after creation")
+        XCTAssertTrue(newProject.isHittable)
         let search = app.textFields["Search projects"]
         search.click()
         search.typeText("does not exist")
@@ -42,21 +44,14 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertFalse(card.exists)
         app.buttons["Remove Search: does not exist"].click()
         XCTAssertTrue(card.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["projectsNavigation"].isHittable, "Sidebar before opening project")
+        XCTAssertTrue(newProject.isHittable)
         card.click()
         XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
-        // Sidebar navigation returns from the editor to the browser.
-        let projectsNavigation = app.buttons["projectsNavigation"]
-        let sidebarVisible = NSPredicate(format: "hittable == true")
-        let sidebarExpectation = XCTNSPredicateExpectation(predicate: sidebarVisible, object: projectsNavigation)
-        guard XCTWaiter.wait(for: [sidebarExpectation], timeout: 5) == .completed else {
-            let screenshot = XCTAttachment(screenshot: app.screenshot())
-            screenshot.lifetime = .keepAlways
-            add(screenshot)
-            XCTFail("Sidebar after opening project: " + app.debugDescription)
-            return
-        }
-        projectsNavigation.click()
+        // The workspace header returns to the browser without a sidebar.
+        let back = app.buttons["workspaceBack"]
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        XCTAssertTrue(back.isHittable)
+        back.click()
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         XCTAssertTrue(search.exists)
     }

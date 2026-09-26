@@ -4,7 +4,6 @@ struct ProjectEmptyStateView: View {
     let hasProjects: Bool
     let searchText: String
     let hasFilters: Bool
-    let newProject: () -> Void
     let clearSearch: () -> Void
     let clearFilters: () -> Void
     
@@ -38,15 +37,11 @@ struct ProjectEmptyStateView: View {
     
     @ViewBuilder
     private var emptyStateActions: some View {
-        if !hasProjects {
-            Button("New Project", action: newProject)
-        } else {
-            if !searchText.isEmpty {
-                Button("Clear Search", action: clearSearch)
-            }
-            if hasFilters {
-                Button("Clear Filters", action: clearFilters)
-            }
+        if !searchText.isEmpty {
+            Button("Clear Search", action: clearSearch)
+        }
+        if hasFilters {
+            Button("Clear Filters", action: clearFilters)
         }
     }
 }
