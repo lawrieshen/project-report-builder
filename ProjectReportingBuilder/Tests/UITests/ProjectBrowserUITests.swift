@@ -27,9 +27,9 @@ final class ProjectBrowserUITests: XCTestCase {
         XCTAssertLessThan(app.buttons["Create & Open"].frame.maxY - name.frame.minY, 220)
         name.click()
         name.typeText("Titan")
-        let business = app.textFields["newProjectLineOfBusiness"]
+        let business = app.popUpButtons["newProjectLineOfBusiness"]
         business.click()
-        business.typeText("Camera")
+        app.menus.containing(.menuItem, identifier: "iPhone").menuItems["Services"].click()
         app.buttons["Create & Open"].click()
         XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         app.buttons["workspaceBack"].click()
@@ -42,7 +42,7 @@ final class ProjectBrowserUITests: XCTestCase {
         search.typeText("does not exist")
         XCTAssertTrue(app.buttons["Clear Search"].waitForExistence(timeout: 5))
         XCTAssertFalse(card.exists)
-        app.buttons["Remove Search: does not exist"].click()
+        app.buttons["Clear Search"].click()
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         XCTAssertTrue(newProject.isHittable)
         card.click()
@@ -70,9 +70,9 @@ final class ProjectBrowserUITests: XCTestCase {
         }
         name.click()
         name.typeText("Atlas")
-        let business = app.textFields["newProjectLineOfBusiness"]
+        let business = app.popUpButtons["newProjectLineOfBusiness"]
         business.click()
-        business.typeText("Services")
+        app.menus.containing(.menuItem, identifier: "iPhone").menuItems["Services"].click()
         app.buttons["Create & Open"].click()
         XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         app.buttons["workspaceBack"].click()

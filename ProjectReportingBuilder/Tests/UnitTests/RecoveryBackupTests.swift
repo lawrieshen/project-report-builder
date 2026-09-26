@@ -11,7 +11,7 @@ struct RecoveryBackupTests {
         let store = ProjectFileStore(storage: storage)
         let repository = LocalProjectRepository(store: store)
         let recovery = LocalDraftRecoveryRepository(store: store)
-        let project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        let project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await repository.save(project)
         let editor = ReportEditorViewModel(projectID: project.id, repository: repository,
             recoveryRepository: recovery, recoveryDelay: .milliseconds(10))

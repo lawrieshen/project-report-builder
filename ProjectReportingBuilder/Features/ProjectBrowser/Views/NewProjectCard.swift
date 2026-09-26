@@ -11,7 +11,7 @@ struct NewProjectCard: View {
     
     private var isValid: Bool {
         !codeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        && !lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        && LineOfBusiness.options.contains(lineOfBusiness)
     }
     
     var body: some View {
@@ -56,7 +56,7 @@ struct NewProjectCard: View {
             TextField("Project Code Name", text: $codeName)
                 .accessibilityIdentifier("newProjectCodeName")
                 .focused($isCodeNameFocused)
-            TextField("Line of Business", text: $lineOfBusiness)
+            LineOfBusinessPicker(selection: $lineOfBusiness)
                 .accessibilityIdentifier("newProjectLineOfBusiness")
             Picker("Status", selection: $status) {
                 ForEach(ProjectStatus.allCases, id: \.self) { status in

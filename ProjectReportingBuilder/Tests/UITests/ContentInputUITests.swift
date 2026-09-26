@@ -66,8 +66,8 @@ final class ContentInputUITests: XCTestCase {
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.click()
         name.typeText("Titan")
-        app.textFields["newProjectLineOfBusiness"].click()
-        app.textFields["newProjectLineOfBusiness"].typeText("Camera")
+        app.popUpButtons["newProjectLineOfBusiness"].click()
+        app.menuItems["iPhone"].click()
         app.buttons["Create & Open"].click()
         XCTAssertTrue(app.buttons["addContent"].waitForExistence(timeout: 5))
         return app

@@ -12,7 +12,7 @@ struct MetricWorkspaceTests {
     }
 
     @Test func changesSaveReopenAndDiscardWithStableIdentity() async throws {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .active, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         let model = ReportEditorViewModel(projectID: project.id, repository: repository)
@@ -46,7 +46,7 @@ struct MetricWorkspaceTests {
     }
 
     @Test func invalidOperationsAndFailedSavePreserveMetrics() async {
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .draft, createdAt: .now, updatedAt: .now)
         let repository = WorkspaceTestRepository(project: project)
         let model = ReportEditorViewModel(projectID: project.id, repository: repository)

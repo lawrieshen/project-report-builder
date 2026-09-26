@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct ReportPreviewTests {
     private func report() -> ProjectReport {
-        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                       status: .active, createdAt: .distantPast, updatedAt: .distantPast)
     }
 

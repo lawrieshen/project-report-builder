@@ -96,7 +96,7 @@ struct AssetRepositoryTests {
         let storage = ApplicationStorage(root: root)
         try storage.prepare()
         let store = ProjectFileStore(storage: storage)
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await store.save(project)
         let source = try makeImage(in: root, type: .png)
         let assets = LocalAssetRepository(storage: storage, projectID: project.id, store: store)

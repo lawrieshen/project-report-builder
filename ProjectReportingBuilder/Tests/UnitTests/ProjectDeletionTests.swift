@@ -10,7 +10,7 @@ struct ProjectDeletionTests {
         let storage = ApplicationStorage(root: root)
         let store = ProjectFileStore(storage: storage)
         let repository = LocalProjectRepository(store: store)
-        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera", status: .active, createdAt: .now, updatedAt: .now)
+        let project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone", status: .active, createdAt: .now, updatedAt: .now)
         try await repository.save(project)
         var draft = ReportEditorDraft(project: project)
         draft.codeName = "Unsaved"

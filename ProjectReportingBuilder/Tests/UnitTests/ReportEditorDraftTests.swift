@@ -3,8 +3,20 @@ import Testing
 @testable import Project_Report_Builder
 
 struct ReportEditorDraftTests {
+    @Test func legacyBusinessRequiresReselectionWithoutChangingOriginal() {
+        let original = ProjectReport(id: UUID(), codeName: "Legacy", lineOfBusiness: "Camera",
+                                     status: .draft, createdAt: .now, updatedAt: .now)
+        var draft = ReportEditorDraft(project: original)
+        #expect(draft.lineOfBusiness == "Camera")
+        #expect(draft.lineOfBusinessError != nil)
+        #expect(!draft.isValid)
+        draft.lineOfBusiness = LineOfBusiness.iPhone.rawValue
+        #expect(draft.isValid)
+        #expect(original.lineOfBusiness == "Camera")
+    }
+
     private func report() -> ProjectReport {
-        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                       status: .active, createdAt: .distantPast, updatedAt: .distantPast)
     }
 
@@ -25,7 +37,7 @@ struct ReportEditorDraftTests {
         draft.codeName = "Titan"
         draft.lineOfBusiness = " "
         #expect(draft.lineOfBusinessError != nil)
-        draft.lineOfBusiness = "Camera"
+        draft.lineOfBusiness = "iPhone"
         draft.milestonePhase = "DVT"
         #expect(!draft.isValid)
         draft.milestoneDeadline = .now

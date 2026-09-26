@@ -12,7 +12,8 @@ final class ReportWorkspaceUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Template is read-only"].exists)
 
         replaceText(in: name, with: "Titan Updated")
-        replaceText(in: app.textFields["reportLineOfBusiness"], with: "Services")
+        app.popUpButtons["reportLineOfBusiness"].click()
+        app.menus.containing(.menuItem, identifier: "iPhone").menuItems["Services"].click()
         XCTAssertTrue(save.isEnabled)
         save.click()
         waitUntilDisabled(save)
@@ -23,7 +24,7 @@ final class ReportWorkspaceUITests: XCTestCase {
         card.click()
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertEqual(name.value as? String, "Titan Updated")
-        XCTAssertEqual(app.textFields["reportLineOfBusiness"].value as? String, "Services")
+        XCTAssertEqual(app.popUpButtons["reportLineOfBusiness"].value as? String, "Services")
         replaceText(in: name, with: "Discard this")
         app.buttons["discardReport"].click()
         XCTAssertEqual(name.value as? String, "Titan Updated")
@@ -92,9 +93,9 @@ final class ReportWorkspaceUITests: XCTestCase {
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.click()
         name.typeText("Titan")
-        let business = app.textFields["newProjectLineOfBusiness"]
+        let business = app.popUpButtons["newProjectLineOfBusiness"]
         business.click()
-        business.typeText("Camera")
+        app.menus.containing(.menuItem, identifier: "iPhone").menuItems["Services"].click()
         app.buttons["Create & Open"].click()
         XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
         return app
