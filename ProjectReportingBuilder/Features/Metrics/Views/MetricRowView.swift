@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct MetricRowView: View {
     let draft: EngineeringMetricDraft
@@ -8,9 +9,24 @@ struct MetricRowView: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
+    let beginDrag: () -> NSItemProvider
+
+    @State private var isHoveringHandle = false
 
     var body: some View {
         HStack(alignment: .top) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(isHoveringHandle ? Color.accentColor : Color.secondary)
+                .onHover { hovering in
+                    isHoveringHandle = hovering
+                    if hovering { NSCursor.openHand.push() } else { NSCursor.pop() }
+                }
+                .padding(.vertical, AppSpacing.compact)
+                .contentShape(Rectangle())
+                .onDrag(beginDrag)
+                .help("Drag to reorder metrics")
+                .accessibilityLabel("Reorder metric " + draft.name)
+                .accessibilityIdentifier("metricDragHandle." + draft.name)
             Button(action: edit) {
                 rowContent
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -34,6 +50,7 @@ struct MetricRowView: View {
         }
         .padding(AppSpacing.cardInset)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
+
     }
 
     @ViewBuilder
