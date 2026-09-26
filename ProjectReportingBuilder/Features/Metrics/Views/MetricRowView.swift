@@ -50,7 +50,13 @@ struct MetricRowView: View {
         }
         .padding(AppSpacing.cardInset)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
-
+        .overlay {
+            if let metric = try? draft.makeMetric(), metric.targetStatus != .notSet {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(statusColor(metric.targetStatus), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     @ViewBuilder
@@ -66,10 +72,18 @@ struct MetricRowView: View {
                 }
                 Label(MetricPresentation.comparison(metric), systemImage: statusIcon(metric.targetStatus))
                     .font(.callout)
-                    .foregroundStyle(metric.targetStatus == .missed ? Color.orange : Color.secondary)
+                    .foregroundStyle(statusColor(metric.targetStatus))
             } else {
                 Text("Invalid metric — edit to correct its values.").foregroundStyle(.red)
             }
+        }
+    }
+
+    private func statusColor(_ status: MetricTargetStatus) -> Color {
+        switch status {
+        case .met: return .green
+        case .missed: return .orange
+        case .notSet: return .secondary
         }
     }
 
