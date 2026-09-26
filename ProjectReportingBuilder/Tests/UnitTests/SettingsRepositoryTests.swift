@@ -4,6 +4,30 @@ import Testing
 
 @MainActor
 struct SettingsRepositoryTests {
+    @Test(arguments: [false, true])
+    func migratesLegacyPreferences(lastProject: Bool) throws {
+        let suite = "SettingsTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let legacy: [String: Any] = [
+            "autosaveEnabled": false, "autosaveDelay": 5, "appearance": "dark",
+            "restoreLastWorkspace": false,
+            "defaultLaunchDestination": lastProject ? "lastOpenedProject" : "projectBrowser",
+            "confirmBeforeDelete": false, "showRecoveryPrompt": false
+        ]
+        defaults.set(try JSONSerialization.data(withJSONObject: legacy), forKey: "applicationSettings.v1")
+        let repository = UserDefaultsSettingsRepository(defaults: defaults)
+        let settings = repository.load()
+        #expect(settings.restoreWorkspaceAfterInterruption == lastProject)
+        #expect(!settings.autosaveEnabled)
+        #expect(settings.autosaveDelay == .seconds5)
+        #expect(settings.appearance == .dark)
+        #expect(!settings.confirmBeforeDelete)
+        #expect(!settings.showRecoveryPrompt)
+        repository.save(settings)
+        #expect(repository.load() == settings)
+    }
+
     @Test func defaultsPersistenceAndInvalidPreferences() throws {
         let suite = "SettingsTests." + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -14,8 +38,7 @@ struct SettingsRepositoryTests {
         settings.appearance = .dark
         settings.autosaveEnabled = false
         settings.autosaveDelay = .seconds5
-        settings.restoreLastWorkspace = false
-        settings.defaultLaunchDestination = .lastOpenedProject
+        settings.restoreWorkspaceAfterInterruption = false
         settings.confirmBeforeDelete = false
         settings.showRecoveryPrompt = false
         repository.save(settings)
