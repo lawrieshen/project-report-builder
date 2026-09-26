@@ -2,13 +2,13 @@ import SwiftUI
 
 struct ProjectFilterBar: View {
     @Binding var filter: ProjectBrowserFilter
-    let linesOfBusiness: [String]
+    @Binding var presentedGroup: ProjectFilterGroup?
 
     var body: some View {
         HStack(spacing: AppSpacing.inline) {
             ForEach(ProjectFilterGroup.allCases, id: \.self) { group in
                 ProjectFilterButton(group: group, filter: $filter,
-                                    linesOfBusiness: linesOfBusiness)
+                                    presentedGroup: $presentedGroup)
             }
             Spacer(minLength: 0)
         }
@@ -18,8 +18,7 @@ struct ProjectFilterBar: View {
 private struct ProjectFilterButton: View {
     let group: ProjectFilterGroup
     @Binding var filter: ProjectBrowserFilter
-    let linesOfBusiness: [String]
-    @State private var isPresented = false
+    @Binding var presentedGroup: ProjectFilterGroup?
 
     private var selectedNames: [String] {
         switch group {
@@ -35,7 +34,7 @@ private struct ProjectFilterButton: View {
 
     var body: some View {
         Button {
-            isPresented.toggle()
+            presentedGroup = presentedGroup == group ? nil : group
         } label: {
             HStack(spacing: AppSpacing.compact) {
                 if group == .health {
@@ -61,11 +60,18 @@ private struct ProjectFilterButton: View {
         .help(title)
         .accessibilityLabel(title)
         .accessibilityIdentifier("projectFilter" + group.rawValue + "Button")
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            ProjectFilterCard(group: group, filter: $filter, linesOfBusiness: linesOfBusiness) {
-                isPresented = false
-            }
-            .presentationBackground(.clear)
+        .anchorPreference(key: ProjectFilterAnchors.self, value: .bounds) {
+            [group: $0]
         }
+    }
+}
+
+/// Locate filter buttons in the Browser's overlay coordinate space.
+struct ProjectFilterAnchors: PreferenceKey {
+    static var defaultValue: [ProjectFilterGroup: Anchor<CGRect>] { [:] }
+
+    static func reduce(value: inout [ProjectFilterGroup: Anchor<CGRect>],
+                       nextValue: () -> [ProjectFilterGroup: Anchor<CGRect>]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, latest in latest })
     }
 }

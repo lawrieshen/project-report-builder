@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ProjectBrowserView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var presentedFilter: ProjectFilterGroup?
     @Bindable var viewModel: ProjectBrowserViewModel
     let openProject: (ProjectReport) -> Void
     let newProject: () -> Void
@@ -21,6 +23,30 @@ struct ProjectBrowserView: View {
             browserContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .overlayPreferenceValue(ProjectFilterAnchors.self) { anchors in
+            GeometryReader { geometry in
+                if let group = presentedFilter, let anchor = anchors[group] {
+                    let button = geometry[anchor]
+                    let top = button.maxY + AppSpacing.compact
+                    let left = max(AppSpacing.inline, min(button.minX, geometry.size.width - 320 - AppSpacing.inline))
+                    ZStack(alignment: .topLeading) {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { presentedFilter = nil }
+                            .accessibilityHidden(true)
+                        ProjectFilterCard(group: group, filter: $viewModel.filter,
+                                          linesOfBusiness: viewModel.linesOfBusiness,
+                                          maximumHeight: max(0, geometry.size.height - top - AppSpacing.inline)) {
+                            presentedFilter = nil
+                        }
+                        .onExitCommand { presentedFilter = nil }
+                        .offset(x: left, y: top)
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: -8)))
+                    }
+                }
+            }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: presentedFilter)
         .task { await viewModel.loadProjects() }
         .confirmationDialog("Delete this project?", isPresented: Binding(
             get: { projectToDelete != nil },
@@ -69,7 +95,7 @@ struct ProjectBrowserView: View {
             titleAndSearch
             HStack(alignment: .center) {
                 ProjectFilterBar(filter: $viewModel.filter,
-                                 linesOfBusiness: viewModel.linesOfBusiness)
+                                 presentedGroup: $presentedFilter)
                 .disabled(viewModel.isLoading || viewModel.isSaving)
                 
                 Button(action: newProject) {
