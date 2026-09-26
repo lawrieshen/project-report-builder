@@ -17,7 +17,7 @@ struct ProjectFilterCard: View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
             Text(group.rawValue).font(.headline)
             Divider()
-            ScrollView {
+            ContentHeightScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.field) {
                     switch group {
                     case .status: statusFilters
@@ -28,7 +28,6 @@ struct ProjectFilterCard: View {
                 .toggleStyle(.checkbox)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .fixedSize(horizontal: false, vertical: true)
             actionButtons
         }
         .floatingCard(width: 320, maxHeight: min(400, maximumHeight), padding: AppSpacing.cardInset)

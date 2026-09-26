@@ -19,7 +19,7 @@ struct MetricEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
             Text("Metric Editor").font(.title2)
-            ScrollView {
+            ContentHeightScrollView {
                 metricFields
             }
             if let message = draft.validationError(in: existingMetrics) ?? saveError {
@@ -29,7 +29,7 @@ struct MetricEditorView: View {
             }
             actionButtons
         }
-        .floatingCard(width: 460, maxHeight: .infinity)
+        .floatingCard(width: 460)
     }
 
     @ViewBuilder

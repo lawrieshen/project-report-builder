@@ -12,7 +12,7 @@ struct AccessibilityPanelView: View {
             Text("Checks the current unsaved report and canonical Light/Dark styles.")
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
-            ScrollView {
+            ContentHeightScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.section) {
                     if viewModel.isChecking {
                         ProgressView("Checking accessibility…")
@@ -33,7 +33,7 @@ struct AccessibilityPanelView: View {
                 .padding(.vertical, AppSpacing.inline)
             }
         }
-        .floatingCard(width: 480, maxHeight: .infinity)
+        .floatingCard(width: 480)
         .task { await viewModel.validate(model: model) }
     }
 

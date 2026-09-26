@@ -4,11 +4,13 @@ struct LivePreviewView: View {
     let model: ReportPreviewModel
     let loadImage: (ImageAsset) async throws -> Data
     let onDismiss: () -> Void
+    var maximumHeight: CGFloat = 600
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var viewModel = LivePreviewViewModel()
     @State private var images: [String: PreviewImageState] = [:]
     @State private var viewport = CGSize.zero
     @State private var cardHeight: CGFloat = 1
+    @State private var headerHeight: CGFloat = 0
 
     private var cardWidth: CGFloat {
         guard viewModel.isFitting, viewport.width > 0 else { return ReportCardStyle.standardWidth }
@@ -33,14 +35,24 @@ struct LivePreviewView: View {
 
     var body: some View {
         VStack(spacing: AppSpacing.field) {
-            header
-            controls
-            Divider()
+            VStack(spacing: AppSpacing.field) {
+                header
+                controls
+                Divider()
+            }
+            .onGeometryChange(for: CGFloat.self) { geometry in
+                geometry.size.height
+            } action: { height in
+                headerHeight = height
+            }
             GeometryReader { geometry in
                 canvas(size: geometry.size)
                     .onAppear { viewport = geometry.size }
                     .onChange(of: geometry.size) { _, size in viewport = size }
             }
+            .frame(height: min(max(1, maximumHeight - headerHeight - AppSpacing.field),
+                               cardHeight * (viewModel.isFitting ? 1 : displayedZoom)
+                               + ReportCardStyle.canvasInset * 2))
         }
         .task(id: model.assets.map(\.localReference)) {
             await loadImages()
