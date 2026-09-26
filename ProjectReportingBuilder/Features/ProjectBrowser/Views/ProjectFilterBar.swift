@@ -13,7 +13,7 @@ struct ProjectFilterBar: View {
     let showFilters: () -> Void
     
     var body: some View {
-        HStack {
+        HStack(alignment: .center) {
             Button {
                 showFilters()
             } label: {
@@ -22,8 +22,8 @@ struct ProjectFilterBar: View {
             }
             .fixedSize()
             .accessibilityIdentifier("projectFilterButton")
+            
             ScrollView(.horizontal) {
-                Spacer()
                 activeFilterTags
             }
             .scrollIndicators(.hidden)
