@@ -14,13 +14,6 @@ struct ReportInspectorView: View {
                 Divider()
                 Button("Check Accessibility", action: checkAccessibility)
                     .accessibilityIdentifier("checkAccessibility")
-                Divider()
-                Text("Sections").font(.headline)
-                Text("Identity")
-                Text("Health")
-                Text("Metrics")
-                Text("Summary")
-                Text("Accountability")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(AppSpacing.cardInset)
