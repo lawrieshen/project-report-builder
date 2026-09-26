@@ -53,7 +53,7 @@ struct EngineeringMetricDraftTests {
         let metrics = ["One", "Two"].map {
             EngineeringMetric(id: UUID(), name: $0, currentValue: 1, target: nil, unit: nil, severity: nil)
         }
-        var project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        var project = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                                     status: .active, createdAt: .now, updatedAt: .now)
         project.card = SnippetCard(id: UUID(), health: ProjectHealth(ragStatus: nil, milestone: nil),
             summary: ExecutiveSummary(type: .update, message: ""),

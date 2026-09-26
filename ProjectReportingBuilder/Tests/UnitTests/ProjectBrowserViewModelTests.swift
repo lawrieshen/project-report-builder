@@ -4,6 +4,14 @@ import Testing
 
 @MainActor
 struct ProjectBrowserViewModelTests {
+    @Test func customBusinessCannotCreateNewProject() async {
+        let model = ProjectBrowserViewModel(repository: InMemoryProjectRepository())
+        let created = await model.createProject(codeName: "New", lineOfBusiness: "Camera", status: .draft)
+        #expect(created == nil)
+        #expect(model.actionErrorMessage != nil)
+        #expect(model.projects.isEmpty)
+    }
+
     private func project(_ name: String, _ business: String,
                          _ status: ProjectStatus, _ timestamp: Double) -> ProjectReport {
         ProjectReport(id: UUID(), codeName: name, lineOfBusiness: business,
@@ -39,7 +47,7 @@ struct ProjectBrowserViewModelTests {
         model.filter.statuses = [.draft, .archived]
         #expect(model.visibleProjects == [atlas, nova])
         #expect(model.projects == source)
-        #expect(model.linesOfBusiness == ["Services", "iOS / Camera"])
+        #expect(model.linesOfBusiness == LineOfBusiness.options)
     }
 
     @Test func createAndDeleteUpdateRepository() async throws {
@@ -48,12 +56,12 @@ struct ProjectBrowserViewModelTests {
         model.searchText = "no match"
         model.filter.statuses = [.archived]
         let created = await model.createProject(codeName: " Titan ",
-                                                lineOfBusiness: " Camera ", status: .draft)
+                                                lineOfBusiness: " iPhone ", status: .draft)
         #expect(created != nil)
         let saved = try #require(model.projects.first)
         #expect(created?.id == saved.id)
         #expect(saved.codeName == "Titan")
-        #expect(saved.lineOfBusiness == "Camera")
+        #expect(saved.lineOfBusiness == "iPhone")
         #expect(saved.status == .draft)
         #expect(model.visibleProjects == [saved])
         #expect(try await repository.fetchProjects() == [saved])
@@ -100,7 +108,7 @@ struct ProjectBrowserViewModelTests {
     @Test func invalidCreationDoesNotSave() async throws {
         let repository = InMemoryProjectRepository()
         let model = ProjectBrowserViewModel(repository: repository)
-        let created = await model.createProject(codeName: "  ", lineOfBusiness: "Camera", status: .draft)
+        let created = await model.createProject(codeName: "  ", lineOfBusiness: "iPhone", status: .draft)
         #expect(created == nil)
         #expect(model.actionErrorMessage != nil)
         #expect(try await repository.fetchProjects().isEmpty)

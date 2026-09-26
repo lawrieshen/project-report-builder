@@ -10,7 +10,7 @@ struct AutosaveRecoveryTests {
         let store = ProjectFileStore(storage: ApplicationStorage(root: root))
         let repository = LocalProjectRepository(store: store)
         let recovery = LocalDraftRecoveryRepository(store: store)
-        let project = ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "Camera",
+        let project = ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "iPhone",
                                     status: .active, createdAt: .now, updatedAt: .now)
         try await repository.save(project)
         var preferences = AppSettings.default

@@ -8,19 +8,14 @@ struct ReportInspectorView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.field) {
                 Text("Report").font(.headline)
-                LabeledContent("Status", value: project.status.displayName)
+                LabeledContent("Status") {
+                    ProjectStatusBadge(status: project.status)
+                }
                 Text("Last Updated").font(.headline)
                 Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
                 Divider()
                 Button("Check Accessibility", action: checkAccessibility)
                     .accessibilityIdentifier("checkAccessibility")
-                Divider()
-                Text("Sections").font(.headline)
-                Text("Identity")
-                Text("Health")
-                Text("Metrics")
-                Text("Summary")
-                Text("Accountability")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(AppSpacing.cardInset)

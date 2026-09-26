@@ -8,7 +8,7 @@ struct LocalProjectRepositoryTests {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let storage = ApplicationStorage(root: root)
         let store = ProjectFileStore(storage: storage)
-        var project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        var project = ProjectReport(id: UUID(), codeName: "Saved", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await store.save(project)
         let directory = storage.projectDirectory(project.id)
         defer {
@@ -27,8 +27,8 @@ struct LocalProjectRepositoryTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let storage = ApplicationStorage(root: root)
         let repository = LocalProjectRepository(store: ProjectFileStore(storage: storage))
-        var first = ProjectReport(id: UUID(), codeName: "One", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
-        let second = ProjectReport(id: UUID(), codeName: "Two", lineOfBusiness: "Camera", status: .draft, createdAt: .now, updatedAt: .now)
+        var first = ProjectReport(id: UUID(), codeName: "One", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
+        let second = ProjectReport(id: UUID(), codeName: "Two", lineOfBusiness: "iPhone", status: .draft, createdAt: .now, updatedAt: .now)
         try await repository.save(first)
         try await repository.save(second)
         first.codeName = "Updated"

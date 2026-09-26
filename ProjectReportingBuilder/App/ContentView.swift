@@ -9,7 +9,6 @@ struct ContentView: View {
         case livePreview
         case imagePreview(ImageAsset)
         case sourceContent
-        case filters
         case metric(EngineeringMetricDraft, Bool)
     }
 
@@ -76,7 +75,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var floatingCardOverlay: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .center) {
             if isShowingCard {
                 Color.black.opacity(0.01)
                     .ignoresSafeArea()
@@ -84,7 +83,7 @@ struct ContentView: View {
                     .accessibilityHidden(true)
                 cardContent
                     .padding(AppSpacing.pageInset)
-                    .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
+                    .transition(.opacity)
                     .zIndex(1)
             }
         }
@@ -122,8 +121,13 @@ struct ContentView: View {
                     GeometryReader { geometry in
                         LivePreviewView(model: model,
                                         loadImage: { try await editor.imageData(for: $0, maximumPixelSize: 1200) },
-                                        onDismiss: dismissCard)
-                            .floatingCard(width: geometry.size.width, maxHeight: .infinity)
+                                        onDismiss: dismissCard,
+                                        maximumHeight: max(1, geometry.size.height - AppSpacing.dialogInset * 2))
+                            .floatingCard(width: min(geometry.size.width,
+                                                     ReportCardStyle.standardWidth
+                                                     + ReportCardStyle.canvasInset * 2
+                                                     + AppSpacing.dialogInset * 2))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
             case .imagePreview(let asset):
@@ -134,10 +138,6 @@ struct ContentView: View {
                 if let editor = router.editor {
                     ContentInputCard(editor: editor, onDismiss: dismissCard)
                 }
-            case .filters:
-                ProjectFilterCard(filter: $browserViewModel.filter,
-                                  linesOfBusiness: browserViewModel.linesOfBusiness,
-                                  onDismiss: dismissCard)
             case .metric(let metric, let isAdding):
                 if let editor = router.editor {
                     MetricEditorView(metric: metric, existingMetrics: editor.draft?.metrics ?? [],
@@ -202,7 +202,6 @@ struct ContentView: View {
                                openProject: { router.openProject(id: $0.id) },
                                newProject: router.newProject,
                                isCreatingProject: isShowingCard,
-                               showFilters: { card = .filters },
                                duplicateProject: { card = .duplicate($0) },
                                confirmBeforeDelete: settings?.settings.confirmBeforeDelete ?? true)
             }

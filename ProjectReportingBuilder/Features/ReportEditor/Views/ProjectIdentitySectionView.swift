@@ -11,7 +11,7 @@ struct ProjectIdentitySectionView: View {
             if let message = draft.codeNameError {
                 Text(message).font(.caption).foregroundStyle(.red)
             }
-            TextField("Line of Business", text: $draft.lineOfBusiness)
+            LineOfBusinessPicker(selection: $draft.lineOfBusiness)
                 .accessibilityIdentifier("reportLineOfBusiness")
             if let message = draft.lineOfBusinessError {
                 Text(message).font(.caption).foregroundStyle(.red)

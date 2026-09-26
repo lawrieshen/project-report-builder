@@ -6,7 +6,7 @@ import Testing
 struct ReportModelTests {
     @Test func newReportStartsWithoutACard() {
         let report = ProjectReport(
-            id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+            id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
             status: .draft, createdAt: .now, updatedAt: .now
         )
 
@@ -15,7 +15,7 @@ struct ReportModelTests {
 
     @Test func reportCodingPreservesIdentityStatusAndDates() throws {
         let report = ProjectReport(
-            id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+            id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
             status: .active,
             createdAt: Date(timeIntervalSince1970: 100),
             updatedAt: Date(timeIntervalSince1970: 200)
@@ -28,7 +28,7 @@ struct ReportModelTests {
 
     @Test func legacyTemplateFieldIsIgnoredAndNotReencoded() throws {
         let report = ProjectReport(
-            id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+            id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
             status: .active, createdAt: .distantPast, updatedAt: .distantPast
         )
         var legacy = try #require(JSONSerialization.jsonObject(

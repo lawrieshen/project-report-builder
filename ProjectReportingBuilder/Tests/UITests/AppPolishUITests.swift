@@ -13,8 +13,8 @@ final class AppPolishUITests: XCTestCase {
         XCTAssertTrue(app.textFields["newProjectCodeName"].waitForExistence(timeout: 5))
         app.textFields["newProjectCodeName"].click()
         app.textFields["newProjectCodeName"].typeText("Shortcut Titan")
-        app.textFields["newProjectLineOfBusiness"].click()
-        app.textFields["newProjectLineOfBusiness"].typeText("Camera")
+        app.popUpButtons["newProjectLineOfBusiness"].click()
+        app.menuItems["iPhone"].click()
         app.buttons["Create & Open"].click()
         let name = app.textFields["reportCodeName"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
@@ -125,8 +125,8 @@ final class AppPolishUITests: XCTestCase {
         app.buttons["newProjectButton"].click()
         app.textFields["newProjectCodeName"].click()
         app.textFields["newProjectCodeName"].typeText(name)
-        app.textFields["newProjectLineOfBusiness"].click()
-        app.textFields["newProjectLineOfBusiness"].typeText("Camera")
+        app.popUpButtons["newProjectLineOfBusiness"].click()
+        app.menuItems["iPhone"].click()
         app.buttons["Create & Open"].click()
         XCTAssertTrue(app.textFields["reportCodeName"].waitForExistence(timeout: 5))
     }

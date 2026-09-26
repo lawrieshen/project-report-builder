@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct RecoveryPreferencesTests {
     private func project() -> ProjectReport {
-        ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "Camera",
+        ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "iPhone",
                       status: .active, createdAt: .now, updatedAt: .now)
     }
 

@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct SaveConcurrencyTests {
     @Test func saveAndMaintenanceNeverOverlapProjectWrites() async throws {
-        let report = ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "Camera",
+        let report = ProjectReport(id: UUID(), codeName: "Original", lineOfBusiness: "iPhone",
                                    status: .active, createdAt: .now, updatedAt: .now)
         let repository = SuspendedSaveRepository(project: report)
         let editor = ReportEditorViewModel(projectID: report.id, repository: repository)

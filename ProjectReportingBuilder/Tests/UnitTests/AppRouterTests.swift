@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct AppRouterTests {
     private func report() -> ProjectReport {
-        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                       status: .draft, createdAt: .now, updatedAt: .now)
     }
 

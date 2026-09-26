@@ -5,6 +5,7 @@ struct AssetImageView: View {
     let asset: ImageAsset
     let editor: ReportEditorViewModel
     var maximumPixelSize = 320
+    var contentWidth: CGFloat? = nil
     @State private var image: NSImage?
     @State private var loadError: String?
 
@@ -14,6 +15,10 @@ struct AssetImageView: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
+                    .frame(width: contentWidth,
+                           height: contentWidth.map { width in
+                               width * image.size.height / max(image.size.width, 1)
+                           })
                     .accessibilityLabel(asset.altText.isEmpty ? asset.fileName : asset.altText)
             } else if let loadError {
                 Label(loadError, systemImage: "photo.badge.exclamationmark")

@@ -18,7 +18,7 @@ struct WorkspaceRestorationTests {
     }
 
     private func project() -> ProjectReport {
-        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Camera",
+        ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "iPhone",
                       status: .active, createdAt: .now, updatedAt: .now)
     }
 

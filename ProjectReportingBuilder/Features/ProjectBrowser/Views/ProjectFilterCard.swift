@@ -1,33 +1,40 @@
 import SwiftUI
 
+enum ProjectFilterGroup: String, CaseIterable {
+    case status = "Status"
+    case health = "Health"
+    case business = "Business"
+}
+
 struct ProjectFilterCard: View {
+    let group: ProjectFilterGroup
     @Binding var filter: ProjectBrowserFilter
     let linesOfBusiness: [String]
+    var maximumHeight: CGFloat = 400
     let onDismiss: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
-            Text("Filter Projects").font(.headline)
+            Text(group.rawValue).font(.headline)
             Divider()
-            ScrollView {
+            ContentHeightScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.field) {
-                    statusFilters
-                    Divider()
-                    healthFilters
-                    Divider()
-                    businessFilters
+                    switch group {
+                    case .status: statusFilters
+                    case .health: healthFilters
+                    case .business: businessFilters
+                    }
                 }
                 .toggleStyle(.checkbox)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             actionButtons
         }
-        .floatingCard(width: 320, maxHeight: 400, padding: AppSpacing.cardInset)
+        .floatingCard(width: 320, maxHeight: min(400, maximumHeight), padding: AppSpacing.cardInset)
     }
     
     @ViewBuilder
     private var statusFilters: some View {
-        Text("Status").font(.headline)
         ForEach(ProjectStatus.allCases, id: \.self) { status in
             Toggle(status.displayName, isOn: Binding(
                 get: { filter.statuses.contains(status) },
@@ -44,7 +51,6 @@ struct ProjectFilterCard: View {
     
     @ViewBuilder
     private var healthFilters: some View {
-        Text("Health").font(.headline)
         ForEach(RAGStatus.allCases, id: \.self) { health in
             Toggle(isOn: Binding(
                 get: { filter.healthStatuses.contains(health) },
@@ -64,7 +70,7 @@ struct ProjectFilterCard: View {
 
     @ViewBuilder
     private var businessFilters: some View {
-        Text("Line of Business").font(.headline)
+        if linesOfBusiness.isEmpty { Text("No business options available").foregroundStyle(.secondary) }
         ForEach(linesOfBusiness, id: \.self) { business in
             Toggle(business, isOn: Binding(
                 get: { filter.linesOfBusiness.contains(business) },
@@ -82,7 +88,13 @@ struct ProjectFilterCard: View {
     @ViewBuilder
     private var actionButtons: some View {
         HStack {
-            Button("Clear") { filter = ProjectBrowserFilter() }
+            Button("Clear") {
+                switch group {
+                case .status: filter.statuses.removeAll()
+                case .health: filter.healthStatuses.removeAll()
+                case .business: filter.linesOfBusiness.removeAll()
+                }
+            }
             Spacer()
             Button("Done") { onDismiss() }
                 .keyboardShortcut(.defaultAction)
