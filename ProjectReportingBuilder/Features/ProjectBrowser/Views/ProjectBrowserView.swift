@@ -9,6 +9,7 @@ struct ProjectBrowserView: View {
     var duplicateProject: (ProjectReport) -> Void = { _ in }
     var confirmBeforeDelete = true
     @State private var projectToDelete: ProjectReport?
+    @State private var projectToArchive: ProjectReport?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -34,6 +35,23 @@ struct ProjectBrowserView: View {
             Button("Cancel", role: .cancel) { projectToDelete = nil }
         } message: {
             Text("This project, its images, and recovered edits will be permanently removed from this Mac. This action cannot be undone.")
+        }
+        .confirmationDialog("Archive this project?", isPresented: Binding(
+            get: { projectToArchive != nil },
+            set: { if !$0 { projectToArchive = nil } }
+        ), titleVisibility: .visible) {
+            if let project = projectToArchive {
+                Button("Archive") {
+                    projectToArchive = nil
+                    Task { await viewModel.archiveProject(project) }
+                }
+                .accessibilityIdentifier("confirmArchiveProject")
+            }
+            Button("Cancel", role: .cancel) { projectToArchive = nil }
+        } message: {
+            if let project = projectToArchive {
+                Text("\"\(project.codeName)\" will be marked as Archived. Its report data and images will be kept.")
+            }
         }
         .alert("Unable to Complete Action", isPresented: Binding(
             get: { viewModel.actionErrorMessage != nil && !isCreatingProject },
@@ -91,7 +109,7 @@ struct ProjectBrowserView: View {
             ProjectGridView(projects: viewModel.visibleProjects,
                             open: openProject,
                             delete: requestDelete, duplicate: duplicateProject,
-                            archive: { project in Task { await viewModel.archiveProject(project) } })
+                            archive: { projectToArchive = $0 })
             .disabled(viewModel.isSaving)
         }
     }
