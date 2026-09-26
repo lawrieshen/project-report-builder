@@ -2,6 +2,8 @@ import SwiftUI
 
 struct StorageSettingsView: View {
     let store: ProjectFileStore
+    let maintenance: RecoveryMaintenanceCoordinator
+    @State private var showingClearConfirmation = false
     @State private var information: StorageInformation?
     @State private var error: String?
     @State private var isLoading = false
@@ -13,6 +15,7 @@ struct StorageSettingsView: View {
                 LabeledContent("Location") { Text(information.location.path).textSelection(.enabled) }
                 LabeledContent("Projects", value: String(information.projectCount))
                 LabeledContent("Assets", value: String(information.assetCount))
+                LabeledContent("Recovery Drafts", value: String(information.recoveryCount))
                 LabeledContent("Storage Used", value: ByteCountFormatter.string(fromByteCount: information.bytes, countStyle: .file))
                 ForEach(information.warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
                 Button("Open in Finder") { FinderService().reveal(information.location) }
@@ -20,14 +23,31 @@ struct StorageSettingsView: View {
             if let error { Text(error).foregroundStyle(.red) }
             HStack {
                 Button("Refresh") { Task { await refresh() } }.disabled(isLoading)
-                if isLoading { ProgressView().controlSize(.small) }
+                Button("Clear Recovery Drafts…", role: .destructive) { showingClearConfirmation = true }
+                    .disabled(isLoading || maintenance.isClearing)
+                    .accessibilityIdentifier("clearRecoveryDrafts")
+                if isLoading || maintenance.isClearing { ProgressView().controlSize(.small) }
             }
-            Text("Projects stay on this Mac. Save commits changes; recovery copies preserve unsaved edits separately.")
+            Text("Projects stay on this Mac. Save and autosave commit changes; recovery copies preserve unsaved edits separately.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(AppSpacing.pageInset)
-        .frame(width: 560)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .task { await refresh() }
+        .confirmationDialog("Clear Recovery Drafts?", isPresented: $showingClearConfirmation, titleVisibility: .visible) {
+            Button("Clear", role: .destructive) { Task { await clearRecovery() } }
+                .accessibilityIdentifier("confirmClearRecovery")
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Unsaved recovery data for all projects will be removed. Saved reports and images will remain. Current edits stay in memory; backups resume when you edit again.")
+        }
+    }
+
+    private func clearRecovery() async {
+        do {
+            try await maintenance.clearRecovery(using: store)
+            await refresh()
+        } catch { self.error = error.localizedDescription }
     }
 
     private func refresh() async {

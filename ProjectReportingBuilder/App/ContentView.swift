@@ -19,6 +19,8 @@ struct ContentView: View {
         case metric(EngineeringMetricDraft, Bool)
     }
 
+    private let settings: AppSettingsStore?
+    private let maintenance: RecoveryMaintenanceCoordinator?
     @State private var exportViewModel: ExportViewModel?
     @State private var focusedSection: ReportSection?
     @State private var card: Card?
@@ -26,8 +28,11 @@ struct ContentView: View {
     @State private var browserViewModel: ProjectBrowserViewModel
     
     init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
-         recoveryRepository: (any DraftRecoveryRepository)? = nil) {
-        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository))
+         recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil,
+         maintenance: RecoveryMaintenanceCoordinator? = nil) {
+        self.settings = settings
+        self.maintenance = maintenance
+        _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings, session: session, maintenance: maintenance))
         _browserViewModel = State(initialValue: ProjectBrowserViewModel(repository: repository))
     }
     
@@ -45,7 +50,9 @@ struct ContentView: View {
     var body: some View {
         // Keep the split view at the root so sidebar rows stay below the toolbar.
         mainContent
-            .disabled(isShowingCard)
+            .task { await router.restoreSession() }
+            .focusedSceneValue(\.reportActions, commandActions)
+            .disabled(isShowingCard || maintenance?.isClearing == true)
             .accessibilityHidden(isShowingCard)
             .overlay {
                 floatingCardOverlay
@@ -64,6 +71,22 @@ struct ContentView: View {
                        value: isShowingCard)
     }
     
+    private var commandActions: ReportActions {
+        let editor = router.editor
+        let available = !isShowingCard && !router.showingLeaveConfirmation && maintenance?.isClearing != true
+            && !browserViewModel.isLoading && !browserViewModel.isSaving
+            && editor?.isLoading != true && editor?.isSaving != true
+            && editor?.isImporting != true && editor?.pendingRecovery == nil
+        let hasReport = available && editor?.draft != nil
+        return ReportActions(
+            newProject: available ? { router.newProject() } : nil,
+            openProject: available ? { router.showProjects() } : nil,
+            save: available && editor?.canSave == true ? { Task { await editor?.save() } } : nil,
+            preview: hasReport ? { card = .livePreview } : nil,
+            export: hasReport ? { showExport() } : nil,
+            accessibility: hasReport ? { card = .accessibility } : nil)
+    }
+
     private var isShowingCard: Bool {
         router.showingNewProject || card != nil
     }
@@ -231,12 +254,18 @@ struct ContentView: View {
                              focusedSection: $focusedSection)
                 .id(editor.projectID)
         } else {
-            ProjectBrowserView(viewModel: browserViewModel,
+            VStack(spacing: AppSpacing.field) {
+                if let message = router.restorationMessage {
+                    Text(message).font(.caption).foregroundStyle(.secondary)
+                }
+                ProjectBrowserView(viewModel: browserViewModel,
                                openProject: { router.openProject(id: $0.id) },
                                newProject: router.newProject,
                                isCreatingProject: isShowingCard,
                                showFilters: { card = .filters },
-                               duplicateProject: { card = .duplicate($0) })
+                               duplicateProject: { card = .duplicate($0) },
+                               confirmBeforeDelete: settings?.settings.confirmBeforeDelete ?? true)
+            }
         }
     }
 
@@ -251,7 +280,6 @@ struct ContentView: View {
                 Label("New Project", systemImage: "plus")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .keyboardShortcut("n", modifiers: .command)
             .accessibilityIdentifier("newProjectButton")
             .disabled(browserViewModel.isLoading || browserViewModel.isSaving || router.editor?.isSaving == true || router.editor?.isImporting == true)
             .padding(AppSpacing.cardInset)

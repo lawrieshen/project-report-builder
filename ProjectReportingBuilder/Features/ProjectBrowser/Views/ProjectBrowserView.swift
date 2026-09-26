@@ -7,6 +7,7 @@ struct ProjectBrowserView: View {
     var isCreatingProject = false
     let showFilters: () -> Void
     var duplicateProject: (ProjectReport) -> Void = { _ in }
+    var confirmBeforeDelete = true
     @State private var projectToDelete: ProjectReport?
     
     var body: some View {
@@ -83,12 +84,20 @@ struct ProjectBrowserView: View {
         } else {
             ProjectGridView(projects: viewModel.visibleProjects,
                             open: openProject,
-                            delete: { projectToDelete = $0 }, duplicate: duplicateProject,
+                            delete: requestDelete, duplicate: duplicateProject,
                             archive: { project in Task { await viewModel.archiveProject(project) } })
             .disabled(viewModel.isSaving)
         }
     }
     
+    private func requestDelete(_ project: ProjectReport) {
+        if confirmBeforeDelete {
+            projectToDelete = project
+        } else {
+            Task { await viewModel.deleteProject(project) }
+        }
+    }
+
     private func showNewProject() {
         viewModel.actionErrorMessage = nil
         newProject()
