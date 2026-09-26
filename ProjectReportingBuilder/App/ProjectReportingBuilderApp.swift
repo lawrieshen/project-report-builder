@@ -5,6 +5,9 @@ struct ProjectReportingBuilderApp: App {
     private let environment: AppEnvironment?
     private let startupError: String?
 
+    @NSApplicationDelegateAdaptor(AppDelegate.self)
+    private var appDelegate
+
     init() {
         do {
             environment = try AppEnvironment.live()
@@ -23,6 +26,10 @@ struct ProjectReportingBuilderApp: App {
                             recoveryRepository: LocalDraftRecoveryRepository(store: environment.store),
                             settings: environment.settings, session: environment.session, maintenance: environment.maintenance)
                     .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
+                    .onAppear {
+                        appDelegate.session = environment.session
+                        environment.session.beginSession()
+                    }
             } else {
                 ContentUnavailableView("Unable to open local storage", systemImage: "externaldrive.badge.exclamationmark",
                                        description: Text(startupError ?? "Please reopen the app."))
