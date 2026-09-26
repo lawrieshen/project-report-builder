@@ -121,8 +121,13 @@ struct ContentView: View {
                     GeometryReader { geometry in
                         LivePreviewView(model: model,
                                         loadImage: { try await editor.imageData(for: $0, maximumPixelSize: 1200) },
-                                        onDismiss: dismissCard)
-                            .floatingCard(width: geometry.size.width, maxHeight: .infinity)
+                                        onDismiss: dismissCard,
+                                        maximumHeight: max(1, geometry.size.height - AppSpacing.dialogInset * 2))
+                            .floatingCard(width: min(geometry.size.width,
+                                                     ReportCardStyle.standardWidth
+                                                     + ReportCardStyle.canvasInset * 2
+                                                     + AppSpacing.dialogInset * 2))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
             case .imagePreview(let asset):
