@@ -8,7 +8,9 @@ struct ReportInspectorView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.field) {
                 Text("Report").font(.headline)
-                LabeledContent("Status", value: project.status.displayName)
+                LabeledContent("Status") {
+                    ProjectStatusBadge(status: project.status)
+                }
                 Text("Last Updated").font(.headline)
                 Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
                 Divider()

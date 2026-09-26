@@ -1,5 +1,3 @@
-import SwiftUI
-
 extension RAGStatus {
     var displayName: String {
         switch self {
@@ -9,11 +7,4 @@ extension RAGStatus {
         }
     }
 
-    var color: Color {
-        switch self {
-        case .green: return .green
-        case .amber: return .orange
-        case .red: return .red
-        }
-    }
 }
