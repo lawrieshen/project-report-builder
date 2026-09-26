@@ -9,9 +9,15 @@ struct HealthUrgencySectionView: View {
             Picker("Health", selection: $draft.ragStatus) {
                 Text("Not assessed").tag(nil as RAGStatus?)
                 ForEach(RAGStatus.allCases, id: \.self) { status in
-                    Label(status.displayName, systemImage: "circle.fill")
-                        .foregroundStyle(status.color)
-                        .tag(Optional(status))
+                    Label {
+                        Text(status.displayName)
+                    } icon: {
+                        Image(systemName: "circle.fill")
+                            .renderingMode(.original)
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(status.color)
+                    }
+                    .tag(Optional(status))
                 }
             }
             TextField("Milestone Phase", text: $draft.milestonePhase)
