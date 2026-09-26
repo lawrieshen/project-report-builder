@@ -81,8 +81,8 @@ struct MetricRowView: View {
 
     private func statusColor(_ status: MetricTargetStatus) -> Color {
         switch status {
-        case .met: return .green
-        case .missed: return .orange
+        case .met: return .green.mix(with: .secondary, by: 0.5)
+        case .missed: return .orange.mix(with: .secondary, by: 0.5)
         case .notSet: return .secondary
         }
     }
@@ -94,4 +94,26 @@ struct MetricRowView: View {
         case .notSet: return "minus.circle"
         }
     }
+}
+
+#Preview("Target States") {
+    let met = EngineeringMetricDraft(metric: EngineeringMetric(
+        id: UUID(), name: "Latency", currentValue: 80,
+        target: MetricTarget(value: 100, comparison: .lessThan), unit: "ms", severity: nil))
+    let missed = EngineeringMetricDraft(metric: EngineeringMetric(
+        id: UUID(), name: "Build Duration", currentValue: 12,
+        target: MetricTarget(value: 10, comparison: .lessThan), unit: "min", severity: nil))
+    let noTarget = EngineeringMetricDraft(metric: EngineeringMetric(
+        id: UUID(), name: "Test Count", currentValue: 250,
+        target: nil, unit: nil, severity: nil))
+
+    VStack(spacing: AppSpacing.field) {
+        ForEach([met, missed, noTarget]) { draft in
+            MetricRowView(draft: draft, canMoveUp: false, canMoveDown: false,
+                          edit: {}, delete: {}, moveUp: {}, moveDown: {},
+                          beginDrag: { NSItemProvider(object: draft.id.uuidString as NSString) })
+        }
+    }
+    .padding(AppSpacing.pageInset)
+    .frame(width: 520)
 }
