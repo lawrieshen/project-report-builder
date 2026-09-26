@@ -321,8 +321,7 @@ installed app's version and build metadata.
 | Autosave | On | Save valid drafts to canonical local storage |
 | Autosave delay | 2 seconds | Choose 1, 2, or 5 seconds after the last edit |
 | Appearance | System | Follow macOS, or choose Light or Dark |
-| Restore last workspace | On | Reopen the last project if it still exists |
-| Default launch destination | Project Browser | Used when workspace restoration is off |
+| Restore workspace after unexpected termination | On | Reopen the last project only after an interrupted session |
 | Confirm project deletion | On | Turning this off makes project deletion immediate |
 | Ask before restoring recovery | On | Turning this off restores available drafts automatically |
 
@@ -369,3 +368,9 @@ and Reduce Motion continue to follow macOS.
 Tests cover preference persistence and defaults, appearance mapping, autosave
 debounce/cancellation/failure, manual save concurrency, recovery preservation and
 cleanup, restoration fallback, and native Settings/shortcut/relaunch workflows.
+
+Normal app launches open the Project Browser. Quitting with ⌘Q marks the
+session as normally terminated; closing a window does not. An unfinished
+session marker enables workspace restoration after a crash, force quit, or
+other unexpected termination, subject to the restoration preference. Saved
+recovery drafts remain available when a project is opened manually.
