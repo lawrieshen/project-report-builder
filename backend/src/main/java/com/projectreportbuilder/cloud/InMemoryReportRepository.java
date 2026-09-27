@@ -8,6 +8,19 @@ public final class InMemoryReportRepository implements ReportRepository {
     private record Key(String ownerID, UUID reportID) { }
     private final Map<Key, CloudReport> reports = new HashMap<>();
 
+    private final Map<Key, Long> deleted = new HashMap<>();
+
+    public synchronized void delete(String owner, UUID id, long revision, Instant now) {
+        var key = new Key(owner, id);
+        if (Objects.equals(deleted.get(key), revision + 1)) return;
+        var report = reports.get(key);
+        if (report == null || report.revision() != revision) {
+            throw new ReportException(ReportException.Code.REVISION_CONFLICT, "Report changed before deletion");
+        }
+        reports.remove(key);
+        deleted.put(key, revision + 1);
+    }
+
     public synchronized Optional<CloudReport> find(String ownerID, UUID reportID) {
         return Optional.ofNullable(reports.get(new Key(ownerID, reportID)));
     }
@@ -25,7 +38,7 @@ public final class InMemoryReportRepository implements ReportRepository {
         var key = new Key(ownerID, reportID);
         CloudReport existing = reports.get(key);
         long actualRevision = existing == null ? 0 : existing.revision();
-        if (actualRevision != expectedRevision) {
+        if (deleted.containsKey(key) || actualRevision != expectedRevision) {
             throw new ReportException(ReportException.Code.REVISION_CONFLICT, "Report changed; download before retrying");
         }
         var saved = new CloudReport(reportID, ownerID, actualRevision + 1, content.assets().isEmpty() ? 1 : 2, now, content);

@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ReportRepository {
+    void delete(String ownerID, UUID reportID, long expectedRevision, Instant now);
+
     Optional<CloudReport> find(String ownerID, UUID reportID);
     List<CloudReport> list(String ownerID, UUID after, int limit);
 

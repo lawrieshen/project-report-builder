@@ -61,7 +61,7 @@ public final class ReportApiHandler implements RequestStreamHandler {
     Map<String, Object> handle(JsonNode event) throws IOException {
         try {
             String route = event.path("routeKey").asText();
-            String scope = (route.startsWith("PUT ") || route.startsWith("POST ")) ? "reports/write" : "reports/read";
+            String scope = (route.startsWith("PUT ") || route.startsWith("POST ") || route.startsWith("DELETE ")) ? "reports/write" : "reports/read";
             var principal = authenticate(event, scope);
             var query = event.path("queryStringParameters");
             Object result;
@@ -76,6 +76,10 @@ public final class ReportApiHandler implements RequestStreamHandler {
                     var asset = report.report().assets().stream().filter(a -> a.id().equals(assetID)).findFirst()
                             .orElseThrow(() -> new ReportException(ReportException.Code.NOT_FOUND, "Image not found"));
                     result = assets.download(principal.userID(), report.reportID(), asset);
+                }
+                case "DELETE /reports/{reportID}" -> {
+                    service.delete(principal, reportID(event), json.readValue(requestBytes(event), ReportService.DeleteRequest.class));
+                    result = Map.of("deleted", true);
                 }
                 case "GET /reports" -> {
                     var after = query.has("after") ? ReportJson.canonicalID(query.get("after").asText()) : null;

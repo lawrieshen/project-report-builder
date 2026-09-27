@@ -49,6 +49,21 @@ struct CloudAccountStoreTests {
         #expect(store.message?.contains("could not be confirmed") == true)
     }
 
+    @Test func failedDraftBackupKeepsAccountSignedIn() async {
+        let credentials = MemoryCloudCredentials()
+        let store = CloudAccountStore(credentials: credentials, client: StubCognitoClient())
+        await store.restore()
+        let session = store.sessionID
+        store.beforeSignOut = { throw StorageError.writeFailed("draft") }
+        await store.signOut()
+        #expect(store.isSignedIn)
+        #expect(store.sessionID == session)
+        #expect(credentials.token == "refresh")
+        store.beforeSignOut = nil
+        await store.signOut()
+        #expect(store.sessionID != session)
+    }
+
     @Test func keychainDeletionFailureAllowsSignOutRetry() async {
         let credentials = MemoryCloudCredentials()
         let client = StubCognitoClient()

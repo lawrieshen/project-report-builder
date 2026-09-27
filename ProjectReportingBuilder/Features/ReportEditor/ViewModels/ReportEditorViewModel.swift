@@ -18,6 +18,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var loadError: String?
+    private(set) var hasCloudConflict = false
     private(set) var saveError: String?
     private(set) var hasLoaded = false
     private var showRecoveryPrompt = true
@@ -75,7 +76,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     private func scheduleAutosave() {
         autosaveTask?.cancel()
         autosaveTask = nil
-        guard autosaveEnabled, !autosavePaused, !maintenanceInProgress, !automaticWritesSuppressed, hasLoaded, canSave else { return }
+        guard !hasCloudConflict, autosaveEnabled, !autosavePaused, !maintenanceInProgress, !automaticWritesSuppressed, hasLoaded, canSave else { return }
         let delay = autosaveDelay.rawValue
         autosaveTask = Task { [weak self] in
             do {
@@ -100,7 +101,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         if saveError != nil { return .failed(lastSaveWasAutomatic ? "Autosave failed" : "Save failed") }
         return isDirty ? .unsaved : .saved
     }
-    var canSave: Bool { pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
+    var canSave: Bool { !hasCloudConflict && pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
     /// Load once without overwriting edits when the view reappears.
     func load() async {
@@ -151,7 +152,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     func save(automatically: Bool = false) async -> Bool {
         autosaveTask?.cancel()
         autosaveTask = nil
-        guard !maintenanceInProgress, pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
+        guard !hasCloudConflict, !maintenanceInProgress, pendingRecovery == nil, !isLoading, !isSaving, !isImporting, let project, let submittedDraft = draft else { return false }
         lastSaveWasAutomatic = automatically
         guard submittedDraft.isValid else {
             saveError = "Correct the highlighted fields before saving."
@@ -172,6 +173,10 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         await recoveryTask?.value
         do {
             let updated = try submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
+            if repository is CloudProjectRepository, let recoveryRepository {
+                try await recoveryRepository.saveRecovery(RecoverySnapshot(projectID: projectID,
+                    baseUpdatedAt: project.updatedAt, capturedAt: .now, draft: submittedDraft))
+            }
             try await repository.save(updated)
             await clearRecovery()
 
@@ -186,6 +191,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
             importedAssets = []
             return true
         } catch {
+            if let cloudError = error as? CloudTransferError, case .conflict = cloudError { hasCloudConflict = true }
             saveError = error.localizedDescription
             return false
         }
@@ -376,6 +382,10 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     func restoreRecovery() {
         guard let snapshot = pendingRecovery else { return }
         pendingRecovery = nil
+        if repository is CloudProjectRepository, snapshot.baseUpdatedAt != project?.updatedAt {
+            hasCloudConflict = true
+            saveError = "The cloud report may have changed since this draft was captured. Reload or save a copy."
+        }
         importedAssets.append(contentsOf: snapshot.draft.assets)
         draft = snapshot.draft
     }
@@ -455,6 +465,47 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         } catch {
             // The canonical save already succeeded; keep that success distinct from cleanup.
             recoveryMessage = "Saved, but recovery cleanup failed: " + error.localizedDescription
+        }
+    }
+
+    /// Flush pending edits before ending the account session; refuse logout if backup fails.
+    func preserveDraftForSignOut() async throws {
+        guard !isLoading, !isSaving, !isImporting else { throw RecoveryMaintenanceError.workspaceBusy }
+        setAutosavePaused(true)
+        recoveryTask?.cancel()
+        await recoveryTask?.value
+        guard isDirty, let draft, let project else { return }
+        guard let recoveryRepository else { throw StorageError.writeFailed("recovery draft") }
+        do {
+            try await recoveryRepository.saveRecovery(RecoverySnapshot(projectID: projectID,
+                baseUpdatedAt: project.updatedAt, capturedAt: .now, draft: draft))
+        } catch {
+            setAutosavePaused(false)
+            throw error
+        }
+    }
+
+    /// Reload only after the user explicitly chooses to discard their conflicting edits.
+    func reloadCloudVersion() async {
+        guard !isSaving, !isLoading, !isImporting else { return }
+        if !(await discardChanges()) { return }
+        hasCloudConflict = false
+        hasLoaded = false
+        await load()
+    }
+
+    func saveConflictCopy() async {
+        guard let cloud = repository as? CloudProjectRepository, let project, let draft,
+              !isSaving, draft.isValid else { return }
+        isSaving = true
+        do {
+            let snapshot = try draft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
+            _ = try await cloud.saveCopy(snapshot)
+            isSaving = false
+            await reloadCloudVersion()
+        } catch {
+            isSaving = false
+            saveError = error.localizedDescription
         }
     }
 

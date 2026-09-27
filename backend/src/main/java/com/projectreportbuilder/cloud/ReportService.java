@@ -9,6 +9,7 @@ public final class ReportService {
     /** Only a trusted authentication adapter may construct this from verified credentials. */
     public record Principal(String userID) { }
     public record SaveRequest(int schemaVersion, long expectedRevision, ReportContent report) { }
+    public record DeleteRequest(long expectedRevision) { }
     public record Page(List<CloudReport> items, UUID nextCursor) { }
 
     private final ReportRepository repository;
@@ -33,6 +34,13 @@ public final class ReportService {
         boolean hasMore = results.size() > limit;
         var items = List.copyOf(results.subList(0, Math.min(limit, results.size())));
         return new Page(items, hasMore ? items.getLast().reportID() : null);
+    }
+
+    public void delete(Principal principal, UUID id, DeleteRequest request) {
+        String owner = owner(principal);
+        require(id != null && request != null, "Report ID and revision required");
+        require(request.expectedRevision() > 0 && request.expectedRevision() < Long.MAX_VALUE, "Invalid revision");
+        repository.delete(owner, id, request.expectedRevision(), clock.instant());
     }
 
     public CloudReport save(Principal principal, UUID id, SaveRequest request) {

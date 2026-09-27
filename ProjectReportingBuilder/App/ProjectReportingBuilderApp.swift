@@ -22,6 +22,13 @@ struct ProjectReportingBuilderApp: App {
         // One editing window prevents two workspaces overwriting the same draft.
         Window("Project Reporting Builder", id: "main") {
             if let environment {
+                Group {
+                    if environment.usesCloudStorage {
+                        CloudRootView(environment: environment) { session in
+                            appDelegate.session = session
+                            session.beginSession()
+                        }
+                    } else {
                 ContentView(repository: environment.projects, assetFactory: environment.assets,
                             recoveryRepository: LocalDraftRecoveryRepository(store: environment.store),
                             settings: environment.settings, session: environment.session, maintenance: environment.maintenance)
@@ -30,6 +37,9 @@ struct ProjectReportingBuilderApp: App {
                         appDelegate.session = environment.session
                         environment.session.beginSession()
                     }
+                    }
+                }
+                .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
             } else {
                 ContentUnavailableView("Unable to open local storage", systemImage: "externaldrive.badge.exclamationmark",
                                        description: Text(startupError ?? "Please reopen the app."))
@@ -40,7 +50,8 @@ struct ProjectReportingBuilderApp: App {
         .commands { AppCommands() }
         Settings {
             if let environment {
-                AppSettingsView(store: environment.settings, account: environment.cloudAccount, transfers: environment.cloudTransfers, fileStore: environment.store, maintenance: environment.maintenance)
+                AppSettingsView(store: environment.settings, account: environment.cloudAccount, transfers: environment.cloudTransfers, fileStore: environment.workspace?.files ?? environment.store,
+                    maintenance: environment.workspace?.maintenance ?? environment.maintenance, cloudPrimary: environment.usesCloudStorage)
                     .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
             }
         }
