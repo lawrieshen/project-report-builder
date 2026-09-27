@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
@@ -9,6 +10,20 @@ from prb_ai.errors import Code, ComposeError
 from prb_ai.runtime import build_service, runtime_policy
 from prb_ai.handler import Authentication, ComposeHandler
 from test_handler import event_for
+
+
+def test_acceptance_budget_is_disabled_bounded_and_expires():
+    path = Path(__file__).resolve().parents[2] / 'infrastructure/config/ai-compose-budget.json'
+    parameters = {item['ParameterKey']: item['ParameterValue'] for item in json.loads(path.read_text())}
+    assert parameters['AiEnabled'] == 'false'
+    environment = {'AI_BUDGET_POLICY': parameters['BudgetPolicy'],
+                   'AI_PRICE_VALID_UNTIL': parameters['PriceValidUntil']}
+    policy = runtime_policy(environment, datetime(2026, 9, 28, tzinfo=UTC))
+    assert policy.monthly_limit_micros == 8_000_000
+    assert policy.reservation_micros == 13_500
+    assert policy.daily_limit == 20
+    with pytest.raises(ComposeError):
+        runtime_policy(environment, datetime.fromisoformat(parameters['PriceValidUntil']))
 
 
 def settings(policy):
