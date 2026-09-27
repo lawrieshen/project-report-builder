@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import audit
 from .contracts import Response
 from .errors import Code, ComposeError
 from .storage import Row, UsageStore, Write
@@ -104,6 +105,7 @@ class UsageRepository:
                       self._write(day_key, day_row, Counter(value=daily + 1)),
                       self._write(lease_key, lease_row, Lease(request_id=request_id, until=entry.lease_until))]
             if self.store.commit(writes):
+                audit.budget_usage(spent + reserved, policy.monthly_limit_micros)
                 return entry
         raise ComposeError(Code.UNAVAILABLE)
 
@@ -153,6 +155,7 @@ class UsageRepository:
             if lease_row is not None and Lease.model_validate_json(lease_row.data).request_id == entry.request_id:
                 writes.append(self._write(lease_key, lease_row, Lease(request_id=entry.request_id, until=0)))
             if self.store.commit(writes):
+                audit.budget_usage(updated, entry.policy.monthly_limit_micros)
                 return settled
         raise ComposeError(Code.UNAVAILABLE)
 

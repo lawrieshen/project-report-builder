@@ -1,6 +1,6 @@
 import { CfnOutput, CfnParameter, RemovalPolicy, Stack, StackProps, Tags } from 'aws-cdk-lib';
 import { aws_apigatewayv2 as gateway, aws_dynamodb as dynamodb, aws_iam as iam,
-  aws_lambda as lambda, aws_logs as logs } from 'aws-cdk-lib';
+  aws_lambda as lambda, aws_logs as logs, aws_cloudwatch as cloudwatch } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 /** Provision an isolated, initially disabled composer on the existing report API. */
@@ -32,6 +32,17 @@ export class AiComposeStack extends Stack {
     const functionLogs = new logs.LogGroup(this, 'Logs', {
       logGroupName: '/aws/lambda/prb-dev-ai-compose', retention: logs.RetentionDays.TWO_WEEKS,
       removalPolicy: RemovalPolicy.RETAIN,
+    });
+    const budgetMetric = new logs.MetricFilter(this, 'BudgetMetric', {
+      logGroup: functionLogs, filterPattern: logs.FilterPattern.stringValue('$.event', '=', 'ai_budget'),
+      metricNamespace: 'ProjectReportBuilder/AI', metricName: 'BudgetPercent',
+      metricValue: '$.budgetPercent',
+    });
+    new cloudwatch.Alarm(this, 'BudgetWarning', {
+      alarmName: 'prb-dev-ai-budget-warning',
+      alarmDescription: 'Application AI budget reservations reached 80%; review before further generation.',
+      metric: budgetMetric.metric({ statistic: 'Maximum' }), threshold: 80, evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
     const role = new iam.Role(this, 'ExecutionRole', {
       roleName: 'prb-dev-ai-compose-execution', assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),

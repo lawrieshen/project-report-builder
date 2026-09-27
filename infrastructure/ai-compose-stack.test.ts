@@ -52,3 +52,15 @@ test('role only accesses its secret, ledger and logs', () => {
     'arn:aws:secretsmanager:ap-southeast-2:543123648742:secret:prb-dev/gemini-api-key-NWLQoy');
   for (const statement of statements) ok(statement.Resource !== '*');
 });
+
+test('budget warning watches reservations without report content', () => {
+  const stack = template();
+  stack.hasResourceProperties('AWS::Logs::MetricFilter', {
+    FilterPattern: '{ $.event = "ai_budget" }',
+    MetricTransformations: [Match.objectLike({ MetricNamespace: 'ProjectReportBuilder/AI',
+      MetricName: 'BudgetPercent', MetricValue: '$.budgetPercent' })],
+  });
+  stack.hasResourceProperties('AWS::CloudWatch::Alarm', {
+    Threshold: 80, EvaluationPeriods: 1, TreatMissingData: 'notBreaching', Statistic: 'Maximum',
+  });
+});
