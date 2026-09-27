@@ -72,6 +72,23 @@ struct AutosaveTests {
         #expect(repository.project?.codeName == "Retained")
     }
 
+    @Test func conflictStopsAutosaveEvenAfterFurtherEdits() async throws {
+        let (editor, repository, _) = await fixture()
+        repository.conflict = true
+        editor.draft?.codeName = "First"
+        #expect(await editor.save() == false)
+        #expect(editor.hasCloudConflict)
+        repository.conflict = false
+        editor.draft?.codeName = "Retained"
+        try await Task.sleep(for: .milliseconds(1300))
+        #expect(repository.saveCount == 0)
+        #expect(!editor.canSave)
+        #expect(editor.isDirty)
+        await editor.reloadCloudVersion()
+        #expect(!editor.hasCloudConflict)
+        #expect(editor.draft?.codeName == "Titan")
+    }
+
     @Test func navigationPauseAndDelayChangesReschedule() async throws {
         let (editor, repository, settings) = await fixture()
         editor.draft?.codeName = "Changed"
