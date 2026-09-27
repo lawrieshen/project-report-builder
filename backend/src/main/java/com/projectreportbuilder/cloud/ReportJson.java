@@ -58,6 +58,13 @@ final class ReportJson {
         return mapper;
     }
 
+    static JsonNode withLegacyAssets(JsonNode root) {
+        if (root.path("schemaVersion").asInt() == 1
+                && root.path("report") instanceof com.fasterxml.jackson.databind.node.ObjectNode report
+                && !report.has("assets")) report.putArray("assets");
+        return root;
+    }
+
     static UUID canonicalID(String text) {
         var id = UUID.fromString(text);
         if (!id.toString().equals(text)) throw new IllegalArgumentException("Canonical UUID required");

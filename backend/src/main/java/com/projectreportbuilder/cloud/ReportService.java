@@ -38,10 +38,11 @@ public final class ReportService {
     public CloudReport save(Principal principal, UUID id, SaveRequest request) {
         String owner = owner(principal);
         require(id != null && request != null, "Report ID and request required");
-        require(request.schemaVersion() == 1, "Unsupported schema version");
+        require((request.schemaVersion() == 1 || request.schemaVersion() == 2), "Unsupported schema version");
         require(request.expectedRevision() >= 0 && request.expectedRevision() < Long.MAX_VALUE,
                 "Invalid expected revision");
         require(request.report() != null, "Report content required");
+        require(request.schemaVersion() == 2 || request.report().assets().isEmpty(), "Images require schema version 2");
         return repository.save(owner, id, request.expectedRevision(), request.report(), clock.instant());
     }
 

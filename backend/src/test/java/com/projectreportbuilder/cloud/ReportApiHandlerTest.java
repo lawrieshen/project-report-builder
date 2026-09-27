@@ -78,4 +78,49 @@ class ReportApiHandlerTest {
     @Test void missingReportIs404() throws Exception {
         assertEquals(404, status(event("GET /reports/{reportID}")));
     }
+    @Test void versionTwoRequiresAssetsEvenWhenEmpty() throws Exception {
+        String v2 = body().replace("\"schemaVersion\": 1", "\"schemaVersion\": 2");
+        assertEquals(400, status(event("PUT /reports/{reportID}").put("body", v2)));
+        String complete = v2.replace("\"metrics\":", "\"assets\": [], \"metrics\":");
+        assertEquals(200, status(event("PUT /reports/{reportID}").put("body", complete)));
+    }
+
+    @Test void imageReportRequiresUploadedBytesAndScopesDownloads() throws Exception {
+        var storage = new ReportAssetStorage() {
+            boolean uploaded = false;
+            public Transfer upload(String owner, java.util.UUID report, ReportAsset asset) {
+                assertEquals("approved", owner);
+                uploaded = true;
+                return new Transfer("https://example.test/upload", java.util.Map.of());
+            }
+            public Transfer download(String owner, java.util.UUID report, ReportAsset asset) {
+                assertEquals("approved", owner);
+                return new Transfer("https://example.test/download", java.util.Map.of());
+            }
+            public void verify(String owner, java.util.UUID report, ReportAsset asset) {
+                if (!uploaded) throw new ReportException(ReportException.Code.INVALID_REPORT, "Missing image");
+            }
+        };
+        var api = new ReportApiHandler(new ReportService(new InMemoryReportRepository(), clock),
+                "issuer", "client", "approved", clock, storage);
+        var asset = new ReportAsset(java.util.UUID.fromString(id), "diagram.png", "Diagram", "image/png", 12, "a".repeat(64));
+        var request = (ObjectNode) ReportJson.mapper().readTree(body());
+        request.put("schemaVersion", 2);
+        ((ObjectNode) request.get("report")).putArray("assets").add(ReportJson.mapper().valueToTree(asset));
+        var save = event("PUT /reports/{reportID}").put("body", request.toString());
+        assertEquals(400, api.handle(save).get("statusCode"));
+        assertEquals(404, api.handle(event("GET /reports/{reportID}")).get("statusCode"));
+        var upload = event("POST /reports/{reportID}/assets/upload").put("body", ReportJson.mapper().writeValueAsString(asset));
+        assertEquals(200, api.handle(upload).get("statusCode"));
+        assertEquals(200, api.handle(save).get("statusCode"));
+        var download = event("GET /reports/{reportID}/assets/{assetID}");
+        ((ObjectNode) download.get("pathParameters")).put("assetID", id);
+        assertEquals(200, api.handle(download).get("statusCode"));
+        ((ObjectNode) download.get("pathParameters")).put("assetID", java.util.UUID.randomUUID().toString());
+        assertEquals(404, api.handle(download).get("statusCode"));
+        ((ObjectNode) download.at("/requestContext/authorizer/jwt/claims")).put("sub", "other");
+        assertEquals(401, api.handle(download).get("statusCode"));
+        ((ObjectNode) upload.at("/requestContext/authorizer/jwt/claims")).put("scope", "reports/read");
+        assertEquals(401, api.handle(upload).get("statusCode"));
+    }
 }

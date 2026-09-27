@@ -95,7 +95,7 @@ class ReportServiceTest {
         fails(ReportException.Code.UNAUTHENTICATED, () -> service.save(null, UUID.randomUUID(), null));
         fails(ReportException.Code.NOT_FOUND, () -> service.get(alice, UUID.randomUUID()));
         fails(ReportException.Code.INVALID_REPORT, () -> service.list(alice, null, 101));
-        fails(ReportException.Code.INVALID_REPORT, () -> service.save(alice, UUID.randomUUID(), new ReportService.SaveRequest(2, 0, content("A"))));
+        fails(ReportException.Code.INVALID_REPORT, () -> service.save(alice, UUID.randomUUID(), new ReportService.SaveRequest(3, 0, content("A"))));
         fails(ReportException.Code.INVALID_REPORT, () -> save(UUID.randomUUID(), -1, "A"));
         fails(ReportException.Code.INVALID_REPORT, () -> save(UUID.randomUUID(), 0, " "));
     }

@@ -28,7 +28,7 @@ public final class InMemoryReportRepository implements ReportRepository {
         if (actualRevision != expectedRevision) {
             throw new ReportException(ReportException.Code.REVISION_CONFLICT, "Report changed; download before retrying");
         }
-        var saved = new CloudReport(reportID, ownerID, actualRevision + 1, 1, now, content);
+        var saved = new CloudReport(reportID, ownerID, actualRevision + 1, content.assets().isEmpty() ? 1 : 2, now, content);
         reports.put(key, saved);
         return saved;
     }

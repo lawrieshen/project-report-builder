@@ -33,8 +33,17 @@ class ContractTests(unittest.TestCase):
         self.request['report']['metrics'][0]['id'] = 'invalid'
         self.assertTrue(list(self.validator.iter_errors(self.request)))
 
-    def test_unsupported_version_is_rejected(self):
+    def test_image_version_requires_complete_metadata(self):
         self.request['schemaVersion'] = 2
+        self.request['report']['assets'] = [{'id': '10000000-0000-0000-0000-000000000001',
+            'fileName': 'diagram.png', 'altText': 'Diagram', 'contentType': 'image/png',
+            'byteCount': 12, 'sha256': 'a' * 64}]
+        self.validator.validate(self.request)
+        self.request['report']['assets'][0]['byteCount'] = 20971521
+        self.assertTrue(list(self.validator.iter_errors(self.request)))
+
+    def test_unsupported_version_is_rejected(self):
+        self.request['schemaVersion'] = 3
         self.assertTrue(list(self.validator.iter_errors(self.request)))
 
 
