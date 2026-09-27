@@ -53,8 +53,8 @@ to the named execution role, but still grants the operator control over that
 role's inline permissions; reserve this permission set for trusted deployers.
 
 The private artifact bucket template is [artifacts.template.json](artifacts.template.json).
-It passed CloudFormation template validation and has not been deployed. It
-uses the proposed name `prb-dev-artifacts-543123648742-ap-southeast-2`, blocks
+It has been deployed. It
+uses the name `prb-dev-artifacts-543123648742-ap-southeast-2`, blocks
 public access, enforces TLS and bucket-owner ownership, and uses SSE-S3.
 Global name availability is only confirmed when the bucket is created.
 
@@ -73,9 +73,9 @@ must provide a scoped deployment role/permission set covering:
 - The two CloudWatch log groups declared in the template.
 
 Review a CloudFormation change set before execution. The execution role has
-only GetItem, Query and PutItem access to `prb-dev-reports`, plus writes to its
-own log group. Both log groups retain logs for 14 days. No report deletion,
-public function URL, user registration, or image bucket is introduced.
+GetItem, Query and PutItem access to `prb-dev-reports`, writes to its own
+log group, and GetObject/PutObject under the private image bucket’s `reports/*` prefix. Both log groups retain logs for 14 days. No report deletion,
+public function URL or user registration is introduced.
 
 ## Authentication boundary
 
@@ -138,13 +138,14 @@ transfer UI is now implemented. No test reports were written during these checks
 
 ## Check transfers in the signed-in app
 
-1. Save a small report without images, then open Settings > Cloud Account.
+1. Save a small report with two distinct images, then open Settings > Cloud Account.
 2. Select the local project and choose Upload Saved Version. Confirm it appears
    in Cloud Reports as Version 1.
 3. Save a local change and upload again. Confirm Version 2.
 4. Download Copy and return to Browser. Confirm a new project appears and the
    original project and any open draft remain unchanged.
-5. Try a report with images: it must show an unsupported message without upload.
+5. Check the downloaded image order, thumbnails and alt text; open Live Preview
+   and export to confirm the downloaded bytes are available locally.
 6. Verify offline errors preserve local reports and that retrying a successful
    upload whose response was lost reconciles only matching content/revision.
 
@@ -176,3 +177,29 @@ After the subject and initial-query corrections, the developer reported that
 all guided cloud transfer steps worked. This is manual verification evidence;
 it does not replace the remaining negative-token and multi-client conflict
 checks listed above.
+
+## Image storage update — deployed 2026-09-27
+
+The API stack now defines `prb-dev-assets-543123648742-ap-southeast-2`, a private,
+TLS-only, SSE-S3 encrypted bucket retained on stack removal. The Lambda role
+receives GetObject/PutObject only under `reports/*`. Two additional JWT routes
+issue short-lived transfer URLs; no permanent AWS credentials go to the app.
+
+Before deploying, update the PRBReportApiDeploy permission set with
+`policies/report-api-deploy.json` and provision it to the account. The new
+`ImageBucket` statement is limited to this bucket and its configuration.
+Then package and deploy the API stack using the existing change-set procedure.
+The foundation and Cognito settings are unchanged.
+
+The app's Upload Saved Version now transfers images before report metadata.
+Download Copy publishes a local project only after all images are verified.
+Local autosave remains local. Test a failed transfer and a stale-revision upload:
+existing reports must remain unchanged. The developer confirmed the guided image round trip passed.
+
+
+Deployment completed with stack status `UPDATE_COMPLETE`. The image bucket's
+four public-access blocks are enabled and default encryption is AES256.
+Both image routes require JWT authorization with their respective read/write
+scopes; unauthenticated POST upload and GET download returned HTTP 401.
+The artifact key is recorded in `dev-api-outputs.json`. The developer confirmed the signed-in app image upload/download round trip
+passed after deployment. This is manual verification evidence.

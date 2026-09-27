@@ -1,5 +1,5 @@
 import { CfnOutput, CfnParameter, RemovalPolicy, Stack, StackProps, Tags } from 'aws-cdk-lib';
-import { aws_apigatewayv2 as gateway, aws_iam as iam, aws_lambda as lambda, aws_logs as logs } from 'aws-cdk-lib';
+import { aws_apigatewayv2 as gateway, aws_iam as iam, aws_lambda as lambda, aws_logs as logs, aws_s3 as s3 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 /** Expose the report service only through scoped Cognito JWT routes. */
@@ -22,11 +22,20 @@ export class ReportApiStack extends Stack {
       logGroupName: '/prb-dev/report-api', retention: logs.RetentionDays.TWO_WEEKS,
       removalPolicy: RemovalPolicy.RETAIN,
     });
+    const assets = new s3.Bucket(this, 'Assets', {
+      bucketName: `prb-dev-assets-${this.account}-${this.region}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+      enforceSSL: true, removalPolicy: RemovalPolicy.RETAIN,
+    });
     const role = new iam.Role(this, 'ExecutionRole', {
       roleName: 'prb-dev-report-api-execution', assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       inlinePolicies: { Reports: new iam.PolicyDocument({ statements: [
         new iam.PolicyStatement({ actions: ['dynamodb:GetItem', 'dynamodb:Query', 'dynamodb:PutItem'],
           resources: [`arn:aws:dynamodb:${this.region}:${this.account}:table/prb-dev-reports`] }),
+        new iam.PolicyStatement({ actions: ['s3:GetObject', 's3:PutObject'],
+          resources: [assets.arnForObjects('reports/*')] }),
         new iam.PolicyStatement({ actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
           resources: [functionLogs.logGroupArn] }),
       ] }) },
@@ -37,7 +46,7 @@ export class ReportApiStack extends Stack {
       role: role.roleArn, memorySize: 512, timeout: 20,
       code: { s3Bucket: bucket.valueAsString, s3Key: key.valueAsString },
       environment: { variables: {
-        REPORTS_TABLE: 'prb-dev-reports', COGNITO_ISSUER: issuer.valueAsString,
+        ASSETS_BUCKET: assets.bucketName, REPORTS_TABLE: 'prb-dev-reports', COGNITO_ISSUER: issuer.valueAsString,
         COGNITO_CLIENT_ID: client.valueAsString, APPROVED_SUBJECT: subject.valueAsString,
       } },
     });
@@ -54,6 +63,8 @@ export class ReportApiStack extends Stack {
     const routes = [
       ['List', 'GET /reports', 'reports/read'],
       ['Get', 'GET /reports/{reportID}', 'reports/read'],
+      ['UploadImage', 'POST /reports/{reportID}/assets/upload', 'reports/write'],
+      ['DownloadImage', 'GET /reports/{reportID}/assets/{assetID}', 'reports/read'],
       ['Save', 'PUT /reports/{reportID}', 'reports/write'],
     ];
     for (const [name, routeKey, scope] of routes) {
