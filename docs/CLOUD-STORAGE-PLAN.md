@@ -6,25 +6,24 @@
 The proposed cloud storage POC will use an existing identity service with
 one pre-provisioned test user. Amazon Cognito Essentials with Email/Password
 and Managed Login is the configured identity provider;
-server-side verification and user approval are not implemented yet.
+the API verifies access tokens and restricts the POC to the approved user.
 Self-service registration, password-reset UI, and role management are outside
 the POC scope.
 
 Cloud APIs must still authenticate requests and verify that the signed-in user
 owns the report before allowing access. The app must not embed cloud administrator
 credentials or a shared permanent API secret. The macOS sign-in client is
-implemented; authenticated report storage is still pending.
+implemented, with authenticated manual report upload and download.
 
 ## Local milestone status
 
-The [Java service and API contract](../backend/README.md) now cover text-only
-report creation, reading, updates, owner isolation, pagination, and atomic revision
-checks using in-memory storage. JUnit and JSON contract tests run locally and
+The [Java service and API contract](../backend/README.md) cover report creation, reading, updates, owner isolation, pagination, and atomic
+revision checks using DynamoDB, with an in-memory repository for tests. JUnit and JSON contract tests run locally and
 are configured in the backend CI workflow.
 
-The report API is deployed; image transfer is not implemented.
+Report and image APIs are deployed, including the private S3 bucket. Unauthenticated image requests are rejected; the developer confirmed the signed-in image round trip passed.
 Request retries cannot duplicate a committed revision, but operation-ID replay support remains future work. This milestone
-does not change the app's local persistence or enable uploads.
+does not change the app's local persistence or autosave; transfers remain explicit.
 
 ## Java backend technology decision
 
@@ -200,3 +199,16 @@ behavior still need verification using the signed-in app.
 The developer subsequently confirmed that the guided upload, update and download
 flow worked after deployment fixes (2026-09-27). This result was reported from
 the app; broader authorization and concurrent-client scenarios remain separate.
+
+
+## Cloud images milestone
+
+Implemented private S3 image transfers in the existing manual upload/download
+flow. Schema 2 preserves image IDs, order, filenames and alt text. Limits are
+10 images, 20 MiB/file and 50 MiB/report; PNG/JPEG/HEIC only. Downloads verify
+SHA-256 and decode before atomically publishing a new local project. Existing
+schema 1 reports remain readable. See [deployment notes](../infrastructure/REPORT-API.md).
+
+This prerequisite does not remove local storage or change autosave. Cloud-primary
+storage should follow only after a deployed image round trip passes. Unreferenced
+upload cleanup and cloud-primary migration are separate follow-up work.

@@ -114,6 +114,40 @@ actor ProjectFileStore {
         try data.write(to: url, options: .atomic)
     }
 
+    func cloudImageData(_ asset: ImageAsset, projectID: UUID) throws -> Data {
+        let url = try assetURL(asset, projectID: projectID)
+        let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size > 0, size <= 20 * 1_048_576 else { throw AssetError.tooLarge(20 * 1_048_576) }
+        let data = try Data(contentsOf: url)
+        guard data.count <= 20 * 1_048_576 else { throw AssetError.tooLarge(20 * 1_048_576) }
+        return data
+    }
+
+    /// Publish the report and its images together by renaming a hidden staging directory.
+    func importCloudCopy(_ project: ProjectReport, images: [UUID: Data]) throws {
+        try storage.prepare()
+        let destination = storage.projectDirectory(project.id)
+        guard !FileManager.default.fileExists(atPath: destination.path) else { throw StorageError.writeFailed("existing project") }
+        let staging = storage.projects.appendingPathComponent(".cloud-" + UUID().uuidString)
+        do {
+            let assetsDirectory = staging.appendingPathComponent("Assets")
+            try FileManager.default.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
+            for asset in project.card?.assets ?? [] {
+                _ = try assetURL(asset, projectID: project.id)
+                guard let data = images[asset.id] else { throw StorageError.readFailed("downloaded image") }
+                try data.write(to: assetsDirectory.appendingPathComponent(asset.localReference), options: .atomic)
+            }
+            try JSONEncoder().encode(StoredDocument(project)).write(to: staging.appendingPathComponent("project.json"), options: .atomic)
+            try FileManager.default.moveItem(at: staging, to: destination)
+        } catch {
+            if FileManager.default.fileExists(atPath: staging.path) {
+                do { try FileManager.default.removeItem(at: staging) }
+                catch { maintenanceWarnings.append("A temporary cloud download could not be removed.") }
+            }
+            throw error
+        }
+    }
+
     func removeAsset(_ asset: ImageAsset, projectID: UUID) throws {
         let url = try assetURL(asset, projectID: projectID)
         let saved = try fetchProject(id: projectID)?.card?.assets ?? []

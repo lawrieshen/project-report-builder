@@ -14,9 +14,11 @@ final class CloudTransferStore {
     private(set) var message: String?
     private let projects: any ProjectRepository
     private let client: any CloudReportServing
+    private let images: (any CloudImageTransferring)?
     private let history: any CloudUploadTracking
 
-    init(projects: any ProjectRepository, client: any CloudReportServing, history: any CloudUploadTracking) {
+    init(projects: any ProjectRepository, client: any CloudReportServing, history: any CloudUploadTracking, images: (any CloudImageTransferring)? = nil) {
+        self.images = images
         self.projects = projects
         self.client = client
         self.history = history
@@ -54,7 +56,8 @@ final class CloudTransferStore {
         defer { isBusy = false }
         do {
             guard let project = try await projects.fetchProject(id: id) else { throw CloudTransferError.missingProject }
-            let content = try CloudReportContent(project: project)
+            let imageMetadata = try await images?.uploadImages(for: project) ?? []
+            let content = try CloudReportContent(project: project, images: imageMetadata)
             let revision = try history.revision(for: id)
             let saved: CloudReport
             do { saved = try await client.save(id: id, revision: revision, content: content) }
@@ -66,7 +69,7 @@ final class CloudTransferStore {
                 }
                 saved = remote
             }
-            guard saved.reportID == id, saved.schemaVersion == 1, saved.revision > revision else {
+            guard saved.reportID == id, (1...2).contains(saved.schemaVersion), saved.revision > revision else {
                 throw CloudTransferError.invalidResponse
             }
             do { try history.record(id: id, revision: saved.revision) }
@@ -87,11 +90,16 @@ final class CloudTransferStore {
         defer { isBusy = false }
         do {
             let remote = try await client.get(id: id)
-            guard remote.reportID == id, remote.schemaVersion == 1, remote.revision > 0 else {
+            guard remote.reportID == id, (1...2).contains(remote.schemaVersion), remote.revision > 0 else {
                 throw CloudTransferError.invalidResponse
             }
-            let copy = try remote.report.localCopy()
-            try await projects.save(copy)
+            let copy: ProjectReport
+            if let images { copy = try await images.importCopy(of: remote) }
+            else {
+                guard (remote.report.assets ?? []).isEmpty else { throw CloudTransferError.imagesUnsupported }
+                copy = try remote.report.localCopy()
+                try await projects.save(copy)
+            }
             localProjects.insert(copy, at: 0)
             NotificationCenter.default.post(name: .cloudProjectImported, object: nil)
             message = "Downloaded \(copy.codeName) as a new local project."

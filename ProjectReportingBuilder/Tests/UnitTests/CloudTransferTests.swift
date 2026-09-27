@@ -34,7 +34,7 @@ struct CloudTransferTests {
         #expect(copy.card?.summary == source.card?.summary)
     }
 
-    @Test func imagesAreRejectedBeforeCallingCloud() async throws {
+    @Test func missingImageServiceRejectsBeforeCallingCloud() async throws {
         var source = project()
         source.card?.assets = [ImageAsset(id: UUID(), fileName: "a.png", localReference: "a.png")]
         let client = TransferClientStub()
