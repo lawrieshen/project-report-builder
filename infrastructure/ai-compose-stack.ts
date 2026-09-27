@@ -13,6 +13,11 @@ export class AiComposeStack extends Stack {
     const key = new CfnParameter(this, 'ArtifactKey', {
       description: 'Immutable key of the tested Python 3.12 Linux arm64 deployment ZIP.',
     });
+    const enabled = new CfnParameter(this, 'AiEnabled', { default: 'false', allowedValues: ['false', 'true'] });
+    const policy = new CfnParameter(this, 'BudgetPolicy', { default: '',
+      description: 'Verified BudgetPolicy JSON; required before explicit enablement.' });
+    const pricesExpire = new CfnParameter(this, 'PriceValidUntil', { default: '',
+      description: 'UTC ISO timestamp after which the verified prices must not be used.' });
     const api = new CfnParameter(this, 'HttpApiId');
     const authorizer = new CfnParameter(this, 'JwtAuthorizerId');
     const issuer = new CfnParameter(this, 'CognitoIssuer');
@@ -44,7 +49,8 @@ export class AiComposeStack extends Stack {
       memorySize: 512, timeout: 25, reservedConcurrentExecutions: 2,
       code: { s3Bucket: bucket.valueAsString, s3Key: key.valueAsString },
       environment: { variables: {
-        AI_ENABLED: 'false', AI_USAGE_TABLE: table.tableName, GEMINI_SECRET_ARN: secretArn,
+        AI_ENABLED: enabled.valueAsString, AI_BUDGET_POLICY: policy.valueAsString,
+        AI_PRICE_VALID_UNTIL: pricesExpire.valueAsString, AI_USAGE_TABLE: table.tableName, GEMINI_SECRET_ARN: secretArn,
         COGNITO_ISSUER: issuer.valueAsString, COGNITO_CLIENT_ID: client.valueAsString,
         APPROVED_SUBJECT: subject.valueAsString,
       } },

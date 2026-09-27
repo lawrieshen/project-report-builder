@@ -6,7 +6,8 @@ The Swift Goal evaluator and UI state graph remain in the app.
 
 **Foundation only: not deployed or enabled.** The Lambda entry point
 `prb_ai.handler.lambda_handler` returns `AI_DISABLED` for valid authorized requests.
-Setting `AI_ENABLED` cannot bypass this gate. No Gemini client or API key is loaded.
+By default no Gemini client or API key is loaded. Explicit enablement requires complete
+unexpired pricing configuration; disabled or malformed requests never load the secret.
 The SDK adapter is implemented and tested offline. Verified model/pricing, deployment packaging,
 CDK resources, live latency/cost checks, and app enablement remain later milestones.
 
@@ -71,7 +72,7 @@ rows contain report proposals for the 24-hour retry window. IAM permissions must
 be restricted to this table and the supplied Gemini secret ARN.
 
 The owner's monthly budget is USD 10. The owner confirmed an application limit of USD 8, a provider cap of USD 10,
-and disabled auto-reload. Production runtime wiring remains pending. Test prices are not production Gemini rates. Infrastructure charges and
+and disabled auto-reload. Runtime wiring enforces the application ceiling; deployment and live validation remain pending. Test prices are not production Gemini rates. Infrastructure charges and
 provider accounting delays are outside this application allowance.
 
 ## Workflow boundaries
@@ -85,8 +86,8 @@ or bypass the application's quota and idempotency rules.
 ## Gemini adapter (offline milestone)
 
 `GeminiProvider` accepts a caller-owned `google.genai.Client` configured explicitly
-with `vertexai=False` and an API key. The production handler does not construct this
-client yet. No secret is read by importing the adapter. Model and pricing come from
+with `vertexai=False` and an API key. The production handler constructs this
+client only after request validation and explicit enablement with valid configuration. No secret is read by importing the adapter. Model and pricing come from
 the server's `BudgetPolicy`; no production model or rate is selected in this stage.
 
 Both SDK operations disable retries. Counting sends the complete
@@ -123,3 +124,19 @@ a successful runtime smoke check. Upload it under an immutable SHA-based S3 key;
 pass that key as `ArtifactKey` to the opt-in AI stack. Packaging does not deploy.
 
 See [AWS Python packaging guidance](https://docs.aws.amazon.com/lambda/latest/dg/python-package.html).
+
+## Runtime configuration and kill switch
+
+`AI_ENABLED` defaults to false. Setting it to true requires `AI_USAGE_TABLE`,
+`GEMINI_SECRET_ARN`, `AWS_REGION`, `AI_BUDGET_POLICY` (the strict BudgetPolicy JSON),
+and `AI_PRICE_VALID_UNTIL` (an offset-aware ISO timestamp). No production prices are
+provided: verify the model, input/output rates and validity period before setting
+these values. The policy ceiling is USD 8; daily/input/output bounds remain 20/8000/2000.
+Expired or malformed pricing fails before secret access. The secret must contain
+`{"GEMINI_API_KEY":"..."}`. Never place its value in configuration files or commands.
+
+The handler validates identity, route and payload before creating clients, and closes
+clients at request completion. AWS calls have bounded timeouts and no SDK retries.
+Changing `AI_ENABLED` to false prevents new generations after the configuration update;
+it does not cancel invocations already running. Explicit production enablement remains
+subject to the live acceptance gates in the implementation plan.

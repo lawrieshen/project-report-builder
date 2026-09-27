@@ -77,8 +77,8 @@ def test_success_uses_swift_wire_names(service, request_model, now):
     assert result["headers"]["cache-control"] == "no-store"
 
 
-def test_lambda_entry_remains_off_even_with_enable_env(monkeypatch, request_model):
+def test_lambda_entry_rejects_enable_without_runtime_config(monkeypatch, request_model):
     for key, value in {"COGNITO_ISSUER": "issuer", "COGNITO_CLIENT_ID": "client", "APPROVED_SUBJECT": "alice", "AI_ENABLED": "true"}.items():
         monkeypatch.setenv(key, value)
     result = lambda_handler(event_for(request_model, datetime.now(UTC)), None)
-    assert json.loads(result["body"])["code"] == "AI_DISABLED"
+    assert json.loads(result["body"])["code"] == "AI_UNAVAILABLE"

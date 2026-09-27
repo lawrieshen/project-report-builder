@@ -1,10 +1,12 @@
-"""Accept only gateway-authorized AI requests; keep the production entry point disabled."""
+"""Accept only gateway-authorized AI requests; initialize enabled services only after validation."""
 
 import base64
 import json
 import logging
 import os
 from dataclasses import dataclass
+from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import UTC, datetime
 
 from .contracts import MAX_REQUEST_BYTES, Request, parse_json
@@ -70,9 +72,11 @@ def request_bytes(event: dict) -> bytes:
 
 
 class ComposeHandler:
-    def __init__(self, authentication: Authentication, service: CompositionService | None = None):
+    def __init__(self, authentication: Authentication, service: CompositionService | None = None,
+                 service_factory: Callable[[], CompositionService] | None = None):
         self.authentication = authentication
         self.service = service
+        self.service_factory = service_factory
 
     def handle(self, event: dict, now: datetime) -> dict:
         try:
@@ -85,9 +89,12 @@ class ComposeHandler:
                 request = parse_json(Request, request_bytes(event))
             except (ValueError, TypeError, RecursionError):
                 return failure(Code.INVALID_INPUT)
-            if self.service is None:
+            service = self.service
+            if service is None and self.service_factory is not None:
+                service = self.service_factory()
+            if service is None:
                 return failure(Code.DISABLED)
-            result = self.service.compose(subject, request)
+            result = service.compose(subject, request)
             return response(200, result.model_dump(mode="json", by_alias=True))
         except Unauthorized:
             return response(401, {"code": "UNAUTHENTICATED"})
@@ -100,10 +107,13 @@ class ComposeHandler:
 
 
 def lambda_handler(event, context):
-    """Fail closed until the provider, pricing, infrastructure and live-validation gates are complete."""
+    """Default to disabled; require valid runtime pricing before loading the secret."""
     try:
         authentication = Authentication(os.environ.get("COGNITO_ISSUER", ""), os.environ.get("COGNITO_CLIENT_ID", ""),
                                         os.environ.get("APPROVED_SUBJECT", ""))
-        return ComposeHandler(authentication).handle(event, datetime.now(UTC))
+        from .runtime import build_service
+        with ExitStack() as resources:
+            return ComposeHandler(authentication, service_factory=lambda: build_service(os.environ, resources)).handle(
+                event, datetime.now(UTC))
     except Exception:
         return failure(Code.UNAVAILABLE)

@@ -26,10 +26,11 @@ test('AI route uses existing JWT and exact invoke path', () => {
 
 test('isolated Python runtime is bounded and disabled', () => {
   const stack = template();
+  stack.hasParameter('AiEnabled', { Default: 'false', AllowedValues: ['false', 'true'] });
   stack.hasResourceProperties('AWS::Lambda::Function', {
     Runtime: 'python3.12', Architectures: ['arm64'], Timeout: 25, ReservedConcurrentExecutions: 2,
     Handler: 'prb_ai.handler.lambda_handler',
-    Environment: { Variables: Match.objectLike({ AI_ENABLED: 'false' }) },
+    Environment: { Variables: Match.objectLike({ AI_ENABLED: { Ref: 'AiEnabled' } }) },
   });
   stack.hasResource('AWS::DynamoDB::Table', {
     DeletionPolicy: 'Retain', UpdateReplacePolicy: 'Retain',
