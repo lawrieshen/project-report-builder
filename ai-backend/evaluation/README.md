@@ -61,6 +61,20 @@ Inspect its matching server audit record before resuming. An expired cached resu
 cannot be recovered by continually retrying; keep the evidence and decide whether
 a new charged run is necessary. No error response bodies or tokens are stored.
 
+After fixing a rejected case, select only the cases that need another charged run:
+
+```sh
+.venv/bin/python scripts/evaluate_live.py --execute --sign-in \
+  --case en-no-invention --case en-concise \
+  --results evaluation/results-follow-up.json
+```
+
+`--case` can be repeated. Selection preserves the full fixture fingerprint and runs
+cases in fixture order; `--limit` applies after selection. A settled failed request
+replays its failure, so an intentional fresh generation needs a new results file.
+Retain previous evidence and respect the unchanged daily quota. A focused rerun
+does not prove every case passed on the new deployment.
+
 ## Review evidence
 
 For each case, record pass/fail and a brief reason for every listed `review` item.

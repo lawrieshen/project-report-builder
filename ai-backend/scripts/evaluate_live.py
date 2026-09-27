@@ -72,6 +72,8 @@ def main():
     parser.add_argument('--limit', type=int, choices=range(1, 11), default=10,
                         help='Run the first N cases; use 1 for the initial smoke test')
     parser.add_argument('--results', type=Path, default=ROOT / 'evaluation/results.json')
+    parser.add_argument('--case', action='append', choices=[case['id'] for case in cases()],
+                        help='Run only named cases; repeat to select several without spending on the others')
     args = parser.parse_args()
     existing = json.loads(args.results.read_text()) if args.results.exists() else None
     run_id = UUID(existing['runID']) if existing else uuid4()
@@ -96,7 +98,9 @@ def main():
     token = sign_in() if args.sign_in else getpass.getpass('Cognito access token (hidden; never saved): ')
     if not token or any(char.isspace() for char in token):
         raise SystemExit('A nonempty access token without whitespace is required')
-    for case, request in requests[:args.limit]:
+    selected = [(case, request) for case, request in requests
+                if args.case is None or case['id'] in args.case]
+    for case, request in selected[:args.limit]:
         previous = results['cases'].get(case['id'])
         if previous and previous.get('status') == 200:
             continue

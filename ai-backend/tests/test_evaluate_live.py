@@ -100,3 +100,27 @@ def test_sign_in_requires_interactive_terminal(monkeypatch):
     monkeypatch.setattr(sys.stdin, 'isatty', lambda: False)
     with pytest.raises(SystemExit, match='Interactive terminal required'):
         runner.sign_in()
+
+
+def test_case_selection_keeps_full_fingerprint_and_selected_request_identity(monkeypatch, tmp_path):
+    results = tmp_path / 'selected.json'
+    monkeypatch.setattr(runner.getpass, 'getpass', lambda _: 'private-token')
+    bodies = []
+    class Connection:
+        def __init__(self, *args, **kwargs):
+            pass
+        def request(self, method, path, body, headers):
+            bodies.append(json.loads(body))
+            raise TimeoutError('stop after selected case')
+        def close(self):
+            pass
+    monkeypatch.setattr(runner.http.client, 'HTTPSConnection', Connection)
+    for arguments in [[], ['--case', 'en-missing-date']]:
+        monkeypatch.setattr(sys, 'argv', ['evaluate_live', '--execute', '--case', 'en-concise',
+                                         '--results', str(results), *arguments])
+        with pytest.raises(SystemExit) as error:
+            runner.main()
+        assert error.value.code == 1
+    assert 'exactly two' in bodies[0]['messages'][0]['text']
+    assert 'milestone' in bodies[1]['messages'][0]['text']
+    assert set(json.loads(results.read_text())['cases']) == {'en-concise', 'en-missing-date'}

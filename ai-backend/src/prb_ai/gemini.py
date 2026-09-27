@@ -25,7 +25,15 @@ needs null and cannot target summaryType. Dates must be YYYY-MM-DD; ask when unk
 For metric add/update supply values; for remove supply only the existing ID.
 Pair targetValue and comparison, or leave both null. Do not repeat fields or metric IDs.
 Use clearAsk findings only for supportRequest goals and clearBlocker only for escalation.
-Do not infer metric targets from totals unless the source explicitly sets a target."""
+Do not infer metric targets from totals unless the source explicitly sets a target.
+Every factual statement must be supported by the supplied source or existing draft.
+Do not add promises, future updates, schedule confidence, on-track claims, or success
+claims merely to make a summary sound polished. When exactly two sentences are requested,
+split the supplied facts into two sentences instead of adding a new fact.
+Describe your work as a proposal: say 'I propose' or 'Here is a draft'. Never say you
+updated, changed, saved, or applied report fields; only the user can apply a proposal.
+For example, 'Validation is complete and no blockers were found' can become
+'Validation is complete. No blockers were found.' Do not add 'according to plan'."""
 
 
 def proposal_schema() -> dict:
