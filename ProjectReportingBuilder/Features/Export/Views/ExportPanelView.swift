@@ -34,16 +34,7 @@ struct ExportPanelView: View {
             Text("Export the current report, including unsaved changes.")
                 .font(.callout).foregroundStyle(.secondary)
             options
-            if viewModel.requiresConfirmation, let report = viewModel.accessibilityReport {
-                ReportValidationExportWarningView(issueCount: report.issues.count,
-                    review: {
-                        viewModel.cancelPendingExport()
-                        reviewIssues()
-                    }, proceed: { Task { await viewModel.exportAnyway() } },
-                    cancel: viewModel.cancelPendingExport)
-            } else {
-                actions
-            }
+            exportActions
             feedback
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -103,5 +94,19 @@ struct ExportPanelView: View {
     private func run(_ action: ExportAction) {
         let appearance: ExportAppearance = colorScheme == .dark ? .dark : .light
         Task { await viewModel.request(action, model: model, validation: validation, appearance: appearance) }
+    }
+
+    @ViewBuilder
+    private var exportActions: some View {
+        if viewModel.requiresConfirmation, let report = viewModel.accessibilityReport {
+            ReportValidationExportWarningView(issueCount: report.issues.count,
+                review: {
+                    viewModel.cancelPendingExport()
+                    reviewIssues()
+                }, proceed: { Task { await viewModel.exportAnyway() } },
+                cancel: viewModel.cancelPendingExport)
+        } else {
+            actions
+        }
     }
 }
