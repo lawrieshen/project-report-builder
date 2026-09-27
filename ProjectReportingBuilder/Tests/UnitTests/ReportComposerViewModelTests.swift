@@ -86,6 +86,51 @@ struct ReportComposerViewModelTests {
         await model.send("Revise")
         #expect(model.graph.state == .limited)
         #expect(model.candidate == candidate)
+        #expect(model.canReviewRetainedCandidate)
+        let previousVersion = model.graph.version
+        model.reviewRetainedCandidate()
+        #expect(model.graph.state == .reviewing)
+        #expect(model.graph.version != previousVersion)
+        #expect(model.graph.confirmation == nil)
+        #expect(model.candidate == candidate)
+        #expect(service.requests.count == 2)
+        model.confirm(reviewedCriteria: [.audienceFit, .languageFit, .factualAccuracy])
+        let version = model.graph.version
+        #expect(model.apply(to: model.base, reportID: version.reportID,
+                            accountSessionID: version.accountSessionID, editorAllowsApply: true) == candidate)
+    }
+
+    @Test func retainedReviewCannotReviveStaleOrClosedSession() async {
+        let model = make(FakeComposer())
+        await model.send("Write")
+        var changed = model.base
+        changed.codeName = "Changed in editor"
+        model.observeEditor(changed, reportID: model.graph.version.reportID,
+                            accountSessionID: model.graph.version.accountSessionID)
+        #expect(!model.canReviewRetainedCandidate)
+        model.reviewRetainedCandidate()
+        #expect(model.graph.state == .stale)
+        model.close()
+        model.reviewRetainedCandidate()
+        #expect(model.graph.state == .closed)
+    }
+
+    @Test func cancellingFollowUpAllowsReviewAndRejectsLateResult() async {
+        let service = FakeComposer()
+        let model = make(service)
+        await model.send("Write")
+        let candidate = model.candidate
+        service.suspend = true
+        let followUp = Task { await model.send("Revise") }
+        while service.continuation == nil { await Task.yield() }
+        model.cancel()
+        #expect(model.canReviewRetainedCandidate)
+        model.reviewRetainedCandidate()
+        service.resume()
+        await followUp.value
+        #expect(model.graph.state == .reviewing)
+        #expect(model.candidate == candidate)
+        #expect(service.requests.count == 2)
     }
 
     @Test func manualCandidateEditsInvalidateReviewWithoutSavingOrCallingAI() async {

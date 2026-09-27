@@ -117,6 +117,10 @@ struct ReportComposerView: View {
                              reviewLocked: model.graph.state == .confirmed)
             if model.graph.state == .confirmed {
                 Button("Review again") { model.reviewAgain() }
+            } else if model.canReviewRetainedCandidate {
+                Button("Review current candidate") { model.reviewRetainedCandidate() }
+                Text("Review the preserved candidate without another AI request. Check any unanswered questions before applying.")
+                    .font(.caption).foregroundStyle(.secondary)
             } else {
                 Button("Confirm reviewed candidate") { model.confirm(reviewedCriteria: reviewed) }
                     .disabled(!goalAccepted || !model.evaluation.readyForReview || model.graph.state != .reviewing)

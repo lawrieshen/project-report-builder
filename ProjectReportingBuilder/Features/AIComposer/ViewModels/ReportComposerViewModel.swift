@@ -35,6 +35,17 @@ final class ReportComposerViewModel: ObservableObject {
 
     var hasUnappliedChanges: Bool { candidate != base }
     var canUndo: Bool { undoRecord != nil && graph.state != .closed }
+    var canReviewRetainedCandidate: Bool {
+        hasUnappliedChanges && [.ready, .failed, .limited, .awaitingAnswer].contains(graph.state)
+    }
+
+    /// Resume human review after an interrupted request without spending another attempt.
+    func reviewRetainedCandidate() {
+        guard canReviewRetainedCandidate,
+              graph.send(.candidateChanged(version(goal: graph.version.goal))) else { return }
+        assessment = nil
+        graph.send(.evaluated(hasQuestions: false))
+    }
 
     /// Send one explicit turn; cancellation and version changes make late results inert.
     func send(_ text: String) async {
