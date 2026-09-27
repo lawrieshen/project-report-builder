@@ -1,5 +1,9 @@
+/// Persist session markers while retaining the previous launch state for recovery decisions.
 @MainActor
 final class AppSessionStore {
+    /// Capture the stored running marker before this session updates it.
+    ///
+    /// An unfinished marker can indicate a crash, force quit, or another interrupted exit.
     let previousSessionWasInterrupted: Bool
 
     var state: AppSessionState {

@@ -50,6 +50,7 @@ nonisolated struct EngineeringMetricDraft: Identifiable, Codable, Equatable, Sen
     }
 
     /// Convert valid input without silently dropping invalid metrics.
+    ///
     /// - Throws: A validation error when required fields or numbers are invalid.
     func makeMetric() throws -> EngineeringMetric {
         if let message = validationError() { throw MetricValidationError(message: message) }

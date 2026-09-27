@@ -2,6 +2,13 @@ import Foundation
 
 /// Parse explicit label/value notes; never infer facts from unstructured prose.
 struct ContentProcessor: ContentProcessing {
+    /// Parse recognized labels into suggestions without applying them.
+    ///
+    /// Unknown labels and empty values are skipped. Dates must use `yyyy-MM-dd`.
+    ///
+    /// - Parameter text: One label/value pair per line, separated by the first colon.
+    /// - Returns: Available suggestions; report validation remains the caller’s responsibility.
+    /// - Throws: `CancellationError` when processing is cancelled.
     func process(text: String) async throws -> ReportContentSuggestions {
         var result = ReportContentSuggestions()
         let dateParser = DateFormatter()

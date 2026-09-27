@@ -20,6 +20,11 @@ final class RecoveryMaintenanceCoordinator {
     @ObservationIgnored weak var participant: (any RecoveryMaintenanceParticipant)?
     private(set) var isClearing = false
 
+    /// Clear recovery copies after coordinating with the active workspace.
+    ///
+    /// - Parameter store: The local store containing recovery files.
+    /// - Throws: `RecoveryMaintenanceError.workspaceBusy` when cleanup is unavailable,
+    ///   or an error from workspace preparation or storage cleanup.
     func clearRecovery(using store: ProjectFileStore) async throws {
         guard !isClearing, participant?.canClearRecovery != false else {
             throw RecoveryMaintenanceError.workspaceBusy

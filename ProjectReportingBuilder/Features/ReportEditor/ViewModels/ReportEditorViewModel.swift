@@ -147,6 +147,11 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     }
 
     /// Save a validated snapshot; keep edits intact if the repository fails.
+    ///
+    /// Edits made during the repository write remain in the draft. Failures populate
+    /// `saveError` rather than throwing; a busy or unavailable workspace returns `false`.
+    ///
+    /// - Parameter automatically: Whether to present this as an autosave attempt.
     /// - Returns: Whether saving succeeded, or the loaded report was already clean.
     func save(automatically: Bool = false) async -> Bool {
         autosaveTask?.cancel()
@@ -192,6 +197,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     }
 
     /// Add a confirmed metric without writing to the repository.
+    ///
     /// - Returns: A validation message, or nil on success.
     func addMetric(_ metric: EngineeringMetricDraft) -> String? {
         guard !isSaving, !isLoading, var draft else { return "The report is busy. Try again." }
@@ -219,7 +225,13 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         draft?.metrics.removeAll { $0.id == id }
     }
 
-    /// Move metrics using array insertion offsets; array order is the saved order.
+    /// Move draft metrics using insertion offsets without saving the report.
+    ///
+    /// Invalid offsets and moves while saving or loading are ignored.
+    ///
+    /// - Parameters:
+    ///   - offsets: Source indices in the current metric array.
+    ///   - destination: Insertion offset in the array before removing source elements.
     func moveMetric(fromOffsets offsets: IndexSet, toOffset destination: Int) {
         guard !isSaving, !isLoading, var draft,
               destination >= 0, destination <= draft.metrics.count,
@@ -231,7 +243,10 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         self.draft = draft
     }
 
-    /// Finish durable cleanup before reporting that edits have been discarded.
+    /// Restore the last saved draft after removing its recovery copy.
+    ///
+    /// - Returns: `false` when busy or recovery removal fails; otherwise `true`.
+    /// - Note: Discard does not undo edits already persisted by autosave.
     @discardableResult
     func discardChanges() async -> Bool {
         guard !isSaving, !maintenanceInProgress else { return false }
