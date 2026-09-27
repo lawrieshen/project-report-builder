@@ -11,6 +11,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 struct AppSettingsView: View {
     @Bindable var store: AppSettingsStore
     let account: CloudAccountStore
+    let transfers: CloudTransferStore
     let fileStore: ProjectFileStore
     let maintenance: RecoveryMaintenanceCoordinator
     @State private var selection: SettingsSection? = .general
@@ -78,7 +79,7 @@ struct AppSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         case .cloud:
-            CloudAccountView(account: account)
+            CloudAccountView(account: account, transfers: transfers)
         case .storage:
             StorageSettingsView(store: fileStore, maintenance: maintenance)
         case .about:

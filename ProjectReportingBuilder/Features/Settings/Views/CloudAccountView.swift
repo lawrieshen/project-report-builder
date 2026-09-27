@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CloudAccountView: View {
     @Bindable var account: CloudAccountStore
+    @Bindable var transfers: CloudTransferStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
@@ -9,8 +10,6 @@ struct CloudAccountView: View {
             Text(account.isSignedIn ? "Signed in" : "Not signed in")
             Text("Sign in with your assigned test account. Local reports remain available without signing in.")
                 .foregroundStyle(.secondary)
-            Text("Cloud report upload and download are not available yet.")
-                .font(.caption).foregroundStyle(.secondary)
             HStack {
                 if account.isSignedIn {
                     Button("Sign Out") { Task { await account.signOut() } }
@@ -19,9 +18,15 @@ struct CloudAccountView: View {
                 }
                 if account.isBusy { ProgressView().controlSize(.small) }
             }
-            .disabled(account.isBusy)
+            .disabled(account.isBusy || transfers.isBusy)
             if let message = account.message { Text(message).foregroundStyle(.secondary) }
+            if account.isSignedIn {
+                CloudTransferView(store: transfers).disabled(account.isBusy)
+            }
         }
         .task { await account.restore() }
+        .onChange(of: account.isSignedIn) { _, signedIn in
+            if !signedIn { transfers.clear() }
+        }
     }
 }
