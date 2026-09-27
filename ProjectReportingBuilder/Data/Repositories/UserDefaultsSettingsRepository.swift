@@ -1,5 +1,6 @@
 import Foundation
 
+/// Persist preferences and migrate legacy workspace restoration keys when loading.
 @MainActor
 final class UserDefaultsSettingsRepository: SettingsRepository {
     private let defaults: UserDefaults
@@ -11,6 +12,8 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
         self.initialSettings = initialSettings
     }
 
+    /// Load preferences while preserving legacy restoration choices.
+    /// - Returns: Decoded settings, or the injected initial settings for missing or unreadable data.
     func load() -> AppSettings {
         guard let data = defaults.data(forKey: key),
               var values = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

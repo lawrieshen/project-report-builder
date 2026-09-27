@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Show saved metadata and revalidate the editable draft whenever it changes.
 struct ReportInspectorView: View {
     let project: ProjectReport
     let draft: ReportEditorDraft

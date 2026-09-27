@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Edit summary text and intent directly in the parent-owned report draft.
 struct ExecutiveSummarySectionView: View {
     @Binding var draft: ReportEditorDraft
 

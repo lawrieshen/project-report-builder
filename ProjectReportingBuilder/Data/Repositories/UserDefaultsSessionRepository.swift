@@ -1,5 +1,6 @@
 import Foundation
 
+/// Store the last project identity and interruption marker in user defaults.
 @MainActor
 final class UserDefaultsSessionRepository: SessionRepository {
     private let defaults: UserDefaults
