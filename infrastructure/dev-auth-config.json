@@ -1,0 +1,5 @@
+{
+  "cognitoIssuer": "https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_8f8EhWpSM",
+  "cognitoClientId": "50140nj121i4sbsra4m8o37cqq",
+  "approvedSubject": "494e44b8-80f1-70a7-ae7c-4cdd067f699d"
+}

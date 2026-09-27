@@ -1,0 +1,12 @@
+{
+  "account": "543123648742",
+  "region": "ap-southeast-2",
+  "stackName": "prb-dev-foundation",
+  "userPoolId": "ap-southeast-2_8f8EhWpSM",
+  "appClientId": "50140nj121i4sbsra4m8o37cqq",
+  "issuer": "https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_8f8EhWpSM",
+  "loginDomainUrl": "https://prb-dev-543123648742-ap-southeast-2.auth.ap-southeast-2.amazoncognito.com",
+  "reportsTableName": "prb-dev-reports",
+  "callbackUrl": "projectreportbuilder://auth/callback",
+  "logoutUrl": "projectreportbuilder://auth/logout"
+}
