@@ -113,16 +113,8 @@ struct ReportComposerView: View {
 
     @ViewBuilder private var goalProgress: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(model.evaluation.isConfirmed ? "Goal confirmed — not a save receipt" : "Goal checklist").font(.headline)
-            ForEach(model.evaluation.criteria) { criterion in
-                if criterion.status == .needsReview || criterion.evidence == .userConfirmation {
-                    Toggle(criterion.explanation, isOn: Binding(get: { reviewed.contains(criterion.id) }, set: {
-                        if $0 { reviewed.insert(criterion.id) } else { reviewed.remove(criterion.id) }
-                    })).disabled(model.graph.state == .confirmed)
-                } else {
-                    Label(criterion.explanation, systemImage: criterion.status == .satisfied ? "checkmark.circle" : "circle")
-                }
-            }
+            GoalProgressView(evaluation: model.evaluation, reviewed: $reviewed,
+                             reviewLocked: model.graph.state == .confirmed)
             if model.graph.state == .confirmed {
                 Button("Review again") { model.reviewAgain() }
             } else {
