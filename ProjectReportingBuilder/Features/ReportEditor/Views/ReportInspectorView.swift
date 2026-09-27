@@ -4,8 +4,16 @@ struct ReportInspectorView: View {
     let project: ProjectReport
     let draft: ReportEditorDraft
     let goToSection: (ReportSection) -> Void
-    @State private var validationReport: ReportValidationReport?
-    @State private var isChecking = false
+    @State private var validation: ReportValidationViewModel
+
+    init(project: ProjectReport, draft: ReportEditorDraft,
+         goToSection: @escaping (ReportSection) -> Void,
+         checker: any ReportValidating = ReportValidator()) {
+        self.project = project
+        self.draft = draft
+        self.goToSection = goToSection
+        _validation = State(initialValue: ReportValidationViewModel(checker: checker))
+    }
 
     var body: some View {
         ScrollView {
@@ -20,21 +28,16 @@ struct ReportInspectorView: View {
         .frame(width: 190)
         .background(.quaternary.opacity(0.3))
         .task(id: draft) {
-            isChecking = true
-            validationReport = nil
-            let result = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
-            guard !Task.isCancelled else { return }
-            validationReport = result
-            isChecking = false
+            await validation.validate(model: ReportValidationModel(draft: draft))
         }
     }
 
     @ViewBuilder
     private var validationResults: some View {
         Text("Report Validation").font(.headline)
-        if isChecking || validationReport == nil {
+        if validation.isChecking || validation.report == nil {
             ProgressView("Validating…")
-        } else if let report = validationReport {
+        } else if let report = validation.report {
             Image(systemName: report.isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(report.isValid ? Color.green : Color.red)

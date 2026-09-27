@@ -7,8 +7,6 @@ struct ContentInputCard: View {
     @State private var model = ContentInputViewModel()
     @State private var selection = ContentSuggestionSelection()
     @State private var showingTextImporter = false
-    @State private var importError: String?
-    @State private var isImportingText = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
@@ -22,13 +20,8 @@ struct ContentInputCard: View {
         .fileImporter(isPresented: $showingTextImporter, allowedContentTypes: [.plainText]) { result in
             switch result {
             case .success(let url):
-                Task {
-                    isImportingText = true
-                    defer { isImportingText = false }
-                    do { model.rawText = try await SourceTextReader().read(from: url) }
-                    catch { importError = error.localizedDescription }
-                }
-            case .failure(let error): importError = error.localizedDescription
+                Task { await model.importText(from: url) }
+            case .failure(let error): model.reportImportFailure(error)
             }
         }
         .onChange(of: model.suggestions) { _, suggestions in
@@ -36,7 +29,7 @@ struct ContentInputCard: View {
                 selection = ContentSuggestionSelection(suggestions: suggestions, draft: draft)
             }
         }
-        .onDisappear { model.clearResults() }
+        .onDisappear { model.cancelPendingWork() }
     }
 
     @ViewBuilder
@@ -52,7 +45,7 @@ struct ContentInputCard: View {
             if let error = model.processingError {
                 Text(error).floatingCardError()
             }
-            if let importError { Text(importError).floatingCardError() }
+            if let importError = model.importError { Text(importError).floatingCardError() }
         }
     }
 
@@ -68,12 +61,12 @@ struct ContentInputCard: View {
                 .frame(height: 180)
                 .accessibilityLabel("Raw Project Notes")
                 .accessibilityIdentifier("sourceText")
-                .disabled(model.isProcessing || isImportingText)
+                .disabled(model.isProcessing || model.isImportingText)
             Button("Import Text File") {
-                importError = nil
+                model.prepareTextImport()
                 showingTextImporter = true
             }
-            .disabled(model.isProcessing || isImportingText)
+            .disabled(model.isProcessing || model.isImportingText)
         }
     }
 
@@ -97,7 +90,7 @@ struct ContentInputCard: View {
                 Button(model.processingError == nil ? "Process" : "Retry") {
                     Task { await model.processText() }
                 }
-                .disabled(!model.canProcess || isImportingText)
+                .disabled(!model.canProcess || model.isImportingText)
                 .accessibilityIdentifier("processContent")
                 .keyboardShortcut(.defaultAction)
             }

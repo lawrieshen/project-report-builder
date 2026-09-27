@@ -13,9 +13,9 @@ final class ProjectBrowserViewModel {
     private(set) var storageWarnings: [String] = []
     var actionErrorMessage: String?
     
-    private let repository: ProjectRepository
+    private let repository: any ProjectRepository
     
-    init(repository: ProjectRepository) {
+    init(repository: any ProjectRepository) {
         self.repository = repository
     }
     

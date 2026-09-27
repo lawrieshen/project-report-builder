@@ -30,7 +30,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     private var autosaveDelay: AutosaveDelay = .seconds2
     private var autosavePaused = false
     private var savedDraft: ReportEditorDraft?
-    private let repository: ProjectRepository
+    private let repository: any ProjectRepository
     private let assetRepository: any AssetRepository
     private let recoveryRepository: (any DraftRecoveryRepository)?
     private let recoveryDelay: Duration
@@ -45,7 +45,7 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     private(set) var cleanupTask: Task<Void, Never>?
 
 
-    init(projectID: UUID, repository: ProjectRepository,
+    init(projectID: UUID, repository: any ProjectRepository,
          assetRepository: (any AssetRepository)? = nil,
          recoveryRepository: (any DraftRecoveryRepository)? = nil,
          recoveryDelay: Duration = .milliseconds(1500),

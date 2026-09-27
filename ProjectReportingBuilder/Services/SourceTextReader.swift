@@ -1,7 +1,7 @@
 import Foundation
 
 /// Read a bounded UTF-8 text file while its sandbox access is available.
-actor SourceTextReader {
+actor SourceTextReader: SourceTextReading {
     func read(from url: URL) throws -> String {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
