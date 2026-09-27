@@ -51,3 +51,52 @@ def test_retry_preserves_request_and_rejects_changed_cases(monkeypatch, tmp_path
     with pytest.raises(SystemExit, match='Cases or request fixtures changed'):
         runner.main()
     assert len(bodies) == 2
+
+
+def test_sign_in_uses_public_client_and_returns_only_access_token(monkeypatch, capsys):
+    monkeypatch.setattr(sys.stdin, 'isatty', lambda: True)
+    monkeypatch.setattr('builtins.input', lambda _: 'tester@example.com')
+    monkeypatch.setattr(runner.getpass, 'getpass', lambda _: 'private-password')
+    calls = []
+    class Connection:
+        status = 200
+        def __init__(self, host, timeout):
+            assert host == 'cognito-idp.ap-southeast-2.amazonaws.com'
+        def request(self, method, path, body, headers):
+            calls.append(json.loads(body))
+        def getresponse(self):
+            return self
+        def read(self, size):
+            return b'{"AuthenticationResult":{"AccessToken":"access-token","RefreshToken":"refresh-token"}}'
+        def close(self):
+            calls.append('closed')
+    monkeypatch.setattr(runner.http.client, 'HTTPSConnection', Connection)
+    assert runner.sign_in() == 'access-token'
+    assert calls[0]['AuthFlow'] == 'USER_PASSWORD_AUTH'
+    assert calls[0]['AuthParameters']['PASSWORD'] == 'private-password'
+    assert calls[-1] == 'closed'
+    assert capsys.readouterr().out == ''
+
+
+def test_sign_in_does_not_echo_provider_errors(monkeypatch):
+    monkeypatch.setattr(sys.stdin, 'isatty', lambda: True)
+    monkeypatch.setattr('builtins.input', lambda _: 'tester@example.com')
+    monkeypatch.setattr(runner.getpass, 'getpass', lambda _: 'private-password')
+    class Connection:
+        def __init__(self, *args, **kwargs):
+            pass
+        def request(self, *args, **kwargs):
+            raise RuntimeError('private-password')
+        def close(self):
+            pass
+    monkeypatch.setattr(runner.http.client, 'HTTPSConnection', Connection)
+    with pytest.raises(SystemExit) as error:
+        runner.sign_in()
+    assert 'private-password' not in str(error.value)
+    assert 'Sign-in failed' in str(error.value)
+
+
+def test_sign_in_requires_interactive_terminal(monkeypatch):
+    monkeypatch.setattr(sys.stdin, 'isatty', lambda: False)
+    with pytest.raises(SystemExit, match='Interactive terminal required'):
+        runner.sign_in()

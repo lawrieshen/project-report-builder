@@ -5,14 +5,50 @@ import getpass
 import hashlib
 import http.client
 import json
+import sys
 from pathlib import Path
 from time import monotonic
 from uuid import uuid4, uuid5, UUID
 
 from prb_ai.contracts import Request, Response, parse_json
+from prb_ai.errors import Code
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST = 'ic1fsr0eg6.execute-api.ap-southeast-2.amazonaws.com'
+
+
+def sign_in() -> str:
+    """Use the app's public Cognito client; keep credentials and tokens in memory only."""
+    if not sys.stdin.isatty():
+        raise SystemExit('Interactive terminal required for sign-in; do not pipe credentials.')
+    configuration = json.loads((ROOT.parent / 'infrastructure/dev-outputs.json').read_text())
+    username = input('App sign-in email: ').strip()
+    password = getpass.getpass('App password (hidden; never saved): ')
+    if not username or not password:
+        raise SystemExit('Email and password are required')
+    connection = http.client.HTTPSConnection('cognito-idp.ap-southeast-2.amazonaws.com', timeout=15)
+    try:
+        connection.request('POST', '/', body=json.dumps({
+            'ClientId': configuration['appClientId'], 'AuthFlow': 'USER_PASSWORD_AUTH',
+            'AuthParameters': {'USERNAME': username, 'PASSWORD': password},
+        }).encode(), headers={'Content-Type': 'application/x-amz-json-1.1',
+                              'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth'})
+        reply = connection.getresponse()
+        data = reply.read(64_001)
+        if reply.status != 200 or len(data) > 64_000:
+            raise ValueError('Sign-in failed')
+        result = json.loads(data)
+        if result.get('ChallengeName'):
+            raise SystemExit('Complete the required password/MFA challenge in the app, then retry or use token mode.')
+        token = result.get('AuthenticationResult', {}).get('AccessToken')
+        if not isinstance(token, str) or not token or any(char.isspace() for char in token):
+            raise ValueError('Missing access token')
+        return token
+    except Exception:
+        raise SystemExit('Sign-in failed. Check app credentials and connectivity; no credential details were logged.') from None
+    finally:
+        password = ''
+        connection.close()
 
 
 def cases():
@@ -32,6 +68,9 @@ def make_request(case: dict, run_id: UUID) -> Request:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', help='Make up to ten charged API requests')
+    parser.add_argument('--sign-in', action='store_true', help='Sign in interactively instead of pasting an access token')
+    parser.add_argument('--limit', type=int, choices=range(1, 11), default=10,
+                        help='Run the first N cases; use 1 for the initial smoke test')
     parser.add_argument('--results', type=Path, default=ROOT / 'evaluation/results.json')
     args = parser.parse_args()
     existing = json.loads(args.results.read_text()) if args.results.exists() else None
@@ -54,10 +93,10 @@ def main():
         temporary.write_text(json.dumps(results, indent=2, ensure_ascii=False))
         temporary.replace(args.results)
     save()
-    token = getpass.getpass('Cognito access token (hidden; never saved): ')
+    token = sign_in() if args.sign_in else getpass.getpass('Cognito access token (hidden; never saved): ')
     if not token or any(char.isspace() for char in token):
         raise SystemExit('A nonempty access token without whitespace is required')
-    for case, request in requests:
+    for case, request in requests[:args.limit]:
         previous = results['cases'].get(case['id'])
         if previous and previous.get('status') == 200:
             continue
@@ -89,9 +128,14 @@ def main():
                 record['contractReview'] = 'passed'
             else:
                 record['contractReview'] = 'not evaluated'
+                # Only contract-defined error codes are safe to persist and show.
+                try:
+                    record['errorCode'] = Code(json.loads(data)['code']).value
+                except (ValueError, KeyError, TypeError):
+                    pass
                 # Error bodies are not printed or persisted; they could contain infrastructure details.
                 save()
-                print(f"Stopped at {case['id']}: HTTP {reply.status}. Existing request IDs remain reusable.")
+                print(f"Stopped at {case['id']}: HTTP {reply.status}, {record.get('errorCode', 'unrecognized error')}. Existing request IDs remain reusable.")
                 raise SystemExit(1)
         except Exception:
             record['status'] = 'unknown'

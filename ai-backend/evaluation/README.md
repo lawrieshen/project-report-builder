@@ -30,6 +30,21 @@ After the preconditions pass, execute the cases:
 .venv/bin/python scripts/evaluate_live.py --execute
 ```
 
+Alternatively, sign in with the same account used in the app, without copying a
+token. Start with one case before running the complete set:
+
+```sh
+.venv/bin/python scripts/evaluate_live.py --execute --sign-in --limit 1
+```
+
+This requires an interactive terminal. The password is hidden; credentials and
+tokens are not written to results or printed. The runner supports the existing
+public client's password flow; MFA/new-password challenges require the app and
+token mode instead. With the backend disabled, a contract-defined disabled error
+is expected and no Gemini generation occurs. Confirm the backend remains disabled
+before using this as an authentication smoke test. Once controlled generation is
+enabled, the same command can incur a charge. Remove `--limit 1` to run all cases.
+
 Enter the approved user's Cognito **access token** at the hidden prompt. Do not
 paste tokens into chat, command arguments or tracked files. This tool calls the
 authenticated report API, which owns budget accounting; it does not call Gemini
