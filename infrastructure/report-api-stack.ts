@@ -1,4 +1,4 @@
-import { CfnOutput, CfnParameter, RemovalPolicy, Stack, StackProps, Tags } from 'aws-cdk-lib';
+import { CfnCondition, CfnOutput, CfnParameter, Fn, RemovalPolicy, Stack, StackProps, Tags } from 'aws-cdk-lib';
 import { aws_apigatewayv2 as gateway, aws_iam as iam, aws_lambda as lambda, aws_logs as logs, aws_s3 as s3 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -14,6 +14,13 @@ export class ReportApiStack extends Stack {
     const issuer = new CfnParameter(this, 'CognitoIssuer');
     const client = new CfnParameter(this, 'CognitoClientId');
     const subject = new CfnParameter(this, 'ApprovedSubject', { minLength: 1 });
+    const aiThrottle = new CfnParameter(this, 'EnableAiRouteThrottling', {
+      default: 'false', allowedValues: ['false', 'true'],
+      description: 'Enable only after the separate AI stack has created POST /ai/compose.',
+    });
+    const hasAiRoute = new CfnCondition(this, 'HasAiRoute', {
+      expression: Fn.conditionEquals(aiThrottle.valueAsString, 'true'),
+    });
     const functionLogs = new logs.LogGroup(this, 'FunctionLogs', {
       logGroupName: '/aws/lambda/prb-dev-report-api', retention: logs.RetentionDays.TWO_WEEKS,
       removalPolicy: RemovalPolicy.RETAIN,
@@ -76,6 +83,10 @@ export class ReportApiStack extends Stack {
     new gateway.CfnStage(this, 'Stage', {
       apiId: api.ref, stageName: '$default', autoDeploy: true,
       defaultRouteSettings: { throttlingBurstLimit: 10, throttlingRateLimit: 5 },
+      // Keep stage ownership here; the composer stack must not modify this stage directly.
+      routeSettings: Fn.conditionIf(hasAiRoute.logicalId, {
+        'POST /ai/compose': { ThrottlingBurstLimit: 2, ThrottlingRateLimit: 1 },
+      }, {}),
       accessLogSettings: { destinationArn: apiLogs.logGroupArn, format: JSON.stringify({
         requestId: '$context.requestId', routeKey: '$context.routeKey', status: '$context.status',
       }) },

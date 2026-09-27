@@ -3,6 +3,20 @@ import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { ReportApiStack } from './report-api-stack';
 
+test('AI route throttle is opt-in and leaves report defaults intact', () => {
+  const template = Template.fromStack(new ReportApiStack(new App(), 'ThrottleTest'));
+  template.hasParameter('EnableAiRouteThrottling', {
+    Default: 'false', AllowedValues: ['false', 'true'],
+  });
+  template.hasCondition('HasAiRoute', { 'Fn::Equals': [{ Ref: 'EnableAiRouteThrottling' }, 'true'] });
+  template.hasResourceProperties('AWS::ApiGatewayV2::Stage', {
+    DefaultRouteSettings: { ThrottlingBurstLimit: 10, ThrottlingRateLimit: 5 },
+    RouteSettings: { 'Fn::If': ['HasAiRoute', {
+      'POST /ai/compose': { ThrottlingBurstLimit: 2, ThrottlingRateLimit: 1 },
+    }, {}] },
+  });
+});
+
 test('all report routes require JWT and operation scope', () => {
   const template = Template.fromStack(new ReportApiStack(new App(), 'ApiTest'));
   template.resourceCountIs('AWS::ApiGatewayV2::Route', 6);
