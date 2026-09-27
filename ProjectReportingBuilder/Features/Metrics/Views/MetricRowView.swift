@@ -15,40 +15,9 @@ struct MetricRowView: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(isHoveringHandle ? Color.accentColor : Color.secondary)
-                .onHover { hovering in
-                    isHoveringHandle = hovering
-                    if hovering { NSCursor.openHand.push() } else { NSCursor.pop() }
-                }
-                .padding(.vertical, AppSpacing.compact)
-                .contentShape(Rectangle())
-                .onDrag(beginDrag)
-                .help("Drag to reorder metrics")
-                .accessibilityLabel("Reorder metric " + draft.name)
-                .accessibilityIdentifier("metricDragHandle." + draft.name)
-            Button(action: edit) {
-                rowContent
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Edit metric " + draft.name)
-            Menu {
-                Button("Edit Metric", action: edit)
-                Button("Move Up", action: moveUp).disabled(!canMoveUp)
-                Button("Move Down", action: moveDown).disabled(!canMoveDown)
-                Divider()
-                Button("Delete Metric", role: .destructive, action: delete)
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .accessibilityLabel("Actions for metric " + draft.name)
-            .accessibilityIdentifier("metricActions." + draft.name)
-            .menuIndicator(.hidden)
+            dragHandle
+            editButton
+            actionsMenu
         }
         .padding(AppSpacing.cardInset)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
@@ -95,6 +64,52 @@ struct MetricRowView: View {
         case .missed: return "exclamationmark.triangle"
         case .notSet: return "minus.circle"
         }
+    }
+
+    @ViewBuilder
+    private var dragHandle: some View {
+        Image(systemName: "line.3.horizontal")
+            .foregroundStyle(isHoveringHandle ? Color.accentColor : Color.secondary)
+            .onHover { hovering in
+                isHoveringHandle = hovering
+                if hovering { NSCursor.openHand.push() } else { NSCursor.pop() }
+            }
+            .padding(.vertical, AppSpacing.compact)
+            .contentShape(Rectangle())
+            .onDrag(beginDrag)
+            .help("Drag to reorder metrics")
+            .accessibilityLabel("Reorder metric " + draft.name)
+            .accessibilityIdentifier("metricDragHandle." + draft.name)
+    }
+
+    @ViewBuilder
+    private var editButton: some View {
+        Button(action: edit) {
+            rowContent
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Edit metric " + draft.name)
+    }
+
+    @ViewBuilder
+    private var actionsMenu: some View {
+        Menu {
+            Button("Edit Metric", action: edit)
+            Button("Move Up", action: moveUp).disabled(!canMoveUp)
+            Button("Move Down", action: moveDown).disabled(!canMoveDown)
+            Divider()
+            Button("Delete Metric", role: .destructive, action: delete)
+        } label: {
+            Image(systemName: "ellipsis")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel("Actions for metric " + draft.name)
+        .accessibilityIdentifier("metricActions." + draft.name)
+        .menuIndicator(.hidden)
     }
 }
 

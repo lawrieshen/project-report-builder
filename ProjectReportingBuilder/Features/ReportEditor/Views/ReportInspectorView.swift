@@ -1,21 +1,25 @@
 import SwiftUI
 
+/// Show saved metadata and revalidate the editable draft whenever it changes.
 struct ReportInspectorView: View {
     let project: ProjectReport
     let draft: ReportEditorDraft
     let goToSection: (ReportSection) -> Void
-    @State private var validationReport: ReportValidationReport?
-    @State private var isChecking = false
+    @State private var validation: ReportValidationViewModel
+
+    init(project: ProjectReport, draft: ReportEditorDraft,
+         goToSection: @escaping (ReportSection) -> Void,
+         checker: any ReportValidating = ReportValidator()) {
+        self.project = project
+        self.draft = draft
+        self.goToSection = goToSection
+        _validation = State(initialValue: ReportValidationViewModel(checker: checker))
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.field) {
-                Text("Report").font(.headline)
-                LabeledContent("Status") {
-                    ProjectStatusBadge(status: project.status)
-                }
-                Text("Last Updated").font(.headline)
-                Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
+                reportMetadata
                 Divider()
                 validationResults
             }
@@ -25,21 +29,16 @@ struct ReportInspectorView: View {
         .frame(width: 190)
         .background(.quaternary.opacity(0.3))
         .task(id: draft) {
-            isChecking = true
-            validationReport = nil
-            let result = await ReportValidator().validate(model: ReportValidationModel(draft: draft))
-            guard !Task.isCancelled else { return }
-            validationReport = result
-            isChecking = false
+            await validation.validate(model: ReportValidationModel(draft: draft))
         }
     }
 
     @ViewBuilder
     private var validationResults: some View {
         Text("Report Validation").font(.headline)
-        if isChecking || validationReport == nil {
+        if validation.isChecking || validation.report == nil {
             ProgressView("Validating…")
-        } else if let report = validationReport {
+        } else if let report = validation.report {
             Image(systemName: report.isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(report.isValid ? Color.green : Color.red)
@@ -52,29 +51,44 @@ struct ReportInspectorView: View {
             } else {
                 Text("\(report.issues.count) issues").font(.subheadline.bold())
                 ForEach(report.issues) { issue in
-                    VStack(alignment: .leading, spacing: AppSpacing.compact) {
-                        Text(issue.severity.rawValue.capitalized)
-                        Text(issue.title).fontWeight(.semibold)
-                        Text(issue.message)
-                        Button("Go to " + issue.section.title) { goToSection(issue.section) }
-                            .accessibilityIdentifier("reportValidationSection." + issue.section.rawValue)
-                    }
-                    .font(.caption)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(AppSpacing.inline)
-                    .background {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.orange.opacity(0.08))
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color.orange.opacity(0.25), lineWidth: 1)
-                    }
+                    issueCard(issue)
                 }
             }
             Text("Checks report data and accessibility; does not certify WCAG compliance.")
                 .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var reportMetadata: some View {
+        Text("Report").font(.headline)
+        LabeledContent("Status") {
+            ProjectStatusBadge(status: project.status)
+        }
+        Text("Last Updated").font(.headline)
+        Text(project.updatedAt, format: .dateTime.day().month().year().hour().minute())
+    }
+
+    @ViewBuilder
+    private func issueCard(_ issue: ReportValidationIssue) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.compact) {
+            Text(issue.severity.rawValue.capitalized)
+            Text(issue.title).fontWeight(.semibold)
+            Text(issue.message)
+            Button("Go to " + issue.section.title) { goToSection(issue.section) }
+                .accessibilityIdentifier("reportValidationSection." + issue.section.rawValue)
+        }
+        .font(.caption)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(AppSpacing.inline)
+        .background {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.orange.opacity(0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.orange.opacity(0.25), lineWidth: 1)
         }
     }
 }

@@ -6,40 +6,9 @@ struct HealthUrgencySectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.field) {
             Text("Health & Urgency").font(.title3.bold())
-            Picker("Health", selection: $draft.ragStatus) {
-                Text("Not assessed").tag(nil as RAGStatus?)
-                ForEach(RAGStatus.allCases, id: \.self) { status in
-                    Label {
-                        Text(status.displayName)
-                    } icon: {
-                        Image(systemName: "circle.fill")
-                            .renderingMode(.original)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(status.color)
-                    }
-                    .tag(Optional(status))
-                }
-            }
-            Picker("Milestone Phase", selection: Binding(
-                get: { MilestonePhase.options.contains(draft.milestonePhase) ? draft.milestonePhase : "" },
-                set: { draft.milestonePhase = $0 }
-            )) {
-                Text(draft.milestonePhase.isEmpty || MilestonePhase.options.contains(draft.milestonePhase) ? "Not set" : "Please select a phase again").tag("")
-                ForEach(MilestonePhase.options, id: \.self) { phase in
-                    Text(phase).tag(phase)
-                }
-            }
-            .pickerStyle(.menu)
-            .accessibilityIdentifier("reportMilestonePhase")
-            Toggle("Set milestone deadline", isOn: Binding(
-                get: { draft.milestoneDeadline != nil },
-                set: { draft.milestoneDeadline = $0 ? Date() : nil }
-            ))
-            if let deadline = Binding($draft.milestoneDeadline) {
-                DatePicker("Deadline", selection: deadline, displayedComponents: .date)
-                Text(deadlineDescription(deadline.wrappedValue))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+            healthPicker
+            phasePicker
+            deadlineFields
             if let message = draft.milestoneError {
                 Text(message).font(.caption).foregroundStyle(.red)
             }
@@ -53,5 +22,51 @@ struct HealthUrgencySectionView: View {
         if days < 0 { return "\(-days) days overdue" }
         if days == 0 { return "Due today" }
         return "\(days) days remaining"
+    }
+
+    @ViewBuilder
+    private var healthPicker: some View {
+        Picker("Health", selection: $draft.ragStatus) {
+            Text("Not assessed").tag(nil as RAGStatus?)
+            ForEach(RAGStatus.allCases, id: \.self) { status in
+                Label {
+                    Text(status.displayName)
+                } icon: {
+                    Image(systemName: "circle.fill")
+                        .renderingMode(.original)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(status.color)
+                }
+                .tag(Optional(status))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var phasePicker: some View {
+        Picker("Milestone Phase", selection: Binding(
+            get: { MilestonePhase.options.contains(draft.milestonePhase) ? draft.milestonePhase : "" },
+            set: { draft.milestonePhase = $0 }
+        )) {
+            Text(draft.milestonePhase.isEmpty || MilestonePhase.options.contains(draft.milestonePhase) ? "Not set" : "Please select a phase again").tag("")
+            ForEach(MilestonePhase.options, id: \.self) { phase in
+                Text(phase).tag(phase)
+            }
+        }
+        .pickerStyle(.menu)
+        .accessibilityIdentifier("reportMilestonePhase")
+    }
+
+    @ViewBuilder
+    private var deadlineFields: some View {
+        Toggle("Set milestone deadline", isOn: Binding(
+            get: { draft.milestoneDeadline != nil },
+            set: { draft.milestoneDeadline = $0 ? Date() : nil }
+        ))
+        if let deadline = Binding($draft.milestoneDeadline) {
+            DatePicker("Deadline", selection: deadline, displayedComponents: .date)
+            Text(deadlineDescription(deadline.wrappedValue))
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 }

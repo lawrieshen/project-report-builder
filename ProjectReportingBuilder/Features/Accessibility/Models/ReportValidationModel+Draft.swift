@@ -1,6 +1,8 @@
 import Foundation
 
 extension ReportValidationModel {
+    /// Capture draft errors and visible sections using the canonical accessibility style.
+    /// - Parameter draft: The current editor values to validate, including invalid metrics.
     init(draft: ReportEditorDraft) {
         let preview = ReportPreviewModel(draft: draft)
         let style = ReportAccessibilityStyle.canonical

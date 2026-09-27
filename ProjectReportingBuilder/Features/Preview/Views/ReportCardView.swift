@@ -18,25 +18,7 @@ struct ReportCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
             identity
-            if model.ragStatus != nil || model.milestonePhase != nil || model.milestoneDeadline != nil {
-                health
-            }
-            if !model.metrics.isEmpty {
-                Divider()
-                ReportPreviewMetricsView(metrics: model.metrics)
-            }
-            if !model.summaryMessage.isEmpty {
-                Divider()
-                summary
-            }
-            if !model.assets.isEmpty {
-                Divider()
-                ReportPreviewAssetsView(assets: model.assets, images: images)
-            }
-            if model.leadEPMName != nil || model.projectDRIName != nil {
-                Divider()
-                accountability
-            }
+            reportSections
         }
         .font(.system(size: style.bodySize))
         .foregroundStyle(palette.primary.color)
@@ -112,6 +94,29 @@ struct ReportCardView: View {
         VStack(alignment: .leading, spacing: AppSpacing.compact) {
             Text(role).font(.system(size: style.captionSize)).foregroundStyle(palette.secondary.color)
             Text(name).font(.system(size: style.headingSize, weight: .semibold))
+        }
+    }
+
+    @ViewBuilder
+    private var reportSections: some View {
+        if model.ragStatus != nil || model.milestonePhase != nil || model.milestoneDeadline != nil {
+            health
+        }
+        if !model.metrics.isEmpty {
+            Divider()
+            ReportPreviewMetricsView(metrics: model.metrics)
+        }
+        if !model.summaryMessage.isEmpty {
+            Divider()
+            summary
+        }
+        if !model.assets.isEmpty {
+            Divider()
+            ReportPreviewAssetsView(assets: model.assets, images: images)
+        }
+        if model.leadEPMName != nil || model.projectDRIName != nil {
+            Divider()
+            accountability
         }
     }
 }

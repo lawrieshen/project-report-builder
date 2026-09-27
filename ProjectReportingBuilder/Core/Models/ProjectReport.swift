@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Represent a saved project and its optional assembled report card.
 nonisolated struct ProjectReport: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     

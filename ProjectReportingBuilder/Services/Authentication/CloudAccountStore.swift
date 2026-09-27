@@ -29,6 +29,7 @@ final class CloudAccountStore {
         self.client = client
     }
 
+    /// Attempt stored-session restoration once and expose failures through `message`.
     func restore() async {
         guard !restored, !isBusy else { return }
         restored = true
@@ -40,6 +41,10 @@ final class CloudAccountStore {
         } catch { message = error.localizedDescription }
     }
 
+    /// Authenticate without storing the password and retain any new-password challenge in memory.
+    /// - Parameters:
+    ///   - email: The account identifier; surrounding whitespace is removed.
+    ///   - password: The password to send unchanged to the authentication service.
     func signIn(email: String, password: String) async {
         guard !isBusy, !isSignedIn else { return }
         isBusy = true
@@ -95,6 +100,10 @@ final class CloudAccountStore {
         return accessToken
     }
 
+    /// Run pending-work protection before removing credentials and ending the local session.
+    ///
+    /// Keep the session visible if credential deletion fails. A later server-revocation
+    /// failure is reported but does not restore the local session.
     func signOut() async {
         guard !isBusy else { return }
         isBusy = true

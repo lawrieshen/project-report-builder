@@ -1,5 +1,6 @@
 import Foundation
 
+/// Keep reports in memory for previews and tests without writing persistent data.
 @MainActor
 final class InMemoryProjectRepository: ProjectRepository {
     private var projects: [ProjectReport]

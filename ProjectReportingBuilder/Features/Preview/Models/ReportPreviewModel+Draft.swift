@@ -1,6 +1,8 @@
 import Foundation
 
 extension ReportPreviewModel {
+    /// Build a display snapshot without discarding invalid metric rows.
+    /// - Parameter draft: The current editor values, including incomplete input.
     init(draft: ReportEditorDraft) {
         codeName = draft.codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         lineOfBusiness = draft.lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)

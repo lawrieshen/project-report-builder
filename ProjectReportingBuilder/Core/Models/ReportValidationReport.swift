@@ -17,7 +17,9 @@ struct ReportValidationIssue: Identifiable, Equatable {
     var section: ReportSection
 }
 
+/// Collect report issues for presentation without changing the source data.
 struct ReportValidationReport: Equatable {
     var issues: [ReportValidationIssue]
+    /// Indicate that no issues of any severity were found, including warnings and information.
     var isValid: Bool { issues.isEmpty }
 }

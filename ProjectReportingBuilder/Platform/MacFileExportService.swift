@@ -1,10 +1,15 @@
 import AppKit
 import UniformTypeIdentifiers
 
+/// Save rendered reports atomically at a user-selected destination.
 @MainActor
 struct MacFileExportService: FileExporting {
     var chooseDestination: (ExportResult) async throws -> URL? = Self.showSavePanel
 
+    /// Choose a destination and write the export while holding sandbox access.
+    /// - Parameter result: The rendered bytes, file name, and content type.
+    /// - Returns: The saved file URL, or `nil` if the destination picker is cancelled.
+    /// - Throws: A destination-selection, task-cancellation, or file-write error.
     func save(result: ExportResult) async throws -> URL? {
         guard let url = try await chooseDestination(result) else { return nil }
         try Task.checkCancellation()
