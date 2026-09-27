@@ -211,4 +211,4 @@ This prerequisite does not remove local storage or change autosave. Cloud-primar
 storage should follow only after a deployed image round trip passes. Unreferenced
 upload cleanup and cloud-primary migration are separate follow-up work.
 
-The next milestone follows [Cloud-primary storage](CLOUD-PRIMARY-STORAGE.md).
+The production app now follows [Cloud-primary storage](CLOUD-PRIMARY-STORAGE.md). Earlier milestone sections describe the manual-transfer implementation before that switch.

@@ -4,8 +4,9 @@ import Observation
 /// Choose storage dependencies once for the application session.
 @MainActor @Observable
 final class AppEnvironment {
+    let usesCloudStorage: Bool
     var workspace: CloudWorkspace?
-    let cloudAccount = CloudAccountStore()
+    let cloudAccount: CloudAccountStore
     let maintenance = RecoveryMaintenanceCoordinator()
     let session: AppSessionStore
     let settings: AppSettingsStore
@@ -15,13 +16,15 @@ final class AppEnvironment {
     let projects: LocalProjectRepository
 
     init(storage: ApplicationStorage, defaults: UserDefaults = .standard,
-         initialSettings: AppSettings = .default) {
+         initialSettings: AppSettings = .default, usesCloudStorage: Bool = false, cloudAccount: CloudAccountStore? = nil) {
+        self.cloudAccount = cloudAccount ?? CloudAccountStore()
+        self.usesCloudStorage = usesCloudStorage
         session = AppSessionStore(repository: UserDefaultsSessionRepository(defaults: defaults))
         settings = AppSettingsStore(repository: UserDefaultsSettingsRepository(defaults: defaults, initialSettings: initialSettings))
         self.storage = storage
         store = ProjectFileStore(storage: storage)
         projects = LocalProjectRepository(store: store)
-        let cloudClient = CloudReportClient(account: cloudAccount)
+        let cloudClient = CloudReportClient(account: self.cloudAccount)
         cloudTransfers = CloudTransferStore(projects: projects, client: cloudClient,
             history: CloudUploadHistory(file: storage.root.appendingPathComponent("cloud-uploads-prb-dev-092e2408-5041-706a-684d-db818c51805c.json")),
             images: CloudImageTransfer(files: store, client: cloudClient))
@@ -45,7 +48,9 @@ final class AppEnvironment {
             }
             return AppEnvironment(storage: ApplicationStorage(root: FileManager.default.temporaryDirectory
                 .appendingPathComponent("ProjectReportUITests").appendingPathComponent(id.uuidString)),
-                defaults: defaults, initialSettings: initial)
+                defaults: defaults, initialSettings: initial,
+                usesCloudStorage: variables["PROJECT_REPORT_TEST_CLOUD_GATE"] == "1",
+                cloudAccount: CloudAccountStore(credentials: EmptyTestCloudCredentials(), client: CognitoTokenClient()))
         }
         if variables["XCTestConfigurationFilePath"] != nil {
             guard let defaults = UserDefaults(suiteName: "ProjectReportUnitTests." + UUID().uuidString) else {
@@ -55,6 +60,14 @@ final class AppEnvironment {
                 .appendingPathComponent("ProjectReportUnitTests").appendingPathComponent(UUID().uuidString)), defaults: defaults)
         }
         #endif
-        return AppEnvironment(storage: try ApplicationStorage.production())
+        return AppEnvironment(storage: try ApplicationStorage.production(), usesCloudStorage: true)
     }
 }
+
+#if DEBUG
+private struct EmptyTestCloudCredentials: CloudCredentialStoring {
+    func read() throws -> String? { nil }
+    func save(_ token: String) throws { throw CloudAuthError.expiredSession }
+    func delete() throws { }
+}
+#endif

@@ -157,8 +157,12 @@ final class CloudImageTransfer: CloudImageTransferring, CloudProjectImages {
     /// Hydrate only missing or invalid image bytes; report snapshots remain cache data.
     func cache(report: CloudReport, project: ProjectReport) async throws {
         let metadata = report.report.assets ?? []
-        guard metadata.count <= 10, metadata.reduce(0, { $0 + $1.byteCount }) <= 50 * 1_048_576 else {
-            throw CloudTransferError.imageLimit
+        guard metadata.count <= 10 else { throw CloudTransferError.imageLimit }
+        var total = 0
+        for asset in metadata {
+            try asset.validateMetadata()
+            total += asset.byteCount
+            guard total <= 50 * 1_048_576 else { throw CloudTransferError.imageLimit }
         }
         try await files.save(project)
         for asset in metadata {

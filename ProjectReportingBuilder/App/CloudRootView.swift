@@ -34,6 +34,7 @@ struct CloudRootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .disabled(environment.cloudAccount.isBusy)
         .frame(minWidth: 760, minHeight: 400)
         .task { await environment.cloudAccount.restore() }
         .task(id: environment.cloudAccount.sessionID) { await openWorkspace() }
@@ -42,6 +43,7 @@ struct CloudRootView: View {
     private func openWorkspace() async {
         environment.workspace?.repository.invalidate()
         environment.workspace = nil
+        environment.cloudTransfers.clear()
         loading = false
         guard environment.cloudAccount.isSignedIn else { return }
         let session = environment.cloudAccount.sessionID
@@ -56,6 +58,9 @@ struct CloudRootView: View {
             let workspace = try CloudWorkspace(root: environment.storage.root, client: client)
             environment.workspace = workspace
             environment.cloudAccount.beforeSignOut = { [weak workspace] in try await workspace?.prepareForSignOut() }
+            environment.cloudAccount.signOutFailed = { [weak workspace] in
+                (workspace?.maintenance.participant as? ReportEditorViewModel)?.setAutosavePaused(false)
+            }
             onSession(workspace.session)
         } catch is CancellationError { }
         catch { self.error = error.localizedDescription }

@@ -7,7 +7,7 @@ Built as a proof of concept for enterprise project reporting.
 
 ## From update to report
 
-**Create a project → Add content → Review validation → Preview → Copy or export**
+**Sign in → Create a project → Add content → Review validation → Preview → Copy or export**
 
 - **Structure your update.** Capture project health, milestones, metrics,
   summaries, and ownership. Paste labeled notes or import a text file to
@@ -18,8 +18,8 @@ Built as a proof of concept for enterprise project reporting.
   and supported accessibility issues as you edit.
 - **Share a polished result.** Preview the report, copy it as an image,
   export PNG or HTML, or use the macOS share menu.
-- **Keep work locally.** Local storage, autosave, and draft recovery help
-  preserve work across sessions.
+- **Keep reports in the cloud.** Authenticated cloud storage and autosave keep
+  reports together; local recovery drafts protect unsynced edits.
 
 ## Try it
 
@@ -28,7 +28,7 @@ Requires **macOS 26.2+** and **Xcode 26.2** (the version configured in CI).
 1. Open `Project Report Builder.xcodeproj` in Xcode.
 2. Select the **Project Report Builder** scheme and **My Mac** destination.
 3. Configure your development signing team if needed, then run the app.
-4. Choose **Create & Open**, add your report content, and open **Preview**
+4. Sign in with the assigned POC account, then choose **Create & Open**, add your report content, and open **Preview**
    or **Export** from the workspace.
 
 ## Engineering
@@ -48,16 +48,17 @@ package a distributable app.
 
 ## POC scope
 
-- One canonical report layout, with local storage and no cloud account required.
+- One canonical report layout, with cloud storage for one approved test account.
 - Text suggestions use explicit labels, not AI interpretation of free-form text.
 - Accessibility checks cover selected rules; passing is not a guarantee of
   WCAG conformance. PNG output does not retain HTML's semantic structure.
-- Cloud storage is a future proposal, not an implemented feature.
+- Existing local reports can be imported from Settings → Cloud Account. Original files are retained.
 
 ## Further reading
 
-- [Local Java cloud service and API contract](backend/README.md) — initial local
-  report API milestone; Cognito foundation and macOS sign-in are implemented,
-  while cloud report transfer remains pending.
+- [Java cloud service and API contract](backend/README.md) — Cognito-authorized
+  report storage, revision checks and private image transfers.
 - [Product behavior and engineering notes](docs/PRODUCT-AND-ENGINEERING.md)
-- [Proposed cloud storage and identity scope](docs/CLOUD-STORAGE-PLAN.md)
+- [Cloud storage and identity scope](docs/CLOUD-STORAGE-PLAN.md)
+
+- [Cloud-primary behavior](docs/CLOUD-PRIMARY-STORAGE.md)

@@ -32,6 +32,7 @@ private final class CloudSignInBrowser: NSObject, ASWebAuthenticationPresentatio
 @MainActor @Observable
 final class CloudAccountStore {
     private(set) var sessionID = UUID()
+    var signOutFailed: (() -> Void)?
     var beforeSignOut: (() async throws -> Void)?
     private(set) var isSignedIn = false
     private(set) var isBusy = false
@@ -112,7 +113,10 @@ final class CloudAccountStore {
                 do { try await client.revoke(refresh) }
                 catch { message = "Signed out on this Mac. Server token revocation could not be confirmed." }
             }
-        } catch { message = error.localizedDescription }
+        } catch {
+            signOutFailed?()
+            message = error.localizedDescription
+        }
     }
 
     private func refreshSession(_ refresh: String) async throws {

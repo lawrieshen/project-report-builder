@@ -1,8 +1,8 @@
 # Cloud-primary storage
 
 Cloud reports are the source of truth. Local storage holds account-scoped image
-caches and recovery drafts, not an independent report library. The current
-manual transfer flow remains available until the final application switch.
+caches and recovery drafts, not an independent report library. Production now opens the cloud browser after authentication. Existing local
+reports are available only through the explicit import flow in Settings.
 
 ## Behavior
 
@@ -44,3 +44,26 @@ Exercise interrupted saves, token expiry, concurrent revisions, logout during a
 request, recovery after restart and migration retries. Keep test-only local
 repositories for deterministic unit and UI tests. Automatic S3 orphan cleanup
 is deferred; never apply blanket expiry to referenced images.
+
+
+## Implementation status — 2026-09-27
+
+The production app now uses the cloud repository. Existing local repositories
+remain for isolated tests. The compatible DELETE route was deployed successfully;
+no new IAM deployment permissions were needed because tombstones use PutItem.
+
+The POC still admits one configured Cognito subject. Its cache and recovery root
+is isolated under Cloud/<environment-and-subject>; the API must accept the session
+before the workspace opens. Expanding to multiple approved users requires resolving
+and validating account namespaces dynamically.
+
+Recovery conservatively treats a draft from a different saved timestamp as a
+conflict. Choose Reload Cloud Version (with confirmation) or Save as New Report;
+no automatic merge is attempted. Import from Settings preserves original local
+files and uses existing upload revision history. Conflicting imports remain local
+and report their failure; they never overwrite a newer cloud version silently.
+
+Automated non-UI validation passed; the new login gate UI test runs in CI.
+Manual cloud-primary acceptance (create/edit/reopen/delete, offline draft recovery,
+conflicting clients and sign-out) is still required after launching this build.
+The earlier manual image-transfer verification is not evidence for these new flows.
