@@ -1,8 +1,10 @@
 import Foundation
+import Observation
 
 /// Choose storage dependencies once for the application session.
-@MainActor
-struct AppEnvironment {
+@MainActor @Observable
+final class AppEnvironment {
+    var workspace: CloudWorkspace?
     let cloudAccount = CloudAccountStore()
     let maintenance = RecoveryMaintenanceCoordinator()
     let session: AppSessionStore
