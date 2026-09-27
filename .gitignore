@@ -23,3 +23,6 @@ build/
 /infrastructure/policies/
 /infrastructure/config/
 /infrastructure/**/*.md
+
+# Local developer guides
+DEVELOPMENT.md
