@@ -11,6 +11,8 @@ final class CloudTransferStore {
     private(set) var cloudReports: [CloudReport] = []
     private(set) var nextCursor: UUID?
     private(set) var isBusy = false
+    private(set) var migrationResults: [UUID: String] = [:]
+    private var generation = 0
     private(set) var message: String?
     private let projects: any ProjectRepository
     private let client: any CloudReportServing
@@ -26,37 +28,45 @@ final class CloudTransferStore {
 
     func refresh() async {
         guard !isBusy else { return }
+        let operation = generation
         isBusy = true
         message = nil
-        defer { isBusy = false }
+        defer { if generation == operation { isBusy = false } }
         do {
-            localProjects = try await projects.fetchProjects()
+            let local = try await projects.fetchProjects()
+            guard operation == generation else { return }
+            localProjects = local
             let page = try await client.list(after: nil)
+            guard operation == generation else { return }
             cloudReports = page.items
             nextCursor = page.nextCursor
-        } catch { message = error.localizedDescription }
+        } catch { if operation == generation { message = error.localizedDescription } }
     }
 
     func loadMore() async {
         guard !isBusy, let cursor = nextCursor else { return }
+        let operation = generation
         isBusy = true
-        defer { isBusy = false }
+        defer { if generation == operation { isBusy = false } }
         do {
             let page = try await client.list(after: cursor)
+            guard operation == generation else { return }
             let existing = Set(cloudReports.map(\.id))
             cloudReports += page.items.filter { !existing.contains($0.id) }
             nextCursor = page.nextCursor
-        } catch { message = error.localizedDescription }
+        } catch { if operation == generation { message = error.localizedDescription } }
     }
 
     func upload(id: UUID) async {
         guard !isBusy else { return }
+        let operation = generation
         isBusy = true
         message = nil
-        defer { isBusy = false }
+        defer { if generation == operation { isBusy = false } }
         do {
             guard let project = try await projects.fetchProject(id: id) else { throw CloudTransferError.missingProject }
             let imageMetadata = try await images?.uploadImages(for: project) ?? []
+            guard operation == generation else { return }
             let content = try CloudReportContent(project: project, images: imageMetadata)
             let revision = try history.revision(for: id)
             let saved: CloudReport
@@ -69,6 +79,7 @@ final class CloudTransferStore {
                 }
                 saved = remote
             }
+            guard operation == generation else { return }
             guard saved.reportID == id, (1...2).contains(saved.schemaVersion), saved.revision > revision else {
                 throw CloudTransferError.invalidResponse
             }
@@ -80,16 +91,20 @@ final class CloudTransferStore {
             cloudReports.removeAll { $0.id == id }
             cloudReports.insert(saved, at: 0)
             message = "Uploaded \(project.codeName)."
-        } catch { message = error.localizedDescription }
+            migrationResults[id] = "Imported successfully"
+            NotificationCenter.default.post(name: .cloudProjectImported, object: nil)
+        } catch { if operation == generation { message = error.localizedDescription; migrationResults[id] = error.localizedDescription } }
     }
 
     func download(id: UUID) async {
         guard !isBusy else { return }
+        let operation = generation
         isBusy = true
         message = nil
-        defer { isBusy = false }
+        defer { if generation == operation { isBusy = false } }
         do {
             let remote = try await client.get(id: id)
+            guard operation == generation else { return }
             guard remote.reportID == id, (1...2).contains(remote.schemaVersion), remote.revision > 0 else {
                 throw CloudTransferError.invalidResponse
             }
@@ -100,13 +115,17 @@ final class CloudTransferStore {
                 copy = try remote.report.localCopy()
                 try await projects.save(copy)
             }
+            guard operation == generation else { return }
             localProjects.insert(copy, at: 0)
             NotificationCenter.default.post(name: .cloudProjectImported, object: nil)
             message = "Downloaded \(copy.codeName) as a new local project."
-        } catch { message = error.localizedDescription }
+        } catch { if operation == generation { message = error.localizedDescription } }
     }
 
     func clear() {
+        generation += 1
+        isBusy = false
+        migrationResults = [:]
         localProjects = []
         cloudReports = []
         nextCursor = nil
