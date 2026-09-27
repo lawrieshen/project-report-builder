@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "expectedRevision": 0,
+  "report": {
+    "codeName": "Titan",
+    "lineOfBusiness": "iPhone",
+    "status": "active",
+    "ragStatus": "amber",
+    "milestonePhase": "DVT",
+    "milestoneDeadline": "2026-10-01",
+    "summaryType": "update",
+    "summaryMessage": "Camera pipeline optimization is in progress.",
+    "leadEPMName": "Jane",
+    "projectDRIName": "Alex",
+    "metrics": [
+      {
+        "id": "10000000-0000-0000-0000-000000000001",
+        "name": "Latency",
+        "currentValue": 120,
+        "targetValue": 100,
+        "comparison": "lt",
+        "unit": "ms",
+        "severity": "P1"
+      }
+    ]
+  }
+}
