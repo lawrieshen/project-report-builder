@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Cloud Report Storage \u2014 local service contract",
+    "title": "Cloud Report Storage API",
     "version": "0.1.0",
-    "description": "Planned HTTP mapping; this milestone implements a Java service only, not an HTTP server. Authentication is required in any future adapter. UUIDs are canonical lowercase strings."
+    "description": "HTTP API Lambda mapping. Requires Cognito access tokens through the configured JWT authorizer. UUIDs are canonical lowercase strings. Deployment pending."
   },
   "security": [
     {
