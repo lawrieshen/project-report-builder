@@ -8,13 +8,14 @@ struct ReportEditorView: View {
     var previewAsset: (ImageAsset) -> Void = { _ in }
     var showPreview: () -> Void = {}
     var showExport: () -> Void = {}
+    var showComposer: (() -> Void)? = nil
     @Binding var focusedSection: ReportSection?
     @State private var confirmingReload = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
-            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent, showPreview: showPreview, showExport: showExport)
+            ReportEditorHeaderView(viewModel: viewModel, onBack: onBack, addContent: addContent, showPreview: showPreview, showExport: showExport, showComposer: showComposer)
             if let message = viewModel.recoveryMessage {
                 Text(message).font(.caption).foregroundStyle(.secondary)
                     .accessibilityIdentifier("recoveryStatus")

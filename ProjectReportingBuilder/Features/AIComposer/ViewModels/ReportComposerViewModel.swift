@@ -120,6 +120,10 @@ final class ReportComposerViewModel: ObservableObject {
             invalidate()
             return nil
         }
+        guard editorAllowsApply else {
+            errorMessage = "The editor is busy or has a recovery/save conflict. Resolve it before applying."
+            return nil
+        }
         guard graph.send(.apply(version: graph.version, editorAllowsApply: editorAllowsApply,
                                 acceptUnfinishedGoal: acceptUnfinishedGoal)) else { return nil }
         undoRecord = CompositionUndo(before: current, after: candidate)

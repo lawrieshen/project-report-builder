@@ -6,6 +6,7 @@ struct ReportEditorHeaderView: View {
     let addContent: () -> Void
     let showPreview: () -> Void
     let showExport: () -> Void
+    var showComposer: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: AppSpacing.field) {
@@ -36,6 +37,11 @@ struct ReportEditorHeaderView: View {
 
     @ViewBuilder
     private var reportActions: some View {
+        if let showComposer {
+            Button(action: showComposer) { Label("Compose", systemImage: "sparkles") }
+                .disabled(!viewModel.canApplyComposition)
+                .accessibilityIdentifier("openAIComposer")
+        }
         Button("Preview", action: showPreview)
             .disabled(viewModel.draft == nil || viewModel.isLoading || viewModel.isImporting)
             .accessibilityIdentifier("openLivePreview")
