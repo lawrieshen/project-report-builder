@@ -8,7 +8,7 @@ struct CloudTransferView: View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
             Divider()
             Text("Cloud Reports").font(.headline)
-            Text("Upload the last saved version. Images are not supported yet. Downloads create new local projects.")
+            Text("Upload the last saved version. Images are included (PNG, JPEG, HEIC; up to 10 images, 20 MB each and 50 MB total). Downloads create new local projects.")
                 .font(.caption).foregroundStyle(.secondary)
             HStack {
                 Picker("Local project", selection: $selectedProject) {

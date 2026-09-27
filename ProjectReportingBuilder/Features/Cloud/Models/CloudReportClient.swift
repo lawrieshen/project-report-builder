@@ -34,12 +34,23 @@ final class CloudReportClient: CloudReportServing {
 
     func save(id: UUID, revision: Int64, content: CloudReportContent) async throws -> CloudReport {
         struct SaveRequest: Encodable {
-            let schemaVersion = 1
+            let schemaVersion = 2
             let expectedRevision: Int64
             let report: CloudReportContent
         }
         let data = try JSONEncoder().encode(SaveRequest(expectedRevision: revision, report: content))
         return try await request(path: "/reports/" + id.uuidString.lowercased(), method: "PUT", body: data)
+    }
+
+    func uploadURL(projectID: UUID, asset: CloudImageAsset) async throws -> CloudAssetTransfer {
+        try await request(path: "/reports/" + projectID.uuidString.lowercased() + "/assets/upload",
+                          method: "POST", body: JSONEncoder().encode(asset))
+    }
+
+    func downloadURL(projectID: UUID, assetID: String) async throws -> CloudAssetTransfer {
+        guard let id = UUID(uuidString: assetID) else { throw CloudTransferError.invalidResponse }
+        return try await request(path: "/reports/" + projectID.uuidString.lowercased() + "/assets/" + id.uuidString.lowercased(),
+                                 method: "GET", body: nil)
     }
 
     private func request<Response: Decodable>(path: String, method: String, body: Data?) async throws -> Response {

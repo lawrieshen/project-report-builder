@@ -23,9 +23,11 @@ struct CloudReportContent: Codable, Equatable {
     var leadEPMName: String
     var projectDRIName: String
     var metrics: [CloudMetric]
+    var assets: [CloudImageAsset]?
 
-    init(project: ProjectReport) throws {
-        guard project.card?.assets.isEmpty != false else { throw CloudTransferError.imagesUnsupported }
+    init(project: ProjectReport, images: [CloudImageAsset] = []) throws {
+        guard images.count == (project.card?.assets.count ?? 0) else { throw CloudTransferError.imagesUnsupported }
+        assets = images
         codeName = project.codeName
         lineOfBusiness = project.lineOfBusiness
         status = project.status
@@ -51,6 +53,7 @@ struct CloudReportContent: Codable, Equatable {
         let card = SnippetCard(id: UUID(), health: ProjectHealth(ragStatus: ragStatus, milestone: milestone),
             summary: ExecutiveSummary(type: summaryType, message: summaryMessage),
             accountability: Accountability(leadEPM: person(leadEPMName), projectDRI: person(projectDRIName)),
+            assets: try (assets ?? []).map { try $0.localAsset() },
             metrics: try metrics.map { try $0.localMetric() })
         return ProjectReport(id: UUID(), codeName: codeName, lineOfBusiness: lineOfBusiness, status: status,
                              card: card, createdAt: Date(), updatedAt: Date())
@@ -71,7 +74,7 @@ struct CloudReportContent: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case codeName, lineOfBusiness, status, ragStatus, milestonePhase, milestoneDeadline
-        case summaryType, summaryMessage, leadEPMName, projectDRIName, metrics
+        case summaryType, summaryMessage, leadEPMName, projectDRIName, metrics, assets
     }
 
     // The API requires nullable fields to be present, so encode nil as JSON null.
@@ -88,6 +91,7 @@ struct CloudReportContent: Codable, Equatable {
         try values.encode(leadEPMName, forKey: .leadEPMName)
         try values.encode(projectDRIName, forKey: .projectDRIName)
         try values.encode(metrics, forKey: .metrics)
+        try values.encode(assets ?? [], forKey: .assets)
     }
 }
 
@@ -153,10 +157,12 @@ struct CloudMetric: Codable, Equatable {
 }
 
 enum CloudTransferError: LocalizedError {
-    case imagesUnsupported, invalidResponse, conflict, signedOut, rejected, missingProject, serverUnavailable, forbidden
+    case imagesUnsupported, invalidResponse, conflict, signedOut, rejected, missingProject, serverUnavailable, forbidden, imageLimit, imageTransferFailed
     var errorDescription: String? {
         switch self {
-        case .imagesUnsupported: "Image uploads are not supported yet. This report was not uploaded."
+        case .imageLimit: "Use at most 10 images, 20 MB each and 50 MB total per report."
+        case .imageTransferFailed: "Image transfer failed. Retry to complete the report; your local original is unchanged."
+        case .imagesUnsupported: "Image uploads are unavailable in this configuration. This report was not uploaded."
         case .invalidResponse: "The cloud service returned an invalid report."
         case .conflict: "The cloud report has changed. Download a copy to compare; your local report is unchanged."
         case .signedOut: "Please sign in again to access cloud reports."
