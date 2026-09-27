@@ -2,6 +2,7 @@ import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general = "General", appearance = "Appearance", shortcuts = "Shortcuts"
+    case cloud = "Cloud Account"
     case window = "Window", storage = "Storage", about = "About"
     var id: Self { self }
 }
@@ -9,6 +10,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 /// Present shared preferences in the app's native Settings window.
 struct AppSettingsView: View {
     @Bindable var store: AppSettingsStore
+    let account: CloudAccountStore
     let fileStore: ProjectFileStore
     let maintenance: RecoveryMaintenanceCoordinator
     @State private var selection: SettingsSection? = .general
@@ -75,6 +77,8 @@ struct AppSettingsView: View {
                 Text("Normal launches open the Project Browser. After an unexpected termination, reopen the last project if it is available.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+        case .cloud:
+            CloudAccountView(account: account)
         case .storage:
             StorageSettingsView(store: fileStore, maintenance: maintenance)
         case .about:

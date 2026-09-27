@@ -5,15 +5,15 @@
 
 The proposed cloud storage POC will use an existing identity service with
 one pre-provisioned test user. Amazon Cognito Essentials with Email/Password
-and Managed Login is the planned identity provider;
+and Managed Login is the configured identity provider;
 server-side verification and user approval are not implemented yet.
 Self-service registration, password-reset UI, and role management are outside
 the POC scope.
 
 Cloud APIs must still authenticate requests and verify that the signed-in user
 owns the report before allowing access. The app must not embed cloud administrator
-credentials or a shared permanent API secret. This is a planning decision, not
-an implemented login or cloud storage feature.
+credentials or a shared permanent API secret. The macOS sign-in client is
+implemented; authenticated report storage is still pending.
 
 ## Local milestone status
 
@@ -22,9 +22,8 @@ report creation, reading, updates, owner isolation, pagination, and atomic revis
 checks using in-memory storage. JUnit and JSON contract tests run locally and
 are configured in the backend CI workflow.
 
-No HTTP server, AWS adapter, authentication endpoint, image transfer, or macOS
-cloud integration is implemented. Request retries cannot duplicate a committed
-revision, but operation-ID replay support remains future work. This milestone
+No report HTTP server, AWS data adapter, or image transfer is implemented.
+Request retries cannot duplicate a committed revision, but operation-ID replay support remains future work. This milestone
 does not change the app's local persistence or enable uploads.
 
 ## Java backend technology decision
@@ -94,7 +93,8 @@ for this authentication flow; app distribution requirements are separate.
 2. Validate callback state and exchange the code using its PKCE verifier.
    Handle cancellation and the first-login temporary-password change flow.
 3. Keep refresh credentials in Keychain; refresh access tokens when needed.
-   Logout clears local credentials and ends the hosted login session.
+   Logout clears local credentials and attempts refresh-token revocation.
+   Login requests an ephemeral browser session to avoid reusing account cookies.
 4. Send the Cognito **access token**, not the ID token, as an HTTPS bearer token
    to the report API.
 5. The authentication adapter validates the signature against the pool's keys,
@@ -135,8 +135,20 @@ allowance. Configure budget notifications and recheck pricing before deployment.
   callback using the intended packaged app, not only an Xcode run.
 - Verify owner isolation, token expiry, and report upload/download end to end.
 
-Cognito foundation resources are deployed. The token verifier and app login
-remain unimplemented; existing in-memory tests do not prove authenticated HTTP access.
+Cognito foundation resources and the macOS Settings > Cloud Account sign-in
+client are implemented. The client uses ASWebAuthenticationSession, PKCE S256,
+strict callback/state validation, Keychain refresh-token storage, and in-memory
+access tokens. Opening Cloud Account attempts saved-session restoration once;
+future report requests can request a refreshed access token on demand. No login
+is required for local editing. The client does not use ID-token claims to grant
+report access; authorization belongs to the future server adapter.
+
+Automated tests cover PKCE, callback tampering, form encoding, session refresh,
+expiry, transient errors, and local logout/revocation failure. On 2026-09-27,
+the developer reported that the manual Cloud Account verification passed.
+Validation of the distributed app remains separate from local development
+validation. The token verifier remains unimplemented; these checks do not prove
+authenticated report HTTP access.
 
 References:
 - [Cognito pricing](https://aws.amazon.com/cognito/pricing/)

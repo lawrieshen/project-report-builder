@@ -32,13 +32,28 @@ exact subject in the backend's approved-user configuration; do not use the email
 or accept an owner ID supplied in a request body. No report API exists yet, so
 creating the user does not currently enable report access.
 
-## Validate the login integration when implemented
+## Try the macOS login integration
+
+1. Run the app and open Settings (`⌘,`) > Cloud Account.
+2. Select Sign In and enter the manually provisioned Cognito user's credentials.
+   Use the app test user, not the AWS root or Identity Center account.
+3. Complete the temporary-password change in the browser when prompted.
+4. Confirm the app shows Signed in. Close/reopen the app and open Cloud Account
+   to verify Keychain-backed session restoration.
+5. Select Sign Out, then sign in again or cancel and verify local reports remain
+   available. No password or token should be copied into source or logs.
+
+Cloud upload/download are not implemented. Successful sign-in does not prove
+report authorization; the future API must enforce the approved subject.
+
+## Manual validation checklist
 
 - First login and temporary-password change complete through Managed Login.
 - Authorization Code + PKCE S256 and callback state are checked.
 - Cancellation returns to the app without changing local reports.
 - Unapproved users cannot access report endpoints, even with valid tokens.
-- Refresh credentials use Keychain; logout clears them and ends hosted login.
+- Refresh credentials use Keychain; logout clears them and attempts server revocation. Login requests an ephemeral
+  browser session; verify cookie isolation in the supported browser.
 - Test the packaged macOS callback, not only an Xcode run.
 
 ## Foundation readiness check
