@@ -11,7 +11,8 @@ Before charged execution, deploy and verify the compose stack, its JWT route,
 runtime secret permission, usage ledger and log retention. Select a supported
 Gemini model and verify its current input/output (including thinking) rates and
 pricing expiry. Configure the confirmed app-wide USD 8 monthly limit. Enable only
-the approved test subject for acceptance; keep the production UI disabled.
+the approved test subject for acceptance. The visible app entry does not grant
+backend access to other accounts.
 
 The owner reported a Google USD 10 cap with automatic recharge disabled. This is
 an owner confirmation, not an independently verified provider billing setting.
@@ -96,11 +97,9 @@ quota. Verify normal report editing remains usable when AI is unavailable.
 
 ### Development app acceptance
 
-In Xcode, edit the app scheme's **Run > Arguments > Environment Variables** and
-set `PROJECT_REPORT_AI_COMPOSER` to `1`. Run a Debug build, sign in with the approved
-test account, and open a disposable report. The editor header shows **Compose**.
-Release builds ignore this variable, and Debug builds default to hiding the entry.
-This switch does not bypass backend authentication or daily/monthly limits.
+Sign in with the approved test account and open a disposable report. The editor
+header shows **Compose** in both Debug and Release builds; no environment variable
+is required. Backend authentication and daily/monthly limits still apply.
 
 Use synthetic notes and record each outcome separately:
 

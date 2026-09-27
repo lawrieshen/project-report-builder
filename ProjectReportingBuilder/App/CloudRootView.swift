@@ -13,7 +13,7 @@ struct CloudRootView: View {
                 ContentView(repository: workspace.repository, assetFactory: workspace.assets,
                     recoveryRepository: LocalDraftRecoveryRepository(store: workspace.files),
                     settings: environment.settings, session: workspace.session, maintenance: workspace.maintenance,
-                    cloudAccount: environment.cloudAccount, aiComposerEnabled: developmentComposerEnabled)
+                    cloudAccount: environment.cloudAccount, aiComposerEnabled: true)
                     .id(environment.cloudAccount.sessionID)
             } else {
                 CloudSignInView(
@@ -33,15 +33,6 @@ struct CloudRootView: View {
         .frame(minWidth: 760, minHeight: 560)
         .task { await environment.cloudAccount.restore() }
         .task(id: environment.cloudAccount.sessionID) { await openWorkspace() }
-    }
-
-    /// Expose the live composer for explicit development acceptance, never in Release builds.
-    private var developmentComposerEnabled: Bool {
-        #if DEBUG
-        ProcessInfo.processInfo.environment["PROJECT_REPORT_AI_COMPOSER"] == "1"
-        #else
-        false
-        #endif
     }
 
     private func openWorkspace() async {

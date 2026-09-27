@@ -74,13 +74,6 @@
             ReferencedContainer = "container:Project Report Builder.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "PROJECT_REPORT_AI_COMPOSER"
-            value = "1"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
