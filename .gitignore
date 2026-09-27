@@ -18,3 +18,8 @@ build/
 
 # Local planning and documentation
 /docs/
+
+# Local infrastructure documentation and configuration
+/infrastructure/policies/
+/infrastructure/config/
+/infrastructure/**/*.md
