@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Group report sections into one shareable card while preserving asset and metric order.
 nonisolated struct SnippetCard: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     
@@ -25,6 +26,9 @@ nonisolated struct SnippetCard: Identifiable, Codable, Equatable, Sendable {
 
 // Keep the memberwise initializer available while supporting Feature 02 data.
 extension SnippetCard {
+    /// Decode older cards with empty assets and metrics when those fields are absent.
+    /// - Parameter decoder: The serialized card to decode.
+    /// - Throws: A decoding error for malformed or missing required fields.
     nonisolated init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id)

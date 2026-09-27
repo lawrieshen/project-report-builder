@@ -25,6 +25,7 @@ enum CognitoPasswordError: LocalizedError {
     }
 }
 
+/// Authenticate credentials and complete supported password challenges through an injectable service.
 protocol CognitoPasswordServing {
     func signIn(email: String, password: String) async throws -> CognitoPasswordResult
     func complete(_ challenge: CognitoPasswordChallenge, password: String) async throws -> CognitoPasswordResult
@@ -52,6 +53,10 @@ struct CognitoPasswordClient: CognitoPasswordServing {
         return try result(response, username: challenge.username)
     }
 
+    /// Exchange a refresh token for a new access-token lifetime.
+    /// - Parameter token: The stored Cognito refresh token.
+    /// - Returns: The refreshed token response.
+    /// - Throws: `CloudAuthError.expiredSession` for rejected credentials, or a transport or response error.
     func refresh(_ token: String) async throws -> CognitoTokens {
         do {
             let response = try await send(operation: "InitiateAuth", body: [

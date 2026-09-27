@@ -5,6 +5,7 @@ extension Notification.Name {
     static let cloudProjectImported = Notification.Name("cloudProjectImported")
 }
 
+/// Coordinate explicit report transfers and track per-project migration outcomes.
 @MainActor @Observable
 final class CloudTransferStore {
     private(set) var localProjects: [ProjectReport] = []
@@ -57,6 +58,11 @@ final class CloudTransferStore {
         } catch { if operation == generation { message = error.localizedDescription } }
     }
 
+    /// Upload images and report content using the last recorded cloud revision.
+    ///
+    /// Reconcile a conflict only when the next remote revision contains the exact
+    /// attempted content. Record failures in `message` and `migrationResults`.
+    /// - Parameter id: The local report identity to upload.
     func upload(id: UUID) async {
         guard !isBusy else { return }
         let operation = generation
@@ -96,6 +102,8 @@ final class CloudTransferStore {
         } catch { if operation == generation { message = error.localizedDescription; migrationResults[id] = error.localizedDescription } }
     }
 
+    /// Import a cloud report as a new local copy, including supported images.
+    /// - Parameter id: The cloud report identity to download.
     func download(id: UUID) async {
         guard !isBusy else { return }
         let operation = generation
@@ -122,6 +130,9 @@ final class CloudTransferStore {
         } catch { if operation == generation { message = error.localizedDescription } }
     }
 
+    /// Clear transfer UI state and reject results from earlier operations.
+    ///
+    /// Already-started remote writes are not rolled back.
     func clear() {
         generation += 1
         isBusy = false

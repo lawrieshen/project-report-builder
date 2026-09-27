@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Stage imported notes and apply only the suggestions selected by the user.
 struct ContentInputCard: View {
     @Bindable var editor: ReportEditorViewModel
     let onDismiss: () -> Void
