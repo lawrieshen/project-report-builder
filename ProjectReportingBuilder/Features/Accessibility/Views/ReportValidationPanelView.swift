@@ -14,18 +14,7 @@ struct ReportValidationPanelView: View {
             Divider()
             ContentHeightScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.section) {
-                    if viewModel.isChecking {
-                        ProgressView("Validating report…")
-                    } else if let report = viewModel.report {
-                        if report.isValid {
-                            ReportValidationSuccessView()
-                        } else {
-                            Text("\(report.issues.count) issues").font(.headline)
-                            ForEach(report.issues) { issue in
-                                ReportValidationIssueRow(issue: issue) { goToSection(issue.section) }
-                            }
-                        }
-                    }
+                    validationResults
                     Text("These checks do not certify WCAG compliance or inspect text inside images. Review image readability and descriptions manually.")
                         .font(.callout).foregroundStyle(.secondary)
                 }
@@ -47,6 +36,22 @@ struct ReportValidationPanelView: View {
             Button("Done", action: onDismiss)
                 .keyboardShortcut(.cancelAction)
                 .accessibilityIdentifier("closeAccessibility")
+        }
+    }
+
+    @ViewBuilder
+    private var validationResults: some View {
+        if viewModel.isChecking {
+            ProgressView("Validating report…")
+        } else if let report = viewModel.report {
+            if report.isValid {
+                ReportValidationSuccessView()
+            } else {
+                Text("\(report.issues.count) issues").font(.headline)
+                ForEach(report.issues) { issue in
+                    ReportValidationIssueRow(issue: issue) { goToSection(issue.section) }
+                }
+            }
         }
     }
 }

@@ -41,63 +41,88 @@ struct AppSettingsView: View {
     private var settingsContent: some View {
         switch selection ?? .general {
         case .general:
-            Form {
-                Toggle("Autosave", isOn: $store.settings.autosaveEnabled)
-                    .accessibilityIdentifier("autosaveEnabled")
-                Picker("Autosave delay", selection: $store.settings.autosaveDelay) {
-                    ForEach(AutosaveDelay.allCases) { delay in
-                        Text("\(delay.rawValue) seconds").tag(delay)
-                    }
-                }
-                .disabled(!store.settings.autosaveEnabled)
-                Toggle("Confirm before deleting projects", isOn: $store.settings.confirmBeforeDelete)
-                Toggle("Ask before restoring recovery drafts", isOn: $store.settings.showRecoveryPrompt)
-                Text("When the recovery prompt is off, available drafts are restored automatically.")
-                    .font(.caption).foregroundStyle(.secondary)
-                Button("Restore Defaults") { store.restoreDefaults() }
-            }
+            generalSettings
         case .appearance:
-            Picker("Appearance", selection: $store.settings.appearance) {
-                ForEach(AppAppearance.allCases) { appearance in
-                    Text(appearance.rawValue.capitalized).tag(appearance)
-                }
-            }
-            .pickerStyle(.radioGroup)
+            appearanceSettings
         case .shortcuts:
-            VStack(alignment: .leading, spacing: AppSpacing.section) {
-                Text("Keyboard Shortcuts").font(.title2.bold())
-                shortcut("New Project", "⌘N")
-                shortcut("Open Project Browser", "⌘O")
-                shortcut("Save Report", "⌘S")
-                shortcut("Preview Report", "⌘P")
-                shortcut("Export Report", "⌘E")
-                shortcut("Validate Report", "⇧⌘A")
-                shortcut("Settings", "⌘,")
-                Text("Shortcuts are fixed. Editor actions are available when a report is open.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+            shortcutSettings
         case .window:
-            Form {
-                Toggle("Restore workspace after unexpected termination",
-                       isOn: $store.settings.restoreWorkspaceAfterInterruption)
-                Text("Normal launches open the Project Browser. After an unexpected termination, reopen the last project if it is available.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+            windowSettings
         case .cloud:
             CloudAccountView(account: account, transfers: transfers, cloudPrimary: cloudPrimary)
         case .storage:
             StorageSettingsView(store: fileStore, maintenance: maintenance)
         case .about:
-            VStack(alignment: .leading, spacing: AppSpacing.section) {
-                Text("Project Reporting Builder").font(.title2.bold())
-                Text("Create, preview, and share structured project reports.")
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unavailable")
-                LabeledContent("Build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unavailable")
-            }
+            aboutSettings
         }
     }
 
     private func shortcut(_ title: String, _ keys: String) -> some View {
         LabeledContent(title, value: keys)
+    }
+
+    @ViewBuilder
+    private var generalSettings: some View {
+        Form {
+            Toggle("Autosave", isOn: $store.settings.autosaveEnabled)
+                .accessibilityIdentifier("autosaveEnabled")
+            Picker("Autosave delay", selection: $store.settings.autosaveDelay) {
+                ForEach(AutosaveDelay.allCases) { delay in
+                    Text("\(delay.rawValue) seconds").tag(delay)
+                }
+            }
+            .disabled(!store.settings.autosaveEnabled)
+            Toggle("Confirm before deleting projects", isOn: $store.settings.confirmBeforeDelete)
+            Toggle("Ask before restoring recovery drafts", isOn: $store.settings.showRecoveryPrompt)
+            Text("When the recovery prompt is off, available drafts are restored automatically.")
+                .font(.caption).foregroundStyle(.secondary)
+            Button("Restore Defaults") { store.restoreDefaults() }
+        }
+    }
+
+    @ViewBuilder
+    private var appearanceSettings: some View {
+        Picker("Appearance", selection: $store.settings.appearance) {
+            ForEach(AppAppearance.allCases) { appearance in
+                Text(appearance.rawValue.capitalized).tag(appearance)
+            }
+        }
+        .pickerStyle(.radioGroup)
+    }
+
+    @ViewBuilder
+    private var shortcutSettings: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
+            Text("Keyboard Shortcuts").font(.title2.bold())
+            shortcut("New Project", "⌘N")
+            shortcut("Open Project Browser", "⌘O")
+            shortcut("Save Report", "⌘S")
+            shortcut("Preview Report", "⌘P")
+            shortcut("Export Report", "⌘E")
+            shortcut("Validate Report", "⇧⌘A")
+            shortcut("Settings", "⌘,")
+            Text("Shortcuts are fixed. Editor actions are available when a report is open.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var windowSettings: some View {
+        Form {
+            Toggle("Restore workspace after unexpected termination",
+                   isOn: $store.settings.restoreWorkspaceAfterInterruption)
+            Text("Normal launches open the Project Browser. After an unexpected termination, reopen the last project if it is available.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var aboutSettings: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
+            Text("Project Reporting Builder").font(.title2.bold())
+            Text("Create, preview, and share structured project reports.")
+            LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unavailable")
+            LabeledContent("Build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unavailable")
+        }
     }
 }

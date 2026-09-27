@@ -21,20 +21,25 @@ struct DuplicateProjectCard: View {
             TextField("Project name", text: $name).textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("duplicateProjectName")
             if let error = viewModel.actionErrorMessage { Text(error).foregroundStyle(.red) }
-            HStack {
-                Button("Cancel", action: onDismiss)
-                Spacer()
-                if viewModel.isSaving { ProgressView().controlSize(.small) }
-                Button("Duplicate") {
-                    Task {
-                        if await viewModel.duplicateProject(project, codeName: name) { onDismiss() }
-                    }
-                }
-                .accessibilityIdentifier("confirmDuplicate")
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
+            actionButtons
         }
         .disabled(viewModel.isSaving)
         .floatingCard(width: 440)
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        HStack {
+            Button("Cancel", action: onDismiss)
+            Spacer()
+            if viewModel.isSaving { ProgressView().controlSize(.small) }
+            Button("Duplicate") {
+                Task {
+                    if await viewModel.duplicateProject(project, codeName: name) { onDismiss() }
+                }
+            }
+            .accessibilityIdentifier("confirmDuplicate")
+            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
     }
 }

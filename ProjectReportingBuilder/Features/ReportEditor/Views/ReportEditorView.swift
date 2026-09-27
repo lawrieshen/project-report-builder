@@ -72,34 +72,11 @@ struct ReportEditorView: View {
     @ViewBuilder
     private func editorContent(draft: Binding<ReportEditorDraft>) -> some View {
         VStack(spacing: 0) {
-            if let error = viewModel.saveError {
-                HStack {
-                    Text(error).foregroundStyle(.red)
-                    if viewModel.hasCloudConflict {
-                        Button("Reload Cloud Version") { confirmingReload = true }
-                        Button("Save as New Report") { Task { await viewModel.saveConflictCopy() } }
-                            .disabled(viewModel.isSaving || viewModel.draft?.isValid != true)
-                    } else {
-                        Button("Retry Save") { Task { await viewModel.save() } }
-                            .disabled(!viewModel.canSave)
-                    }
-                }
-                .padding(AppSpacing.cardInset)
-            }
+            saveFeedback
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.section) {
-                        ProjectIdentitySectionView(draft: draft).id(ReportSection.identity)
-                        Divider()
-                        HealthUrgencySectionView(draft: draft).id(ReportSection.health)
-                        Divider()
-                        MetricsSectionView(viewModel: viewModel, editMetric: editMetric).id(ReportSection.metrics)
-                        Divider()
-                        ExecutiveSummarySectionView(draft: draft).id(ReportSection.summary)
-                        Divider()
-                        AccountabilitySectionView(draft: draft).id(ReportSection.accountability)
-                        Divider()
-                        SupportingContentSectionView(editor: viewModel, preview: previewAsset).id(ReportSection.supportingContent)
+                        reportSections(draft: draft)
                     }
                     .textFieldStyle(.roundedBorder)
                     .padding(AppSpacing.pageInset)
@@ -113,6 +90,39 @@ struct ReportEditorView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var saveFeedback: some View {
+        if let error = viewModel.saveError {
+            HStack {
+                Text(error).foregroundStyle(.red)
+                if viewModel.hasCloudConflict {
+                    Button("Reload Cloud Version") { confirmingReload = true }
+                    Button("Save as New Report") { Task { await viewModel.saveConflictCopy() } }
+                        .disabled(viewModel.isSaving || viewModel.draft?.isValid != true)
+                } else {
+                    Button("Retry Save") { Task { await viewModel.save() } }
+                        .disabled(!viewModel.canSave)
+                }
+            }
+            .padding(AppSpacing.cardInset)
+        }
+    }
+
+    @ViewBuilder
+    private func reportSections(draft: Binding<ReportEditorDraft>) -> some View {
+        ProjectIdentitySectionView(draft: draft).id(ReportSection.identity)
+        Divider()
+        HealthUrgencySectionView(draft: draft).id(ReportSection.health)
+        Divider()
+        MetricsSectionView(viewModel: viewModel, editMetric: editMetric).id(ReportSection.metrics)
+        Divider()
+        ExecutiveSummarySectionView(draft: draft).id(ReportSection.summary)
+        Divider()
+        AccountabilitySectionView(draft: draft).id(ReportSection.accountability)
+        Divider()
+        SupportingContentSectionView(editor: viewModel, preview: previewAsset).id(ReportSection.supportingContent)
     }
 }
 

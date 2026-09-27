@@ -11,21 +11,7 @@ struct AssetImageView: View {
 
     var body: some View {
         Group {
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: contentWidth,
-                           height: contentWidth.map { width in
-                               width * image.size.height / max(image.size.width, 1)
-                           })
-                    .accessibilityLabel(asset.altText.isEmpty ? asset.fileName : asset.altText)
-            } else if let loadError {
-                Label(loadError, systemImage: "photo.badge.exclamationmark")
-                    .font(.caption)
-            } else {
-                ProgressView("Loading image…")
-            }
+            imageContent
         }
         .task(id: asset.localReference) {
             image = nil
@@ -40,6 +26,25 @@ struct AssetImageView: View {
             } catch {
                 loadError = error.localizedDescription
             }
+        }
+    }
+
+    @ViewBuilder
+    private var imageContent: some View {
+        if let image {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: contentWidth,
+                       height: contentWidth.map { width in
+                           width * image.size.height / max(image.size.width, 1)
+                       })
+                .accessibilityLabel(asset.altText.isEmpty ? asset.fileName : asset.altText)
+        } else if let loadError {
+            Label(loadError, systemImage: "photo.badge.exclamationmark")
+                .font(.caption)
+        } else {
+            ProgressView("Loading image…")
         }
     }
 }

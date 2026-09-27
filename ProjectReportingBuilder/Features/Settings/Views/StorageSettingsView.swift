@@ -11,23 +11,9 @@ struct StorageSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
             Text("Local Storage").font(.title2.bold())
-            if let information {
-                LabeledContent("Location") { Text(information.location.path).textSelection(.enabled) }
-                LabeledContent("Projects", value: String(information.projectCount))
-                LabeledContent("Assets", value: String(information.assetCount))
-                LabeledContent("Recovery Drafts", value: String(information.recoveryCount))
-                LabeledContent("Storage Used", value: ByteCountFormatter.string(fromByteCount: information.bytes, countStyle: .file))
-                ForEach(information.warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
-                Button("Open in Finder") { FinderService().reveal(information.location) }
-            }
+            storageDetails
             if let error { Text(error).foregroundStyle(.red) }
-            HStack {
-                Button("Refresh") { Task { await refresh() } }.disabled(isLoading)
-                Button("Clear Recovery Drafts…", role: .destructive) { showingClearConfirmation = true }
-                    .disabled(isLoading || maintenance.isClearing)
-                    .accessibilityIdentifier("clearRecoveryDrafts")
-                if isLoading || maintenance.isClearing { ProgressView().controlSize(.small) }
-            }
+            storageActions
             Text("Projects stay on this Mac. Save and autosave commit changes; recovery copies preserve unsaved edits separately.")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -58,5 +44,29 @@ struct StorageSettingsView: View {
             information = try await store.information()
             error = nil
         } catch { self.error = error.localizedDescription }
+    }
+
+    @ViewBuilder
+    private var storageDetails: some View {
+        if let information {
+            LabeledContent("Location") { Text(information.location.path).textSelection(.enabled) }
+            LabeledContent("Projects", value: String(information.projectCount))
+            LabeledContent("Assets", value: String(information.assetCount))
+            LabeledContent("Recovery Drafts", value: String(information.recoveryCount))
+            LabeledContent("Storage Used", value: ByteCountFormatter.string(fromByteCount: information.bytes, countStyle: .file))
+            ForEach(information.warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
+            Button("Open in Finder") { FinderService().reveal(information.location) }
+        }
+    }
+
+    @ViewBuilder
+    private var storageActions: some View {
+        HStack {
+            Button("Refresh") { Task { await refresh() } }.disabled(isLoading)
+            Button("Clear Recovery Drafts…", role: .destructive) { showingClearConfirmation = true }
+                .disabled(isLoading || maintenance.isClearing)
+                .accessibilityIdentifier("clearRecoveryDrafts")
+            if isLoading || maintenance.isClearing { ProgressView().controlSize(.small) }
+        }
     }
 }
