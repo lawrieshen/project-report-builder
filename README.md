@@ -57,6 +57,6 @@ package a distributable app.
 ## Further reading
 
 - [Local Java cloud service and API contract](backend/README.md) — initial local
-  milestone only; no cloud deployment or Apple authentication yet.
+  milestone only; no cloud deployment or Cognito authentication yet.
 - [Product behavior and engineering notes](docs/PRODUCT-AND-ENGINEERING.md)
 - [Proposed cloud storage and identity scope](docs/CLOUD-STORAGE-PLAN.md)

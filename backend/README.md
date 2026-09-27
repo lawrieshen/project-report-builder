@@ -14,7 +14,7 @@ python3 backend/tests/test_contract.py
 ```
 
 This builds a library and runs JUnit tests. There is no HTTP listener, Lambda
-adapter, Apple token verifier, or deployed endpoint yet. Tests invoke
+adapter, Cognito access-token verifier, or deployed endpoint yet. Tests invoke
 `ReportService` directly; `InMemoryReportRepository` loses state on restart.
 
 ## Contract
@@ -25,7 +25,7 @@ adapter, Apple token verifier, or deployed endpoint yet. Tests invoke
 The contract describes the future HTTP mapping for the implemented service.
 A future adapter must strictly decode JSON, reject unknown fields and malformed
 UUIDs/dates/numbers, verify credentials, and construct a trusted `Principal`.
-Never construct that principal from a request-body owner ID. Apple sign-in,
+Never construct that principal from a request-body owner ID. Cognito Managed Login, access-token verification,
 allowlisting, sessions, asset transfers and transport parsing are later milestones.
 
 The transport model is deliberately separate from Swift Codable. Map the Swift
