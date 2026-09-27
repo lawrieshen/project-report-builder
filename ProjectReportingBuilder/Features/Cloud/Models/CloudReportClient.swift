@@ -1,6 +1,7 @@
 import Foundation
 
 protocol CloudReportServing {
+    func delete(id: UUID, revision: Int64) async throws
     func list(after: UUID?) async throws -> CloudReportPage
     func get(id: UUID) async throws -> CloudReport
     func save(id: UUID, revision: Int64, content: CloudReportContent) async throws -> CloudReport
@@ -42,6 +43,14 @@ final class CloudReportClient: CloudReportServing {
         return try await request(path: "/reports/" + id.uuidString.lowercased(), method: "PUT", body: data)
     }
 
+    func delete(id: UUID, revision: Int64) async throws {
+        struct Request: Encodable { let expectedRevision: Int64 }
+        struct Response: Decodable { let deleted: Bool }
+        let response: Response = try await request(path: "/reports/" + id.uuidString.lowercased(),
+            method: "DELETE", body: JSONEncoder().encode(Request(expectedRevision: revision)))
+        guard response.deleted else { throw CloudTransferError.invalidResponse }
+    }
+
     func uploadURL(projectID: UUID, asset: CloudImageAsset) async throws -> CloudAssetTransfer {
         try await request(path: "/reports/" + projectID.uuidString.lowercased() + "/assets/upload",
                           method: "POST", body: JSONEncoder().encode(asset))
@@ -68,10 +77,15 @@ final class CloudReportClient: CloudReportServing {
         switch response.statusCode {
         case 200: return try JSONDecoder().decode(Response.self, from: data)
         case 401: throw CloudTransferError.signedOut
+        case 404: throw CloudTransferError.notFound
         case 403: throw CloudTransferError.forbidden
         case 500...599: throw CloudTransferError.serverUnavailable
         case 409: throw CloudTransferError.conflict
         default: throw CloudTransferError.rejected
         }
     }
+}
+
+extension CloudReportServing {
+    func delete(id: UUID, revision: Int64) async throws { throw CloudTransferError.rejected }
 }
