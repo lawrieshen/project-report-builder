@@ -15,11 +15,14 @@ public final class ReportApiHandler implements RequestStreamHandler {
     private final ReportService service;
     private final String issuer, clientID, approvedSubject;
     private final Clock clock;
+    private ReportAssetStorage assets;
 
     public ReportApiHandler() {
         this(new ReportService(new DynamoReportRepository(DynamoDbClient.create(), required("REPORTS_TABLE")),
                         Clock.systemUTC()), required("COGNITO_ISSUER"), required("COGNITO_CLIENT_ID"),
                 required("APPROVED_SUBJECT"), Clock.systemUTC());
+        assets = new S3ReportAssetStorage(software.amazon.awssdk.services.s3.S3Client.create(),
+                software.amazon.awssdk.services.s3.presigner.S3Presigner.create(), required("ASSETS_BUCKET"));
     }
 
     ReportApiHandler(ReportService service, String issuer, String clientID, String approvedSubject, Clock clock) {
@@ -28,6 +31,12 @@ public final class ReportApiHandler implements RequestStreamHandler {
         this.clientID = clientID;
         this.approvedSubject = approvedSubject;
         this.clock = clock;
+    }
+
+    ReportApiHandler(ReportService service, String issuer, String clientID, String approvedSubject,
+                     Clock clock, ReportAssetStorage assets) {
+        this(service, issuer, clientID, approvedSubject, clock);
+        this.assets = assets;
     }
 
     @Override public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
@@ -52,11 +61,22 @@ public final class ReportApiHandler implements RequestStreamHandler {
     Map<String, Object> handle(JsonNode event) throws IOException {
         try {
             String route = event.path("routeKey").asText();
-            String scope = route.startsWith("PUT ") ? "reports/write" : "reports/read";
+            String scope = (route.startsWith("PUT ") || route.startsWith("POST ")) ? "reports/write" : "reports/read";
             var principal = authenticate(event, scope);
             var query = event.path("queryStringParameters");
             Object result;
             switch (route) {
+                case "POST /reports/{reportID}/assets/upload" -> {
+                    var asset = json.readValue(requestBytes(event), ReportAsset.class);
+                    result = assets.upload(principal.userID(), reportID(event), asset);
+                }
+                case "GET /reports/{reportID}/assets/{assetID}" -> {
+                    var report = service.get(principal, reportID(event));
+                    var assetID = ReportJson.canonicalID(event.path("pathParameters").path("assetID").asText());
+                    var asset = report.report().assets().stream().filter(a -> a.id().equals(assetID)).findFirst()
+                            .orElseThrow(() -> new ReportException(ReportException.Code.NOT_FOUND, "Image not found"));
+                    result = assets.download(principal.userID(), report.reportID(), asset);
+                }
                 case "GET /reports" -> {
                     var after = query.has("after") ? ReportJson.canonicalID(query.get("after").asText()) : null;
                     int limit = query.has("limit") ? Integer.parseInt(query.get("limit").asText()) : 20;
@@ -64,12 +84,14 @@ public final class ReportApiHandler implements RequestStreamHandler {
                 }
                 case "GET /reports/{reportID}" -> result = service.get(principal, reportID(event));
                 case "PUT /reports/{reportID}" -> {
-                    String body = event.path("body").asText();
-                    if (body.length() > MAX_BODY_BYTES * 2) throw new IllegalArgumentException();
-                    byte[] bytes = event.path("isBase64Encoded").asBoolean()
-                            ? Base64.getDecoder().decode(body) : body.getBytes(StandardCharsets.UTF_8);
-                    if (bytes.length > MAX_BODY_BYTES) throw new IllegalArgumentException();
-                    var request = json.readValue(bytes, ReportService.SaveRequest.class);
+                    var tree = json.readTree(requestBytes(event));
+                    if (tree.path("schemaVersion").asInt() == 1 && tree.path("report").has("assets")) {
+                        throw new IllegalArgumentException("Images require schema version 2");
+                    }
+                    var request = json.treeToValue(ReportJson.withLegacyAssets(tree), ReportService.SaveRequest.class);
+                    if (request.report() != null) {
+                        for (var asset : request.report().assets()) assets.verify(principal.userID(), reportID(event), asset);
+                    }
                     result = service.save(principal, reportID(event), request);
                 }
                 default -> { return response(404, Map.of("code", "NOT_FOUND", "message", "Route not found")); }
@@ -105,6 +127,15 @@ public final class ReportApiHandler implements RequestStreamHandler {
             throw new ReportException(ReportException.Code.UNAUTHENTICATED, "Approved access token required");
         }
         return new ReportService.Principal(approvedSubject);
+    }
+
+    private byte[] requestBytes(JsonNode event) {
+        String body = event.path("body").asText();
+        if (body.length() > MAX_BODY_BYTES * 2) throw new IllegalArgumentException();
+        byte[] bytes = event.path("isBase64Encoded").asBoolean()
+                ? Base64.getDecoder().decode(body) : body.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > MAX_BODY_BYTES) throw new IllegalArgumentException();
+        return bytes;
     }
 
     private UUID reportID(JsonNode event) {

@@ -29,13 +29,12 @@ missing required properties, malformed UUIDs/dates and scalar coercion. Bodies
 are limited to 300 KB; stored snapshots are capped below DynamoDB's item limit.
 API Gateway verifies JWT signatures; the adapter checks trusted authorizer
 claims and the approved subject before constructing a Principal. No owner ID
-is accepted from a body. Asset transfers remain a later milestone.
+is accepted from a body. Image transfers use private S3 signed URLs.
 
 The transport model is deliberately separate from Swift Codable. Map the Swift
 project/card into `ReportContent`; keep local entity IDs and recovery data local.
-Only metric IDs are preserved in this initial content model. This version does
-not support images: an eventual client must reject uploads with assets until
-asset support is added, rather than discard them.
+Metric and image IDs are preserved. Schema 2 includes ordered image metadata;
+schema 1 remains readable for older text reports. Local paths never leave the app.
 
 ## Behavior
 
@@ -60,3 +59,18 @@ required for this independent Java module.
 Compiler configuration uses Maven's
 [release option](https://maven.apache.org/plugins/maven-compiler-plugin/examples/set-compiler-release.html).
 Tests use [JUnit Jupiter](https://docs.junit.org/5.11.4/user-guide/).
+
+## Image transfers (schema 2)
+
+1. POST `/reports/{reportID}/assets/upload` with `ReportAsset` metadata.
+2. PUT bytes to the returned five-minute S3 URL using its exact headers.
+3. PUT the report with schemaVersion 2 and the ordered `assets` array. Lambda
+   verifies S3 length, MIME metadata and SHA-256 before committing a revision.
+4. GET `/reports/{reportID}/assets/{assetID}` to obtain a five-minute download
+   URL, available only for an image referenced by the owner's saved report.
+
+PNG, JPEG and HEIC: up to 10 files, 20 MiB each and 50 MiB total per report.
+S3 validates the signed checksum; the app also decodes and validates downloaded
+images. Object keys use owner/report/content hash. URLs and tokens must not be
+logged. Failed or conflicted uploads can leave unreferenced objects; automatic
+orphan cleanup is deferred. Do not apply a blanket expiration to this bucket.

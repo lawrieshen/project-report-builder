@@ -7,11 +7,11 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/** Transport model independent of Swift Codable. Assets are deferred to a later version. */
+/** Transport model independent of Swift Codable. Image metadata is ordered; bytes live in private object storage. */
 public record ReportContent(String codeName, String lineOfBusiness, String status,
                             String ragStatus, String milestonePhase, LocalDate milestoneDeadline,
                             String summaryType, String summaryMessage,
-                            String leadEPMName, String projectDRIName, List<Metric> metrics) {
+                            String leadEPMName, String projectDRIName, List<Metric> metrics, List<ReportAsset> assets) {
     public ReportContent {
         require(codeName != null && !codeName.isBlank() && codeName.length() <= 200, "Invalid code name");
         require(Set.of("iPhone", "Mac", "iPad", "Wearables, Home and Accessories", "Services")
@@ -33,6 +33,20 @@ public record ReportContent(String codeName, String lineOfBusiness, String statu
             require(names.add(metric.name().strip().toLowerCase(Locale.ROOT)), "Duplicate metric name");
         }
         metrics = List.copyOf(metrics);
+        require(assets != null && assets.size() <= 10, "At most 10 images are allowed");
+        var imageIDs = new HashSet<UUID>();
+        for (var asset : assets) {
+            require(asset != null && imageIDs.add(asset.id()), "Invalid or duplicate image ID");
+        }
+        require(assets.stream().mapToLong(ReportAsset::byteCount).sum() <= 50L * 1024 * 1024, "Images exceed 50 MiB");
+        assets = List.copyOf(assets);
+    }
+
+    public ReportContent(String codeName, String lineOfBusiness, String status, String ragStatus,
+                         String milestonePhase, LocalDate milestoneDeadline, String summaryType,
+                         String summaryMessage, String leadEPMName, String projectDRIName, List<Metric> metrics) {
+        this(codeName, lineOfBusiness, status, ragStatus, milestonePhase, milestoneDeadline,
+                summaryType, summaryMessage, leadEPMName, projectDRIName, metrics, List.of());
     }
 
     public record Metric(UUID id, String name, double currentValue, Double targetValue,

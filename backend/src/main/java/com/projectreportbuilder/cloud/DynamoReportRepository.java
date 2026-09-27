@@ -45,7 +45,7 @@ public final class DynamoReportRepository implements ReportRepository {
 
     @Override public CloudReport save(String owner, UUID id, long expectedRevision,
                                        ReportContent content, Instant now) {
-        var report = new CloudReport(id, owner, expectedRevision + 1, 1, now, content);
+        var report = new CloudReport(id, owner, expectedRevision + 1, content.assets().isEmpty() ? 1 : 2, now, content);
         String payload;
         try { payload = json.writeValueAsString(report); }
         catch (JsonProcessingException error) { throw new IllegalStateException("Cannot encode report", error); }
@@ -72,7 +72,7 @@ public final class DynamoReportRepository implements ReportRepository {
     }
 
     private CloudReport decode(Map<String, AttributeValue> item) {
-        try { return json.readValue(item.get("payload").s(), CloudReport.class); }
+        try { return json.treeToValue(ReportJson.withLegacyAssets(json.readTree(item.get("payload").s())), CloudReport.class); }
         catch (JsonProcessingException error) { throw new IllegalStateException("Cannot decode stored report", error); }
     }
 
