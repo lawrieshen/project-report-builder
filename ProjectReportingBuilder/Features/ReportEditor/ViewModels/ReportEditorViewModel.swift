@@ -173,6 +173,10 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
         await recoveryTask?.value
         do {
             let updated = try submittedDraft.applying(to: project, cardID: project.card?.id ?? UUID(), updatedAt: .now)
+            if repository is CloudProjectRepository, let recoveryRepository {
+                try await recoveryRepository.saveRecovery(RecoverySnapshot(projectID: projectID,
+                    baseUpdatedAt: project.updatedAt, capturedAt: .now, draft: submittedDraft))
+            }
             try await repository.save(updated)
             await clearRecovery()
 

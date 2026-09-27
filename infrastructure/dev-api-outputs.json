@@ -7,6 +7,6 @@
   "apiUrl": "https://ic1fsr0eg6.execute-api.ap-southeast-2.amazonaws.com",
   "functionName": "prb-dev-report-api",
   "artifactBucket": "prb-dev-artifacts-543123648742-ap-southeast-2",
-  "artifactKey": "report-api/cbffe90917fe668ae4454f475064a243e08ba71cb42243b3cdc653e426c7a6f1.zip",
+  "artifactKey": "report-api/4ec060f54eb4564ce2066ffa390b1044bfe2f749bf3730c2c102250e48ac09b0.zip",
   "assetsBucket": "prb-dev-assets-543123648742-ap-southeast-2"
 }
