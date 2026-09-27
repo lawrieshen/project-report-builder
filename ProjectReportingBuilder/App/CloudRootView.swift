@@ -15,23 +15,14 @@ struct CloudRootView: View {
                     settings: environment.settings, session: workspace.session, maintenance: workspace.maintenance)
                     .id(environment.cloudAccount.sessionID)
             } else {
-                VStack(spacing: AppSpacing.section) {
-                    Text("Project Reporting Builder").font(.largeTitle.bold())
-                    Text("Sign in to open your cloud reports.").foregroundStyle(.secondary)
-                    if loading || environment.cloudAccount.isBusy { ProgressView() }
-                    if let message = error ?? environment.cloudAccount.message {
-                        Text(message).foregroundStyle(.secondary)
-                    }
-                    if environment.cloudAccount.isSignedIn {
-                        Button("Retry") { Task { await openWorkspace() } }.disabled(loading)
-                        Button("Sign Out") { Task { await environment.cloudAccount.signOut() } }
-                    } else {
-                        Button("Sign In") { Task { await environment.cloudAccount.signIn() } }
-                            .disabled(environment.cloudAccount.isBusy)
-                            .accessibilityIdentifier("cloudSignIn")
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                CloudSignInView(
+                    isSignedIn: environment.cloudAccount.isSignedIn,
+                    isLoading: loading,
+                    isBusy: environment.cloudAccount.isBusy,
+                    message: error ?? environment.cloudAccount.message,
+                    signIn: { Task { await environment.cloudAccount.signIn() } },
+                    retry: { Task { await openWorkspace() } },
+                    signOut: { Task { await environment.cloudAccount.signOut() } })
             }
         }
         .disabled(environment.cloudAccount.isBusy)
