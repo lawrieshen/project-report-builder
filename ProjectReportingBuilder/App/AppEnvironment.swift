@@ -3,11 +3,13 @@ import Foundation
 /// Choose storage dependencies once for the application session.
 @MainActor
 struct AppEnvironment {
+    let cloudAccount = CloudAccountStore()
     let maintenance = RecoveryMaintenanceCoordinator()
     let session: AppSessionStore
     let settings: AppSettingsStore
     let storage: ApplicationStorage
     let store: ProjectFileStore
+    let cloudTransfers: CloudTransferStore
     let projects: LocalProjectRepository
 
     init(storage: ApplicationStorage, defaults: UserDefaults = .standard,
@@ -17,6 +19,10 @@ struct AppEnvironment {
         self.storage = storage
         store = ProjectFileStore(storage: storage)
         projects = LocalProjectRepository(store: store)
+        let cloudClient = CloudReportClient(account: cloudAccount)
+        cloudTransfers = CloudTransferStore(projects: projects, client: cloudClient,
+            history: CloudUploadHistory(file: storage.root.appendingPathComponent("cloud-uploads-prb-dev-092e2408-5041-706a-684d-db818c51805c.json")),
+            images: CloudImageTransfer(files: store, client: cloudClient))
     }
 
     func assets(for projectID: UUID) -> any AssetRepository {

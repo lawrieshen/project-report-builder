@@ -40,7 +40,7 @@ struct ProjectReportingBuilderApp: App {
         .commands { AppCommands() }
         Settings {
             if let environment {
-                AppSettingsView(store: environment.settings, fileStore: environment.store, maintenance: environment.maintenance)
+                AppSettingsView(store: environment.settings, account: environment.cloudAccount, transfers: environment.cloudTransfers, fileStore: environment.store, maintenance: environment.maintenance)
                     .preferredColorScheme(environment.settings.settings.appearance.colorScheme)
             }
         }

@@ -1,0 +1,799 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cloud Report Storage API",
+    "version": "0.2.0",
+    "description": "Cognito-authorized report storage with private image transfers. UUIDs are canonical lowercase strings."
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/reports": {
+      "get": {
+        "operationId": "listReports",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/{reportID}": {
+      "parameters": [
+        {
+          "name": "reportID",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getReport",
+        "responses": {
+          "200": {
+            "description": "CloudReport",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveReport",
+        "description": "expectedRevision=0 creates; otherwise compare-and-swap. IDs are scoped to authenticated owner. Retry after a lost response by GET and reconcile; automatic idempotent success replay is not implemented. Repeating a completed write returns 409.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CloudReport",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/{reportID}/assets/upload": {
+      "post": {
+        "description": "Requires access-token scope reports/write",
+        "parameters": [
+          {
+            "name": "reportID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Short-lived image transfer URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetTransfer"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportAsset"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/{reportID}/assets/{assetID}": {
+      "get": {
+        "description": "Requires access-token scope reports/read",
+        "parameters": [
+          {
+            "name": "reportID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assetID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Short-lived image transfer URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetTransfer"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Metric": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "currentValue": {
+            "type": "number"
+          },
+          "targetValue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "lt",
+                  "lte",
+                  "gt",
+                  "gte",
+                  "eq"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "P0",
+                  "P1",
+                  "P2",
+                  "P3",
+                  "Info"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "currentValue",
+          "targetValue",
+          "comparison",
+          "unit",
+          "severity"
+        ]
+      },
+      "ReportContent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "codeName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "lineOfBusiness": {
+            "type": "string",
+            "enum": [
+              "iPhone",
+              "Mac",
+              "iPad",
+              "Wearables, Home and Accessories",
+              "Services"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ]
+          },
+          "ragStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "green",
+                  "amber",
+                  "red"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "milestonePhase": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Prototype",
+                  "EVT",
+                  "DVT",
+                  "PVT",
+                  "Mass Production"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "milestoneDeadline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summaryType": {
+            "type": "string",
+            "enum": [
+              "update",
+              "blocker",
+              "ask"
+            ]
+          },
+          "summaryMessage": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "leadEPMName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "projectDRIName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "metrics": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Metric"
+            }
+          }
+        },
+        "required": [
+          "codeName",
+          "lineOfBusiness",
+          "status",
+          "ragStatus",
+          "milestonePhase",
+          "milestoneDeadline",
+          "summaryType",
+          "summaryMessage",
+          "leadEPMName",
+          "projectDRIName",
+          "metrics"
+        ],
+        "description": "Text-only v1. Phase/deadline and metric target/comparison must be paired. Names must not be blank; metric names (trimmed, case-insensitive) and IDs must be unique. Numeric values must be finite. Assets are unsupported; reject unknown fields rather than silently dropping images."
+      },
+      "CloudReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reportID": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerID": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schemaVersion": {
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "report": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReportContent"
+              },
+              {
+                "$ref": "#/components/schemas/ReportContentV2"
+              }
+            ]
+          }
+        },
+        "required": [
+          "reportID",
+          "ownerID",
+          "revision",
+          "schemaVersion",
+          "updatedAt",
+          "report"
+        ]
+      },
+      "Page": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CloudReport"
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "UNAUTHENTICATED",
+              "NOT_FOUND",
+              "INVALID_REPORT",
+              "REVISION_CONFLICT"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "ReportAsset": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[^/\\\\]+$"
+          },
+          "altText": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "contentType": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/heic"
+            ]
+          },
+          "byteCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20971520
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "altText",
+          "contentType",
+          "byteCount",
+          "sha256"
+        ]
+      },
+      "ReportContentV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "codeName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "lineOfBusiness": {
+            "type": "string",
+            "enum": [
+              "iPhone",
+              "Mac",
+              "iPad",
+              "Wearables, Home and Accessories",
+              "Services"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ]
+          },
+          "ragStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "green",
+                  "amber",
+                  "red"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "milestonePhase": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Prototype",
+                  "EVT",
+                  "DVT",
+                  "PVT",
+                  "Mass Production"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "milestoneDeadline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summaryType": {
+            "type": "string",
+            "enum": [
+              "update",
+              "blocker",
+              "ask"
+            ]
+          },
+          "summaryMessage": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "leadEPMName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "projectDRIName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "metrics": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Metric"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/ReportAsset"
+            }
+          }
+        },
+        "required": [
+          "codeName",
+          "lineOfBusiness",
+          "status",
+          "ragStatus",
+          "milestonePhase",
+          "milestoneDeadline",
+          "summaryType",
+          "summaryMessage",
+          "leadEPMName",
+          "projectDRIName",
+          "metrics",
+          "assets"
+        ],
+        "description": "Ordered image metadata; maximum 50 MiB total. IDs must be unique. Bytes must be uploaded and verified before saving. Other v1 validation rules remain unchanged."
+      },
+      "SaveRequestV1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775806
+          },
+          "report": {
+            "$ref": "#/components/schemas/ReportContent"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "expectedRevision",
+          "report"
+        ]
+      },
+      "SaveRequestV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "const": 2
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775806
+          },
+          "report": {
+            "$ref": "#/components/schemas/ReportContentV2"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "expectedRevision",
+          "report"
+        ]
+      },
+      "SaveRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SaveRequestV1"
+          },
+          {
+            "$ref": "#/components/schemas/SaveRequestV2"
+          }
+        ]
+      },
+      "AssetTransfer": {
+        "type": "object",
+        "required": [
+          "url",
+          "headers"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Private S3 URL, valid for five minutes. Send returned headers; never send Cognito tokens to S3."
+      }
+    }
+  }
+}
