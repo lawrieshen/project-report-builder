@@ -5,6 +5,7 @@ import Security
 /// Keep the public development client settings together; these are not secrets.
 struct CognitoConfiguration {
     let domain = "https://prb-dev-543123648742-ap-southeast-2.auth.ap-southeast-2.amazoncognito.com"
+    let userPoolEndpoint = "https://cognito-idp.ap-southeast-2.amazonaws.com/"
     let clientID = "50140nj121i4sbsra4m8o37cqq"
     let callback = "projectreportbuilder://auth/callback"
 }
@@ -102,6 +103,9 @@ struct CognitoTokenClient: CognitoTokenServing {
     let configuration = CognitoConfiguration()
 
     func tokens(fields: [String: String]) async throws -> CognitoTokens {
+        if fields["grant_type"] == "refresh_token", let refresh = fields["refresh_token"] {
+            return try await CognitoPasswordClient(session: session).refresh(refresh)
+        }
         let data = try await post(path: "/oauth2/token", fields: fields)
         let tokens = try JSONDecoder().decode(CognitoTokens.self, from: data)
         guard !tokens.access_token.isEmpty, tokens.expires_in > 0,

@@ -9,6 +9,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 
 /// Present shared preferences in the app's native Settings window.
 struct AppSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     @Bindable var store: AppSettingsStore
     let account: CloudAccountStore
     let transfers: CloudTransferStore
@@ -31,6 +32,9 @@ struct AppSettingsView: View {
             }
         }
         .frame(width: 780, height: 480)
+        .onChange(of: account.isSignedIn) { wasSignedIn, isSignedIn in
+            if wasSignedIn && !isSignedIn { dismiss() }
+        }
     }
 
     @ViewBuilder
