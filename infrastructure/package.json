@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test dist/*.test.js",
+    "test": "npm run build && node --test dist/*.test.js native-auth-trigger.test.js",
     "synth": "npm run build && cdk synth"
   },
   "keywords": [],

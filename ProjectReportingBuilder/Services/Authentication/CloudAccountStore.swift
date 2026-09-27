@@ -1,32 +1,5 @@
-import AppKit
-import AuthenticationServices
+import Foundation
 import Observation
-
-@MainActor
-private final class CloudSignInBrowser: NSObject, ASWebAuthenticationPresentationContextProviding {
-    private var session: ASWebAuthenticationSession?
-    private let window: NSWindow
-
-    init(window: NSWindow) { self.window = window }
-
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor { window }
-
-    func authenticate(url: URL) async throws -> URL {
-        defer { session = nil }
-        return try await withCheckedThrowingContinuation { continuation in
-            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: "projectreportbuilder") { url, error in
-                if let error { continuation.resume(throwing: error) }
-                else if let url { continuation.resume(returning: url) }
-                else { continuation.resume(throwing: CloudAuthError.invalidCallback) }
-            }
-            // An isolated browser session prevents the next login from silently reusing this account.
-            session.prefersEphemeralWebBrowserSession = true
-            session.presentationContextProvider = self
-            self.session = session
-            if !session.start() { continuation.resume(throwing: CloudAuthError.invalidResponse) }
-        }
-    }
-}
 
 /// Manage cloud credentials independently of local editing and recovery.
 @MainActor @Observable
@@ -37,6 +10,8 @@ final class CloudAccountStore {
     private(set) var isSignedIn = false
     private(set) var isBusy = false
     private(set) var message: String?
+    private(set) var passwordChallenge: CognitoPasswordChallenge?
+    private let passwordClient: any CognitoPasswordServing
     private var accessToken: String?
     private var expiresAt = Date.distantPast
     private let credentials: any CloudCredentialStoring
@@ -47,7 +22,9 @@ final class CloudAccountStore {
         self.init(credentials: CloudCredentialStore(), client: CognitoTokenClient())
     }
 
-    init(credentials: any CloudCredentialStoring, client: any CognitoTokenServing) {
+    init(credentials: any CloudCredentialStoring, client: any CognitoTokenServing,
+         passwordClient: any CognitoPasswordServing = CognitoPasswordClient()) {
+        self.passwordClient = passwordClient
         self.credentials = credentials
         self.client = client
     }
@@ -63,27 +40,50 @@ final class CloudAccountStore {
         } catch { message = error.localizedDescription }
     }
 
-    func signIn() async {
-        guard !isBusy else { return }
+    func signIn(email: String, password: String) async {
+        guard !isBusy, !isSignedIn else { return }
+        isBusy = true
+        message = nil
+        passwordChallenge = nil
+        defer { isBusy = false }
+        do {
+            let email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !email.isEmpty, !password.isEmpty else {
+                throw CognitoPasswordError.incorrectCredentials
+            }
+            let result = try await passwordClient.signIn(email: email, password: password)
+            try Task.checkCancellation()
+            try finishSignIn(result)
+        } catch { message = error.localizedDescription }
+    }
+
+    func setNewPassword(_ password: String) async {
+        guard !isBusy, let challenge = passwordChallenge else { return }
         isBusy = true
         message = nil
         defer { isBusy = false }
         do {
-            guard let window = NSApp.keyWindow else { throw CloudAuthError.invalidResponse }
-            let oauth = CognitoOAuth()
-            let state = try CognitoOAuth.randomValue()
-            let verifier = try CognitoOAuth.randomValue()
-            let url = try oauth.authorizationURL(state: state, verifier: verifier)
-            let callback = try await CloudSignInBrowser(window: window).authenticate(url: url)
-            let code = try oauth.code(from: callback, state: state)
-            let tokens = try await client.tokens(fields: ["grant_type": "authorization_code",
-                "code": code, "redirect_uri": oauth.configuration.callback, "code_verifier": verifier])
+            let result = try await passwordClient.complete(challenge, password: password)
+            try Task.checkCancellation()
+            try finishSignIn(result)
+        } catch { message = error.localizedDescription }
+    }
+
+    func cancelPasswordChallenge() {
+        guard !isBusy else { return }
+        passwordChallenge = nil
+        message = nil
+    }
+
+    private func finishSignIn(_ result: CognitoPasswordResult) throws {
+        switch result {
+        case .newPassword(let challenge): passwordChallenge = challenge
+        case .authenticated(let tokens):
             guard let refresh = tokens.refresh_token, !refresh.isEmpty else { throw CloudAuthError.invalidResponse }
             try credentials.save(refresh)
+            passwordChallenge = nil
             accept(tokens)
-        } catch ASWebAuthenticationSessionError.canceledLogin {
-            message = "Sign-in cancelled."
-        } catch { message = error.localizedDescription }
+        }
     }
 
     /// Refresh an expired access token before a future report API request.

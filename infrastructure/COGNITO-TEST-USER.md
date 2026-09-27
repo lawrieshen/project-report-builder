@@ -1,7 +1,7 @@
 # Provision the single Cognito test user
 
-The foundation is deployed, but app authentication and report APIs are not yet
-implemented. This user is an app user, not the Identity Center user used by CLI.
+This user is an app user, not the Identity Center user used by CLI.
+Deploy [native sign-in](NATIVE-SIGN-IN.md) before using the email/password card.
 
 ## Create the user
 
@@ -14,7 +14,7 @@ Use an authorized administrator in the AWS console:
    option. Only mark the email verified after ownership has been established.
 5. Configure invitation delivery explicitly if an email invitation is wanted.
    Do not put passwords in source files, shell history, logs, or chat.
-6. The user changes the temporary password during their first Managed Login.
+6. The user changes the temporary password in the app during their first sign-in.
 
 The deployed password policy requires at least 12 characters, including upper
 and lower case letters, a number, and a symbol. Temporary passwords expire in
@@ -25,44 +25,32 @@ management permissions. Creating a user requires an administrator or a separate,
 pool-scoped user-provisioning permission. Do not broaden deployment permissions
 just to administer accounts.
 
-## Approve the user for the future report API
+## Approve the user for report access
 
 After creation, inspect the user attributes and record the `sub`. Configure this
-exact subject in the backend's approved-user configuration; do not use the email
-or accept an owner ID supplied in a request body. No report API exists yet, so
-creating the user does not currently enable report access.
+exact subject in both the backend's approved-user configuration and the foundation
+`ApprovedSubject` parameter. Do not authorize by email or by an owner ID from a
+request body. The native-auth trigger also checks the app client ID.
 
 ## Try the macOS login integration
 
-1. Run the app and open Settings (`⌘,`) > Cloud Account.
-2. Select Sign In and enter the manually provisioned Cognito user's credentials.
+1. Launch the app and enter the provisioned Cognito user's email and password.
    Use the app test user, not the AWS root or Identity Center account.
-3. Complete the temporary-password change in the browser when prompted.
-4. Confirm the app shows Signed in. Close/reopen the app and open Cloud Account
-   to verify Keychain-backed session restoration.
-5. Select Sign Out, then sign in again or cancel and verify local reports remain
-   available. No password or token should be copied into source or logs.
-
-Cloud upload/download are not implemented. Successful sign-in does not prove
-report authorization; the future API must enforce the approved subject.
+2. Complete the new-password card if the account has a temporary password.
+3. Confirm the cloud report browser opens and verify report and image reads/writes.
+4. Restart the app to verify Keychain-backed session restoration.
+5. Sign out in Settings > Cloud Account and confirm the sign-in card returns.
 
 ## Manual validation checklist
 
-- First login and temporary-password change complete through Managed Login.
-- Authorization Code + PKCE S256 and callback state are checked.
-- Cancellation returns to the app without changing local reports.
-- Unapproved users cannot access report endpoints, even with valid tokens.
-- Refresh credentials use Keychain; logout clears them and attempts server revocation. Login requests an ephemeral
-  browser session; verify cookie isolation in the supported browser.
-- Test the packaged macOS callback, not only an Xcode run.
+- Wrong passwords and network failures keep the user signed out with a clear message.
+- Temporary passwords require a successful password change before entering reports.
+- Unapproved users cannot access reports, even with otherwise valid credentials.
+- Refresh credentials use Keychain; logout clears them and attempts revocation.
+- No password or token is written to source, logs, shell history, or chat.
+- MFA and extra profile-attribute challenges show an administrator-assistance message.
 
-## Foundation readiness check
-
-On 2026-09-27, the public OIDC discovery endpoint returned the expected issuer,
-authorization endpoint, token endpoint, and signing-key URL. A subsequent check found exactly one enabled user with status
-`FORCE_CHANGE_PASSWORD`: the user must change their temporary password at first
-login. The approved subject, issuer, and client ID are recorded in
-[dev-auth-config.json](dev-auth-config.json). These identifiers are not passwords.
-The file is preparation for the future authentication adapter; no deployed API
-currently reads or enforces it. This is configuration evidence, not an
-end-to-end login or upload test.
+The current approved subject, issuer, and client ID are recorded in
+[dev-auth-config.json](dev-auth-config.json). These identifiers are not secrets.
+The native-login foundation was deployed on 2026-09-27. Live sign-in and report
+access verification in the app remain pending.
