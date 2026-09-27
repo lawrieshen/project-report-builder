@@ -21,7 +21,7 @@ class DynamoReportRepositoryTest {
         assertEquals(created, repository.find("owner", id).orElseThrow());
         assertTrue(client.read.consistentRead());
         repository.save("owner", id, 1, content, Instant.now());
-        assertEquals("revision = :expected", client.write.conditionExpression());
+        assertEquals("revision = :expected AND attribute_not_exists(deleted)", client.write.conditionExpression());
         assertEquals("1", client.write.expressionAttributeValues().get(":expected").n());
     }
 
@@ -47,6 +47,20 @@ class DynamoReportRepositoryTest {
         assertEquals(1, client.queries.get(1).limit());
         assertEquals("owner", client.queries.getFirst().expressionAttributeValues().get(":owner").s());
         assertFalse(client.queries.get(1).exclusiveStartKey().isEmpty());
+    }
+
+    @Test void tombstonesAreHiddenAndDoNotStopPagination() {
+        repository.delete("owner", id, 1, Instant.now());
+        var tombstone = client.write.item();
+        assertTrue(tombstone.containsKey("deleted"));
+        assertTrue(repository.find("owner", id).isEmpty());
+        assertTrue(client.write.conditionExpression().contains("revision = :next"));
+        client.pages.add(QueryResponse.builder().items(tombstone)
+                .lastEvaluatedKey(Map.of("reportID", AttributeValue.builder().s(id.toString()).build())).build());
+        repository.save("owner", UUID.randomUUID(), 0, content, Instant.now());
+        client.pages.add(QueryResponse.builder().items(client.write.item()).build());
+        assertEquals(1, repository.list("owner", null, 1).size());
+        assertEquals(2, client.queries.size());
     }
 
     private static final class FakeDynamo implements DynamoDbClient {

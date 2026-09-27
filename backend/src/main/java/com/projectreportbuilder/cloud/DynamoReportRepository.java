@@ -22,7 +22,7 @@ public final class DynamoReportRepository implements ReportRepository {
     @Override public Optional<CloudReport> find(String owner, UUID id) {
         var result = client.getItem(GetItemRequest.builder().tableName(table).key(key(owner, id))
                 .consistentRead(true).build());
-        return result.hasItem() ? Optional.of(decode(result.item())) : Optional.empty();
+        return result.hasItem() && !result.item().containsKey("deleted") ? Optional.of(decode(result.item())) : Optional.empty();
     }
 
     @Override public List<CloudReport> list(String owner, UUID after, int limit) {
@@ -36,7 +36,9 @@ public final class DynamoReportRepository implements ReportRepository {
                     .consistentRead(true).scanIndexForward(true);
             if (!start.isEmpty()) request.exclusiveStartKey(start);
             var page = client.query(request.build());
-            for (var item : page.items()) results.add(decode(item));
+            for (var item : page.items()) {
+                if (!item.containsKey("deleted")) results.add(decode(item));
+            }
             start = page.lastEvaluatedKey();
             // DynamoDB may stop at 1 MB before reaching the requested item count.
         } while (!start.isEmpty() && results.size() < limit);
@@ -60,7 +62,7 @@ public final class DynamoReportRepository implements ReportRepository {
         if (expectedRevision == 0) {
             request.conditionExpression("attribute_not_exists(reportID)");
         } else {
-            request.conditionExpression("revision = :expected")
+            request.conditionExpression("revision = :expected AND attribute_not_exists(deleted)")
                     .expressionAttributeValues(Map.of(":expected",
                             AttributeValue.builder().n(Long.toString(expectedRevision)).build()));
         }
@@ -69,6 +71,23 @@ public final class DynamoReportRepository implements ReportRepository {
             throw new ReportException(ReportException.Code.REVISION_CONFLICT, "Report revision changed; reload before saving");
         }
         return report;
+    }
+
+    @Override public void delete(String owner, UUID id, long expectedRevision, Instant now) {
+        var item = new HashMap<>(key(owner, id));
+        item.put("revision", AttributeValue.builder().n(Long.toString(expectedRevision + 1)).build());
+        item.put("deleted", AttributeValue.builder().bool(true).build());
+        item.put("deletedAt", text(now.toString()));
+        var request = PutItemRequest.builder().tableName(table).item(item)
+                .conditionExpression("(revision = :expected AND attribute_not_exists(deleted)) OR (revision = :next AND deleted = :yes)")
+                .expressionAttributeValues(Map.of(
+                        ":expected", AttributeValue.builder().n(Long.toString(expectedRevision)).build(),
+                        ":next", AttributeValue.builder().n(Long.toString(expectedRevision + 1)).build(),
+                        ":yes", AttributeValue.builder().bool(true).build())).build();
+        try { client.putItem(request); }
+        catch (ConditionalCheckFailedException error) {
+            throw new ReportException(ReportException.Code.REVISION_CONFLICT, "Report changed before deletion");
+        }
     }
 
     private CloudReport decode(Map<String, AttributeValue> item) {

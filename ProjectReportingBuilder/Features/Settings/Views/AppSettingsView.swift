@@ -14,6 +14,7 @@ struct AppSettingsView: View {
     let transfers: CloudTransferStore
     let fileStore: ProjectFileStore
     let maintenance: RecoveryMaintenanceCoordinator
+    var cloudPrimary = false
     @State private var selection: SettingsSection? = .general
 
     var body: some View {
@@ -79,7 +80,7 @@ struct AppSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         case .cloud:
-            CloudAccountView(account: account, transfers: transfers)
+            CloudAccountView(account: account, transfers: transfers, cloudPrimary: cloudPrimary)
         case .storage:
             StorageSettingsView(store: fileStore, maintenance: maintenance)
         case .about:

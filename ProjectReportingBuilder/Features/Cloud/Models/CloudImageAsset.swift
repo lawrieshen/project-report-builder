@@ -80,12 +80,12 @@ protocol CloudImageTransferring {
 }
 
 /// Verify image bytes and publish a local copy only after every download completes.
-final class CloudImageTransfer: CloudImageTransferring {
+final class CloudImageTransfer: CloudImageTransferring, CloudProjectImages {
     private let files: ProjectFileStore
-    private let client: CloudReportClient
+    private let client: any CloudImageURLServing
     private let session: URLSession
 
-    init(files: ProjectFileStore, client: CloudReportClient) {
+    init(files: ProjectFileStore, client: any CloudImageURLServing) {
         self.files = files
         self.client = client
         let configuration = URLSessionConfiguration.ephemeral
@@ -94,6 +94,10 @@ final class CloudImageTransfer: CloudImageTransferring {
     }
 
     func uploadImages(for project: ProjectReport) async throws -> [CloudImageAsset] {
+        try await upload(project: project, previous: nil)
+    }
+
+    func upload(project: ProjectReport, previous: CloudReport?) async throws -> [CloudImageAsset] {
         let assets = project.card?.assets ?? []
         guard assets.count <= 10 else { throw CloudTransferError.imageLimit }
         var result: [CloudImageAsset] = []
@@ -104,6 +108,12 @@ final class CloudImageTransfer: CloudImageTransferring {
             total += data.count
             guard total <= 50 * 1_048_576 else { throw CloudTransferError.imageLimit }
             let metadata = try CloudImageAsset(asset: asset, data: data)
+            if (previous?.report.assets ?? []).contains(where: {
+                $0.sha256 == metadata.sha256 && $0.byteCount == metadata.byteCount && $0.contentType == metadata.contentType
+            }) {
+                result.append(metadata)
+                continue
+            }
             let transfer = try await client.uploadURL(projectID: project.id, asset: metadata)
             let request = try signedRequest(transfer, method: "PUT")
             let (_, response) = try await session.upload(for: request, from: data)
@@ -144,6 +154,44 @@ final class CloudImageTransfer: CloudImageTransferring {
         return copy
     }
 
+    /// Hydrate only missing or invalid image bytes; report snapshots remain cache data.
+    func cache(report: CloudReport, project: ProjectReport) async throws {
+        let metadata = report.report.assets ?? []
+        guard metadata.count <= 10 else { throw CloudTransferError.imageLimit }
+        var total = 0
+        for asset in metadata {
+            try asset.validateMetadata()
+            total += asset.byteCount
+            guard total <= 50 * 1_048_576 else { throw CloudTransferError.imageLimit }
+        }
+        try await files.save(project)
+        for asset in metadata {
+            try Task.checkCancellation()
+            let local = try asset.localAsset()
+            if let data = try? await files.cloudImageData(local, projectID: project.id),
+               (try? asset.validate(data)) != nil { continue }
+            let transfer = try await client.downloadURL(projectID: project.id, assetID: asset.id)
+            let (temporary, response) = try await session.download(for: signedRequest(transfer, method: "GET"))
+            defer { try? FileManager.default.removeItem(at: temporary) }
+            guard (response as? HTTPURLResponse)?.statusCode == 200,
+                  try temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize == asset.byteCount else {
+                throw CloudTransferError.imageTransferFailed
+            }
+            let data = try Data(contentsOf: temporary)
+            try asset.validate(data)
+            try Task.checkCancellation()
+            try await files.writeAsset(data, asset: local, projectID: project.id)
+        }
+    }
+
+    func copyCachedImages(from id: UUID, to project: ProjectReport) async throws {
+        try await files.save(project)
+        for asset in project.card?.assets ?? [] {
+            let data = try await files.cloudImageData(asset, projectID: id)
+            try await files.writeAsset(data, asset: asset, projectID: project.id)
+        }
+    }
+
     private func signedRequest(_ transfer: CloudAssetTransfer, method: String) throws -> URLRequest {
         // Never send account tokens to S3 or follow arbitrary destinations from a response.
         guard transfer.url.scheme == "https",
@@ -170,3 +218,11 @@ private final class CloudImageSessionDelegate: NSObject, URLSessionTaskDelegate 
         completionHandler(nil)
     }
 }
+
+@MainActor
+protocol CloudImageURLServing {
+    func uploadURL(projectID: UUID, asset: CloudImageAsset) async throws -> CloudAssetTransfer
+    func downloadURL(projectID: UUID, assetID: String) async throws -> CloudAssetTransfer
+}
+
+extension CloudReportClient: CloudImageURLServing { }

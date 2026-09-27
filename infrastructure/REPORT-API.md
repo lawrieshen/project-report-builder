@@ -203,3 +203,12 @@ Both image routes require JWT authorization with their respective read/write
 scopes; unauthenticated POST upload and GET download returned HTTP 401.
 The artifact key is recorded in `dev-api-outputs.json`. The developer confirmed the signed-in app image upload/download round trip
 passed after deployment. This is manual verification evidence.
+
+
+## Cloud-primary API update — 2026-09-27
+
+Deployed revision-safe DELETE `/reports/{reportID}` with reports/write scope.
+The Lambda conditionally writes a tombstone using its existing DynamoDB PutItem
+permission. No report records were deleted as part of deployment. The stack
+finished UPDATE_COMPLETE; the artifact is recorded in dev-api-outputs.json.
+Cloud-primary user-flow validation remains pending in the new macOS build.

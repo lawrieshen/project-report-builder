@@ -44,19 +44,24 @@ struct CloudReportContent: Codable, Equatable {
 
     /// Import as an independent project so an open local draft is never overwritten.
     func localCopy() throws -> ProjectReport {
+        try project(id: UUID(), updatedAt: Date())
+    }
+
+    /// Preserve remote identity when opening a cloud report for editing.
+    func project(id: UUID, updatedAt: Date) throws -> ProjectReport {
         var milestone: Milestone?
         if let phase = milestonePhase, let date = milestoneDeadline {
             guard let deadline = Self.dateFormatter.date(from: date),
                   Self.dateFormatter.string(from: deadline) == date else { throw CloudTransferError.invalidResponse }
             milestone = Milestone(phase: phase, deadline: deadline)
         } else if milestonePhase != nil || milestoneDeadline != nil { throw CloudTransferError.invalidResponse }
-        let card = SnippetCard(id: UUID(), health: ProjectHealth(ragStatus: ragStatus, milestone: milestone),
+        let card = SnippetCard(id: id, health: ProjectHealth(ragStatus: ragStatus, milestone: milestone),
             summary: ExecutiveSummary(type: summaryType, message: summaryMessage),
             accountability: Accountability(leadEPM: person(leadEPMName), projectDRI: person(projectDRIName)),
             assets: try (assets ?? []).map { try $0.localAsset() },
             metrics: try metrics.map { try $0.localMetric() })
-        return ProjectReport(id: UUID(), codeName: codeName, lineOfBusiness: lineOfBusiness, status: status,
-                             card: card, createdAt: Date(), updatedAt: Date())
+        return ProjectReport(id: id, codeName: codeName, lineOfBusiness: lineOfBusiness, status: status,
+                             card: card, createdAt: updatedAt, updatedAt: updatedAt)
     }
 
     private func person(_ name: String) -> Person? {
@@ -157,9 +162,10 @@ struct CloudMetric: Codable, Equatable {
 }
 
 enum CloudTransferError: LocalizedError {
-    case imagesUnsupported, invalidResponse, conflict, signedOut, rejected, missingProject, serverUnavailable, forbidden, imageLimit, imageTransferFailed
+    case notFound, imagesUnsupported, invalidResponse, conflict, signedOut, rejected, missingProject, serverUnavailable, forbidden, imageLimit, imageTransferFailed
     var errorDescription: String? {
         switch self {
+        case .notFound: "This cloud report no longer exists."
         case .imageLimit: "Use at most 10 images, 20 MB each and 50 MB total per report."
         case .imageTransferFailed: "Image transfer failed. Retry to complete the report; your local original is unchanged."
         case .imagesUnsupported: "Image uploads are unavailable in this configuration. This report was not uploaded."

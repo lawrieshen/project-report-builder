@@ -1,6 +1,7 @@
 import Foundation
 
 protocol CloudReportServing {
+    func delete(id: UUID, revision: Int64) async throws
     func list(after: UUID?) async throws -> CloudReportPage
     func get(id: UUID) async throws -> CloudReport
     func save(id: UUID, revision: Int64, content: CloudReportContent) async throws -> CloudReport
@@ -42,6 +43,14 @@ final class CloudReportClient: CloudReportServing {
         return try await request(path: "/reports/" + id.uuidString.lowercased(), method: "PUT", body: data)
     }
 
+    func delete(id: UUID, revision: Int64) async throws {
+        struct Request: Encodable { let expectedRevision: Int64 }
+        struct Response: Decodable { let deleted: Bool }
+        let response: Response = try await request(path: "/reports/" + id.uuidString.lowercased(),
+            method: "DELETE", body: JSONEncoder().encode(Request(expectedRevision: revision)))
+        guard response.deleted else { throw CloudTransferError.invalidResponse }
+    }
+
     func uploadURL(projectID: UUID, asset: CloudImageAsset) async throws -> CloudAssetTransfer {
         try await request(path: "/reports/" + projectID.uuidString.lowercased() + "/assets/upload",
                           method: "POST", body: JSONEncoder().encode(asset))
@@ -56,6 +65,7 @@ final class CloudReportClient: CloudReportServing {
     private func request<Response: Decodable>(path: String, method: String, body: Data?) async throws -> Response {
         guard let url = URL(string: endpoint + path) else { throw CloudTransferError.invalidResponse }
         let token = try await account.validAccessToken()
+        let requestSession = account.sessionID
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
@@ -64,14 +74,20 @@ final class CloudReportClient: CloudReportServing {
         request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await session.data(for: request)
+        guard account.isSignedIn, account.sessionID == requestSession else { throw CancellationError() }
         guard let response = response as? HTTPURLResponse else { throw CloudTransferError.invalidResponse }
         switch response.statusCode {
         case 200: return try JSONDecoder().decode(Response.self, from: data)
         case 401: throw CloudTransferError.signedOut
+        case 404: throw CloudTransferError.notFound
         case 403: throw CloudTransferError.forbidden
         case 500...599: throw CloudTransferError.serverUnavailable
         case 409: throw CloudTransferError.conflict
         default: throw CloudTransferError.rejected
         }
     }
+}
+
+extension CloudReportServing {
+    func delete(id: UUID, revision: Int64) async throws { throw CloudTransferError.rejected }
 }
