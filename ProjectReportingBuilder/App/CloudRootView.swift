@@ -12,7 +12,8 @@ struct CloudRootView: View {
             if let workspace = environment.workspace, environment.cloudAccount.isSignedIn {
                 ContentView(repository: workspace.repository, assetFactory: workspace.assets,
                     recoveryRepository: LocalDraftRecoveryRepository(store: workspace.files),
-                    settings: environment.settings, session: workspace.session, maintenance: workspace.maintenance)
+                    settings: environment.settings, session: workspace.session, maintenance: workspace.maintenance,
+                    cloudAccount: environment.cloudAccount)
                     .id(environment.cloudAccount.sessionID)
             } else {
                 CloudSignInView(
@@ -20,13 +21,16 @@ struct CloudRootView: View {
                     isLoading: loading,
                     isBusy: environment.cloudAccount.isBusy,
                     message: error ?? environment.cloudAccount.message,
-                    signIn: { Task { await environment.cloudAccount.signIn() } },
+                    signIn: { email, password in await environment.cloudAccount.signIn(email: email, password: password) },
+                    needsNewPassword: environment.cloudAccount.passwordChallenge != nil,
+                    setNewPassword: { await environment.cloudAccount.setNewPassword($0) },
+                    cancelPasswordChallenge: { environment.cloudAccount.cancelPasswordChallenge() },
                     retry: { Task { await openWorkspace() } },
                     signOut: { Task { await environment.cloudAccount.signOut() } })
             }
         }
         .disabled(environment.cloudAccount.isBusy)
-        .frame(minWidth: 760, minHeight: 400)
+        .frame(minWidth: 760, minHeight: 560)
         .task { await environment.cloudAccount.restore() }
         .task(id: environment.cloudAccount.sessionID) { await openWorkspace() }
     }

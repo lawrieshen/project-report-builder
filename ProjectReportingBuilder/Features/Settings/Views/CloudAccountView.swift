@@ -5,7 +5,6 @@ struct CloudAccountView: View {
     @Bindable var transfers: CloudTransferStore
 
     var cloudPrimary = false
-    @State private var confirmingSignOut = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.section) {
@@ -15,9 +14,13 @@ struct CloudAccountView: View {
                 .foregroundStyle(.secondary)
             HStack {
                 if account.isSignedIn {
-                    Button("Sign Out") { confirmingSignOut = true }
+                    CloudSignOutButton(account: account)
                 } else {
-                    Button("Sign In") { Task { await account.signIn() } }
+                    CloudCredentialsForm(isBusy: account.isBusy,
+                        needsNewPassword: account.passwordChallenge != nil,
+                        signIn: { await account.signIn(email: $0, password: $1) },
+                        setNewPassword: { await account.setNewPassword($0) },
+                        cancel: { account.cancelPasswordChallenge() })
                 }
                 if account.isBusy { ProgressView().controlSize(.small) }
             }
@@ -30,10 +33,6 @@ struct CloudAccountView: View {
                     CloudTransferView(store: transfers).disabled(account.isBusy)
                 }
             }
-        }
-        .confirmationDialog("Sign out? Unsynced edits will be kept as a recovery draft for this account.", isPresented: $confirmingSignOut) {
-            Button("Sign Out") { Task { await account.signOut() } }
-            Button("Cancel", role: .cancel) { }
         }
         .task { await account.restore() }
         .onChange(of: account.isSignedIn) { _, signedIn in
