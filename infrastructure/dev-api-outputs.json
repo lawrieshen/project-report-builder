@@ -2,10 +2,11 @@
   "account": "543123648742",
   "region": "ap-southeast-2",
   "stackName": "prb-dev-report-api",
-  "stackStatus": "CREATE_COMPLETE",
+  "stackStatus": "UPDATE_COMPLETE",
   "apiId": "ic1fsr0eg6",
   "apiUrl": "https://ic1fsr0eg6.execute-api.ap-southeast-2.amazonaws.com",
   "functionName": "prb-dev-report-api",
   "artifactBucket": "prb-dev-artifacts-543123648742-ap-southeast-2",
-  "artifactKey": "report-api/f651e6485d4792c589aeff98a10386d4c6264c187fb8e66ebbed3d9e0f1103ab.zip"
+  "artifactKey": "report-api/cbffe90917fe668ae4454f475064a243e08ba71cb42243b3cdc653e426c7a6f1.zip",
+  "assetsBucket": "prb-dev-assets-543123648742-ap-southeast-2"
 }

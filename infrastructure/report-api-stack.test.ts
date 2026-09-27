@@ -5,11 +5,11 @@ import { ReportApiStack } from './report-api-stack';
 
 test('all report routes require JWT and operation scope', () => {
   const template = Template.fromStack(new ReportApiStack(new App(), 'ApiTest'));
-  template.resourceCountIs('AWS::ApiGatewayV2::Route', 3);
-  for (const route of ['GET /reports', 'GET /reports/{reportID}', 'PUT /reports/{reportID}']) {
+  template.resourceCountIs('AWS::ApiGatewayV2::Route', 5);
+  for (const route of ['GET /reports', 'GET /reports/{reportID}', 'PUT /reports/{reportID}', 'POST /reports/{reportID}/assets/upload', 'GET /reports/{reportID}/assets/{assetID}']) {
     template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
       RouteKey: route, AuthorizationType: 'JWT', AuthorizerId: Match.anyValue(),
-      AuthorizationScopes: [route.startsWith('PUT') ? 'reports/write' : 'reports/read'],
+      AuthorizationScopes: [(route.startsWith('PUT') || route.startsWith('POST')) ? 'reports/write' : 'reports/read'],
     });
   }
   template.resourceCountIs('AWS::Lambda::Url', 0);
@@ -24,7 +24,20 @@ test('runtime logs expire and role has only report and log actions', () => {
   template.hasResourceProperties('AWS::IAM::Role', { Policies: [Match.objectLike({
     PolicyDocument: { Version: '2012-10-17', Statement: [
       Match.objectLike({ Action: ['dynamodb:GetItem', 'dynamodb:Query', 'dynamodb:PutItem'], Resource: Match.anyValue() }),
+      Match.objectLike({ Action: ['s3:GetObject', 's3:PutObject'], Resource: Match.anyValue() }),
       Match.objectLike({ Action: ['logs:CreateLogStream', 'logs:PutLogEvents'], Resource: Match.anyValue() }),
     ] },
   })] });
+});
+
+ test('image bucket is private, encrypted and retained', () => {
+  const template = Template.fromStack(new ReportApiStack(new App(), 'AssetsTest'));
+  template.hasResource('AWS::S3::Bucket', {
+    DeletionPolicy: 'Retain',
+    Properties: Match.objectLike({
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true,
+        IgnorePublicAcls: true, RestrictPublicBuckets: true },
+      BucketEncryption: { ServerSideEncryptionConfiguration: [{ ServerSideEncryptionByDefault: { SSEAlgorithm: 'AES256' } }] },
+    }),
+  });
 });
