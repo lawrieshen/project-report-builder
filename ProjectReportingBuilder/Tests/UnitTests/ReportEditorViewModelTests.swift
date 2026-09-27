@@ -118,6 +118,7 @@ final class WorkspaceTestRepository: ProjectRepository {
     var project: ProjectReport?
     var failLoad = false
     var failSave = false
+    var conflict = false
     var saveCount = 0
     enum Failure: Error { case unavailable }
     init(project: ProjectReport?) { self.project = project }
@@ -127,6 +128,7 @@ final class WorkspaceTestRepository: ProjectRepository {
         return project?.id == id ? project : nil
     }
     func save(_ project: ProjectReport) async throws {
+        if conflict { throw CloudTransferError.conflict }
         if failSave { throw Failure.unavailable }
         saveCount += 1
         self.project = project

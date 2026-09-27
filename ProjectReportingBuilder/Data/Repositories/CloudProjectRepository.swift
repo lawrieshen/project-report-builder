@@ -102,8 +102,15 @@ final class CloudProjectRepository: ProjectRepository {
 
     func duplicate(id: UUID, codeName: String) async throws -> ProjectReport {
         guard let original = try await fetchProject(id: id) else { throw CloudTransferError.notFound }
+        var source = original
+        source.codeName = codeName
+        return try await saveCopy(source)
+    }
+
+    func saveCopy(_ original: ProjectReport) async throws -> ProjectReport {
+        try checkSession()
         let sourceID = original.id
-        let copy = ProjectReport(id: UUID(), codeName: codeName, lineOfBusiness: original.lineOfBusiness,
+        let copy = ProjectReport(id: UUID(), codeName: original.codeName, lineOfBusiness: original.lineOfBusiness,
             status: original.status, card: original.card, createdAt: .now, updatedAt: .now)
         try await images?.copyCachedImages(from: sourceID, to: copy)
         try await save(copy)

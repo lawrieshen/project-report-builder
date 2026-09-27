@@ -9,6 +9,7 @@ struct ReportEditorView: View {
     var showPreview: () -> Void = {}
     var showExport: () -> Void = {}
     @Binding var focusedSection: ReportSection?
+    @State private var confirmingReload = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -24,6 +25,10 @@ struct ReportEditorView: View {
         }
         .disabled(viewModel.pendingRecovery != nil)
         .task { await viewModel.load() }
+        .confirmationDialog("Discard edits and reload the cloud version?", isPresented: $confirmingReload) {
+            Button("Reload", role: .destructive) { Task { await viewModel.reloadCloudVersion() } }
+            Button("Cancel", role: .cancel) { }
+        }
         .alert("Restore Unsaved Changes?", isPresented: Binding(
             get: { viewModel.pendingRecovery != nil }, set: { _ in }
         )) {
@@ -70,8 +75,14 @@ struct ReportEditorView: View {
             if let error = viewModel.saveError {
                 HStack {
                     Text(error).foregroundStyle(.red)
-                    Button("Retry Save") { Task { await viewModel.save() } }
-                        .disabled(!viewModel.canSave)
+                    if viewModel.hasCloudConflict {
+                        Button("Reload Cloud Version") { confirmingReload = true }
+                        Button("Save as New Report") { Task { await viewModel.saveConflictCopy() } }
+                            .disabled(viewModel.isSaving || viewModel.draft?.isValid != true)
+                    } else {
+                        Button("Retry Save") { Task { await viewModel.save() } }
+                            .disabled(!viewModel.canSave)
+                    }
                 }
                 .padding(AppSpacing.cardInset)
             }
