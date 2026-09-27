@@ -1,6 +1,7 @@
-import { CfnOutput, CfnParameter, RemovalPolicy, Stack, StackProps, Tags } from 'aws-cdk-lib';
+import { CfnCondition, CfnOutput, CfnParameter, Fn, RemovalPolicy, Stack, StackProps, Tags } from 'aws-cdk-lib';
 import { aws_apigatewayv2 as gateway, aws_dynamodb as dynamodb, aws_iam as iam,
-  aws_lambda as lambda, aws_logs as logs, aws_cloudwatch as cloudwatch } from 'aws-cdk-lib';
+  aws_lambda as lambda, aws_logs as logs, aws_cloudwatch as cloudwatch,
+  aws_cloudwatch_actions as actions, aws_sns as sns } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 /** Provision an isolated, initially disabled composer on the existing report API. */
@@ -38,12 +39,31 @@ export class AiComposeStack extends Stack {
       metricNamespace: 'ProjectReportBuilder/AI', metricName: 'BudgetPercent',
       metricValue: '$.budgetPercent',
     });
-    new cloudwatch.Alarm(this, 'BudgetWarning', {
+    const alertEmail = new CfnParameter(this, 'BudgetAlertEmail', {
+      default: '', description: 'Owner-approved notification address; requires email subscription confirmation.',
+      allowedPattern: '^$|^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$',
+    });
+    const hasAlertEmail = new CfnCondition(this, 'HasAlertEmail', {
+      expression: Fn.conditionNot(Fn.conditionEquals(alertEmail.valueAsString, '')),
+    });
+    const alertTopic = new sns.Topic(this, 'BudgetAlerts', { topicName: 'prb-dev-ai-budget-alerts' });
+    const subscription = new sns.CfnSubscription(this, 'BudgetEmail', {
+      topicArn: alertTopic.topicArn, protocol: 'email', endpoint: alertEmail.valueAsString,
+    });
+    subscription.cfnOptions.condition = hasAlertEmail;
+    const alarm = new cloudwatch.Alarm(this, 'BudgetWarning', {
       alarmName: 'prb-dev-ai-budget-warning',
       alarmDescription: 'Application AI budget reservations reached 80%; review before further generation.',
       metric: budgetMetric.metric({ statistic: 'Maximum' }), threshold: 80, evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
+    alertTopic.addToResourcePolicy(new iam.PolicyStatement({
+      principals: [new iam.ServicePrincipal('cloudwatch.amazonaws.com')],
+      actions: ['sns:Publish'], resources: [alertTopic.topicArn],
+      conditions: { StringEquals: { 'aws:SourceAccount': this.account },
+        ArnEquals: { 'aws:SourceArn': alarm.alarmArn } },
+    }));
+    alarm.addAlarmAction(new actions.SnsAction(alertTopic));
     const role = new iam.Role(this, 'ExecutionRole', {
       roleName: 'prb-dev-ai-compose-execution', assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       inlinePolicies: { Compose: new iam.PolicyDocument({ statements: [

@@ -65,5 +65,7 @@ partial selection, manual edits, confirmation invalidation, Apply, Undo, autosav
 reopen and export, plus cancellation, stale drafts, account changes and exhausted
 quota. Verify normal report editing remains usable when AI is unavailable.
 
-The budget alarm currently has no notification destination. A visible alarm state
-alone is not proof of delivered alerts or a provider spending cap.
+The budget alarm template includes an SNS topic and optional `BudgetAlertEmail`
+subscription. Delivery requires deployment, an owner-approved address and confirmed
+subscription. A visible alarm state alone is not proof of delivered alerts or a
+provider spending cap.

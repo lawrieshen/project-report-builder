@@ -64,3 +64,21 @@ test('budget warning watches reservations without report content', () => {
     Threshold: 80, EvaluationPeriods: 1, TreatMissingData: 'notBreaching', Statistic: 'Maximum',
   });
 });
+
+test('budget notifications require an explicit address and scoped alarm publisher', () => {
+  const stack = template();
+  stack.hasParameter('BudgetAlertEmail', { Default: '' });
+  stack.hasResource('AWS::SNS::Subscription', {
+    Condition: 'HasAlertEmail', Properties: Match.objectLike({
+      Protocol: 'email', Endpoint: { Ref: 'BudgetAlertEmail' },
+    }),
+  });
+  stack.hasResourceProperties('AWS::SNS::TopicPolicy', {
+    PolicyDocument: Match.objectLike({ Statement: Match.arrayWith([Match.objectLike({
+      Action: 'sns:Publish', Principal: { Service: 'cloudwatch.amazonaws.com' },
+      Condition: { StringEquals: { 'aws:SourceAccount': '543123648742' },
+        ArnEquals: { 'aws:SourceArn': Match.anyValue() } },
+    })]) }),
+  });
+  stack.hasResourceProperties('AWS::CloudWatch::Alarm', { AlarmActions: [Match.anyValue()] });
+});
