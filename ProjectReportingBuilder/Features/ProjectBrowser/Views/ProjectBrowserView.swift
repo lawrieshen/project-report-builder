@@ -9,6 +9,7 @@ struct ProjectBrowserView: View {
     var isCreatingProject = false
     var duplicateProject: (ProjectReport) -> Void = { _ in }
     var confirmBeforeDelete = true
+    var cloudAccount: CloudAccountStore?
     @State private var projectToDelete: ProjectReport?
     @State private var projectToArchive: ProjectReport?
     
@@ -22,6 +23,9 @@ struct ProjectBrowserView: View {
             Divider()
             browserContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            browserSignOut
         }
         .overlayPreferenceValue(ProjectFilterAnchors.self) { anchors in
             GeometryReader { geometry in
@@ -92,6 +96,19 @@ struct ProjectBrowserView: View {
         
     }
     
+    @ViewBuilder
+    private var browserSignOut: some View {
+        if let cloudAccount, cloudAccount.isSignedIn {
+            HStack {
+                Spacer()
+                CloudSignOutButton(account: cloudAccount, expandsOnHover: true)
+                    .disabled(viewModel.isSaving)
+            }
+            .padding(.horizontal, AppSpacing.pageInset)
+            .padding(.vertical, AppSpacing.field)
+        }
+    }
+
     @ViewBuilder
     private var browserHeader: some View {
         VStack(spacing: AppSpacing.field) {

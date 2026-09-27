@@ -4,6 +4,46 @@ import Testing
 
 @MainActor
 struct CloudAccountStoreTests {
+    @Test func nativeSignInSavesOnlyRefreshToken() async {
+        let credentials = MemoryCloudCredentials()
+        credentials.token = nil
+        let native = StubPasswordClient()
+        let store = CloudAccountStore(credentials: credentials, client: StubCognitoClient(), passwordClient: native)
+        await store.signIn(email: " user@example.com ", password: "password")
+        #expect(store.isSignedIn)
+        #expect(credentials.token == "native-refresh")
+        #expect(native.email == "user@example.com")
+    }
+
+    @Test func passwordChallengeCompletesBeforeSigningIn() async {
+        let credentials = MemoryCloudCredentials()
+        credentials.token = nil
+        let native = StubPasswordClient()
+        native.needsPassword = true
+        let store = CloudAccountStore(credentials: credentials, client: StubCognitoClient(), passwordClient: native)
+        await store.signIn(email: "user@example.com", password: "temporary")
+        #expect(!store.isSignedIn)
+        #expect(store.passwordChallenge != nil)
+        #expect(credentials.token == nil)
+        await store.setNewPassword("New-password-123")
+        #expect(store.isSignedIn)
+        #expect(store.passwordChallenge == nil)
+        #expect(credentials.token == "native-refresh")
+    }
+
+    @Test func failedNativeSignInDoesNotSaveCredentials() async {
+        let credentials = MemoryCloudCredentials()
+        credentials.token = nil
+        let native = StubPasswordClient()
+        native.fails = true
+        let store = CloudAccountStore(credentials: credentials, client: StubCognitoClient(), passwordClient: native)
+        await store.signIn(email: "user@example.com", password: "wrong")
+        #expect(!store.isSignedIn)
+        #expect(!store.isBusy)
+        #expect(store.message != nil)
+        #expect(credentials.token == nil)
+    }
+
     @Test func restoreRefreshesAndCachesAccessToken() async throws {
         let credentials = MemoryCloudCredentials()
         let client = StubCognitoClient()
@@ -104,5 +144,25 @@ private final class StubCognitoClient: CognitoTokenServing {
     func revoke(_ refreshToken: String) async throws {
         revoked = refreshToken
         if let failure { throw failure }
+    }
+}
+
+@MainActor
+private final class StubPasswordClient: CognitoPasswordServing {
+    var needsPassword = false
+    var fails = false
+    var email: String?
+    func signIn(email: String, password: String) async throws -> CognitoPasswordResult {
+        self.email = email
+        if fails { throw CognitoPasswordError.incorrectCredentials }
+        if needsPassword { return .newPassword(CognitoPasswordChallenge(session: "challenge", username: email)) }
+        return tokens()
+    }
+    func complete(_ challenge: CognitoPasswordChallenge, password: String) async throws -> CognitoPasswordResult {
+        tokens()
+    }
+    private func tokens() -> CognitoPasswordResult {
+        .authenticated(CognitoTokens(access_token: "native-access", refresh_token: "native-refresh",
+                                     expires_in: 3600, token_type: "Bearer"))
     }
 }

@@ -12,6 +12,7 @@ struct ContentView: View {
         case metric(EngineeringMetricDraft, Bool)
     }
 
+    private let cloudAccount: CloudAccountStore?
     private let settings: AppSettingsStore?
     private let maintenance: RecoveryMaintenanceCoordinator?
     @State private var exportViewModel: ExportViewModel?
@@ -22,7 +23,8 @@ struct ContentView: View {
     
     init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
          recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil,
-         maintenance: RecoveryMaintenanceCoordinator? = nil) {
+         maintenance: RecoveryMaintenanceCoordinator? = nil, cloudAccount: CloudAccountStore? = nil) {
+        self.cloudAccount = cloudAccount
         self.settings = settings
         self.maintenance = maintenance
         _router = State(initialValue: AppRouter(repository: repository, assetFactory: assetFactory, recoveryRepository: recoveryRepository, settings: settings, session: session, maintenance: maintenance))
@@ -202,7 +204,8 @@ struct ContentView: View {
                                newProject: router.newProject,
                                isCreatingProject: isShowingCard,
                                duplicateProject: { card = .duplicate($0) },
-                               confirmBeforeDelete: settings?.settings.confirmBeforeDelete ?? true)
+                               confirmBeforeDelete: settings?.settings.confirmBeforeDelete ?? true,
+                               cloudAccount: cloudAccount)
             }
         }
     }
