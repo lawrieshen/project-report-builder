@@ -70,9 +70,8 @@ The future table requires a string partition key `pk`, no sort key, and TTL on
 rows contain report proposals for the 24-hour retry window. IAM permissions must
 be restricted to this table and the supplied Gemini secret ARN.
 
-The owner's monthly budget is USD 10. The proposed application limit is USD 8;
-provider cap/auto-reload verification and application-limit confirmation remain
-pending. Test prices are not production Gemini rates. Infrastructure charges and
+The owner's monthly budget is USD 10. The owner confirmed an application limit of USD 8, a provider cap of USD 10,
+and disabled auto-reload. Production runtime wiring remains pending. Test prices are not production Gemini rates. Infrastructure charges and
 provider accounting delays are outside this application allowance.
 
 ## Workflow boundaries
