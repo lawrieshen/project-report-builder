@@ -1,0 +1,27 @@
+{
+  "requestID": "abcdefab-1234-5678-9abc-abcdefabcdef",
+  "baseDraftVersion": "00000000-0000-0000-0000-000000000002",
+  "candidateVersion": "00000000-0000-0000-0000-000000000003",
+  "goalID": "00000000-0000-0000-0000-000000000004",
+  "goalRevision": 1,
+  "proposal": {
+    "assistantMessage": "Here is a draft. Please confirm the facts before applying it.",
+    "clarifyingQuestions": [],
+    "proposedChanges": [
+      {
+        "field": "summaryMessage",
+        "operation": "set",
+        "value": "Validation is in progress."
+      }
+    ],
+    "metricChanges": [],
+    "warnings": [],
+    "semanticFindings": [
+      {
+        "criterionID": "factualAccuracy",
+        "explanation": "Confirm that validation is still in progress."
+      }
+    ]
+  },
+  "remainingDailyRequests": 19
+}

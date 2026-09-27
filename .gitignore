@@ -15,3 +15,14 @@ build/
 *.p12
 *.p8
 *.mobileprovision
+
+# Local planning and documentation
+/docs/
+
+# Local infrastructure documentation and configuration
+/infrastructure/policies/
+/infrastructure/config/
+/infrastructure/**/*.md
+
+# Local developer guides
+DEVELOPMENT.md

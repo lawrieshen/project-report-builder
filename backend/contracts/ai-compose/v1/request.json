@@ -1,0 +1,32 @@
+{
+  "requestID": "abcdefab-1234-5678-9abc-abcdefabcdef",
+  "baseDraftVersion": "00000000-0000-0000-0000-000000000002",
+  "candidateVersion": "00000000-0000-0000-0000-000000000003",
+  "goal": {
+    "id": "00000000-0000-0000-0000-000000000004",
+    "revision": 1,
+    "criterionPolicyVersion": 1,
+    "audience": "leadership",
+    "purpose": "statusUpdate",
+    "language": "english",
+    "requiredSections": [
+      "summary"
+    ]
+  },
+  "draft": {
+    "codeName": "Titan",
+    "lineOfBusiness": "Mac",
+    "milestonePhase": "",
+    "summaryType": "update",
+    "summaryMessage": "",
+    "leadEPMName": "",
+    "projectDRIName": "",
+    "metrics": []
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "Validation is in progress. Write a concise status update without inventing dates."
+    }
+  ]
+}

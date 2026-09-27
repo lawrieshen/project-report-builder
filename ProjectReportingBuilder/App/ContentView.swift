@@ -12,6 +12,8 @@ struct ContentView: View {
         case metric(EngineeringMetricDraft, Bool)
     }
 
+    private let aiComposerEnabled: Bool
+    @State private var composer: ReportComposerViewModel?
     private let cloudAccount: CloudAccountStore?
     private let settings: AppSettingsStore?
     private let maintenance: RecoveryMaintenanceCoordinator?
@@ -23,7 +25,8 @@ struct ContentView: View {
     
     init(repository: ProjectRepository, assetFactory: ((UUID) -> any AssetRepository)? = nil,
          recoveryRepository: (any DraftRecoveryRepository)? = nil, settings: AppSettingsStore? = nil, session: AppSessionStore? = nil,
-         maintenance: RecoveryMaintenanceCoordinator? = nil, cloudAccount: CloudAccountStore? = nil) {
+         maintenance: RecoveryMaintenanceCoordinator? = nil, cloudAccount: CloudAccountStore? = nil, aiComposerEnabled: Bool = false) {
+        self.aiComposerEnabled = aiComposerEnabled
         self.cloudAccount = cloudAccount
         self.settings = settings
         self.maintenance = maintenance
@@ -35,6 +38,18 @@ struct ContentView: View {
         content
             .frame(minWidth: 760, minHeight: 400)
             .task { await router.restoreSession() }
+            .sheet(isPresented: Binding(get: { composer != nil }, set: { if !$0 { closeComposer() } })) {
+                composerSheet
+            }
+            .onChange(of: cloudAccount?.sessionID) { _, _ in closeComposer() }
+            .onChange(of: cloudAccount?.isSignedIn) { _, signedIn in if signedIn != true { closeComposer() } }
+            .onChange(of: router.editor?.projectID) { _, _ in closeComposer() }
+            .onChange(of: router.editor?.draft) { _, draft in
+                if let draft, let editor = router.editor, let account = cloudAccount {
+                    composer?.observeEditor(draft, reportID: editor.projectID, accountSessionID: account.sessionID)
+                }
+            }
+            .onDisappear { closeComposer() }
             .focusedSceneValue(\.reportActions, commandActions)
             .disabled(isShowingCard || maintenance?.isClearing == true)
             .accessibilityHidden(isShowingCard)
@@ -57,7 +72,7 @@ struct ContentView: View {
     
     private var commandActions: ReportActions {
         let editor = router.editor
-        let available = !isShowingCard && !router.showingLeaveConfirmation && maintenance?.isClearing != true
+        let available = composer == nil && !isShowingCard && !router.showingLeaveConfirmation && maintenance?.isClearing != true
             && !browserViewModel.isLoading && !browserViewModel.isSaving
             && editor?.isLoading != true && editor?.isSaving != true
             && editor?.isImporting != true && editor?.pendingRecovery == nil
@@ -153,6 +168,47 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var composerSheet: some View {
+        if let composer, let editor = router.editor, let account = cloudAccount {
+            VStack(spacing: 0) {
+                Text("Report: " + editor.saveState.label).font(.caption).padding(.top, 8)
+                ReportComposerView(model: composer,
+                    loadImage: { try await editor.imageData(for: $0, maximumPixelSize: 1200) },
+                    onApply: { unfinished in
+                        guard account.isSignedIn else { closeComposer(); return }
+                        editor.applyComposition(composer, accountSessionID: account.sessionID,
+                                                acceptUnfinishedGoal: unfinished)
+                    },
+                    onUndo: {
+                        guard account.isSignedIn else { closeComposer(); return }
+                        editor.undoComposition(composer, accountSessionID: account.sessionID)
+                    },
+                    onRebase: {
+                        if let draft = editor.draft { composer.rebase(on: draft) }
+                    }, onClose: closeComposer)
+            }
+            .interactiveDismissDisabled()
+        }
+    }
+
+    private var composerAction: (() -> Void)? {
+        guard aiComposerEnabled, cloudAccount?.isSignedIn == true else { return nil }
+        return { openComposer() }
+    }
+
+    private func openComposer() {
+        guard aiComposerEnabled, let account = cloudAccount, account.isSignedIn,
+              let editor = router.editor, editor.canApplyComposition, let draft = editor.draft else { return }
+        composer = ReportComposerViewModel(draft: draft, reportID: editor.projectID,
+            accountSessionID: account.sessionID, service: CloudReportComposer(account: account))
+    }
+
+    private func closeComposer() {
+        composer?.close()
+        composer = nil
+    }
+
     private func showExport() {
         guard let editor = router.editor else { return }
         exportViewModel = ExportViewModel(
@@ -192,6 +248,7 @@ struct ContentView: View {
                              previewAsset: { card = .imagePreview($0) },
                              showPreview: { card = .livePreview },
                              showExport: showExport,
+                             showComposer: composerAction,
                              focusedSection: $focusedSection)
                 .id(editor.projectID)
         } else {

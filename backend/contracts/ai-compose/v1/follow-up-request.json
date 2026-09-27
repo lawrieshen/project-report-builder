@@ -1,0 +1,52 @@
+{
+  "requestID": "abcdefab-1234-5678-9abc-abcdefabcdef",
+  "baseDraftVersion": "00000000-0000-0000-0000-000000000002",
+  "candidateVersion": "00000000-0000-0000-0000-000000000003",
+  "goal": {
+    "id": "00000000-0000-0000-0000-000000000004",
+    "revision": 1,
+    "criterionPolicyVersion": 1,
+    "audience": "leadership",
+    "purpose": "statusUpdate",
+    "language": "english",
+    "requiredSections": [
+      "summary"
+    ]
+  },
+  "draft": {
+    "codeName": "Titan",
+    "lineOfBusiness": "Mac",
+    "milestonePhase": "DVT",
+    "summaryType": "update",
+    "summaryMessage": "",
+    "leadEPMName": "",
+    "projectDRIName": "",
+    "metrics": [
+      {
+        "id": "abcdefab-1234-5678-9abc-000000000001",
+        "name": "Open bugs",
+        "currentValueText": "2.50",
+        "hasTarget": true,
+        "targetValueText": "3",
+        "comparison": "lessThanOrEqual",
+        "unit": "count",
+        "severity": "p1"
+      }
+    ],
+    "milestoneDeadline": "2026-10-01"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "Validation is in progress. Write a concise status update without inventing dates."
+    },
+    {
+      "role": "assistant",
+      "text": "Which metric should I update?"
+    },
+    {
+      "role": "user",
+      "text": "Open bugs is now 2. Keep the target unchanged."
+    }
+  ]
+}

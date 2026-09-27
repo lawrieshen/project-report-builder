@@ -103,6 +103,31 @@ final class ReportEditorViewModel: AppSettingsObserving, RecoveryMaintenancePart
     }
     var canSave: Bool { !hasCloudConflict && pendingRecovery == nil && isDirty && draft?.isValid == true && !isLoading && !isSaving && !isImporting }
 
+    /// Keep AI edits inside the same recovery and autosave path as manual edits.
+    var canApplyComposition: Bool {
+        hasLoaded && draft != nil && !isLoading && !isSaving && !isImporting
+            && !maintenanceInProgress && !hasCloudConflict && pendingRecovery == nil
+    }
+
+    @discardableResult
+    func applyComposition(_ composer: ReportComposerViewModel, accountSessionID: UUID,
+                          acceptUnfinishedGoal: Bool) -> Bool {
+        guard let draft, let updated = composer.apply(to: draft, reportID: projectID,
+            accountSessionID: accountSessionID, editorAllowsApply: canApplyComposition,
+            acceptUnfinishedGoal: acceptUnfinishedGoal) else { return false }
+        self.draft = updated
+        composer.observeEditor(updated, reportID: projectID, accountSessionID: accountSessionID)
+        return true
+    }
+
+    @discardableResult
+    func undoComposition(_ composer: ReportComposerViewModel, accountSessionID: UUID) -> Bool {
+        guard let draft, let updated = composer.undo(in: draft, reportID: projectID,
+            accountSessionID: accountSessionID, editorAllowsApply: canApplyComposition) else { return false }
+        self.draft = updated
+        return true
+    }
+
     /// Load once without overwriting edits when the view reappears.
     func load() async {
         guard !isLoading, !isSaving, !hasLoaded else { return }
