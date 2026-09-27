@@ -5,7 +5,3 @@ organize information and asks for missing details; users review changes before
 applying them to a report.
 
 Usage limits control AI spending. This feature is currently a development preview.
-
-[Developer guide](DEVELOPMENT.md) ·
-[Deployment guide](../infrastructure/AI-COMPOSE-DEPLOYMENT.md) ·
-[Implementation plan](../docs/AI-REPORT-COMPOSER-PLAN.md)

@@ -10,6 +10,3 @@ AI-assisted drafting is available as a development preview: turn notes into
 suggested changes, review them, then apply what you want to keep.
 
 This project is a proof of concept with access for an approved test account.
-
-[Development setup](docs/DEVELOPMENT.md) ·
-[Product details](docs/PRODUCT-AND-ENGINEERING.md)
