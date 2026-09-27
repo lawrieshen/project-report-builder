@@ -1,7 +1,7 @@
 # Live composition acceptance
 
-These ten synthetic cases exercise English, Traditional Chinese and Simplified
-Chinese report composition. They cover missing information, numbers and units,
+These ten synthetic cases exercise English report composition, as requested by the
+owner. They cover missing information, numbers and units,
 requests for support, unsupported enum values and instructions embedded in source
 material. Passing schema validation alone does not demonstrate report quality.
 
