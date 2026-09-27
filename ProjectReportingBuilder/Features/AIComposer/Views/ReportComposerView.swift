@@ -35,6 +35,7 @@ struct ReportComposerView: View {
                         conversation
                         inputArea
                         changes
+                        candidateEditor
                     }.padding(20)
                 }.frame(minWidth: 340, idealWidth: 420)
                 LivePreviewView(model: ReportPreviewModel(draft: model.candidate), loadImage: loadImage,
@@ -123,7 +124,7 @@ struct ReportComposerView: View {
                 }
             }
             if model.graph.state == .confirmed {
-                Button("Review again") { model.select(fields: model.selectedFields, metrics: model.selectedMetrics) }
+                Button("Review again") { model.reviewAgain() }
             } else {
                 Button("Confirm reviewed candidate") { model.confirm(reviewedCriteria: reviewed) }
                     .disabled(!goalAccepted || !model.evaluation.readyForReview || model.graph.state != .reviewing)
@@ -187,6 +188,9 @@ struct ReportComposerView: View {
                 }))
             }
             ForEach(Array(edits.metricIDs).sorted { $0.uuidString < $1.uuidString }, id: \.self) { id in
+                Text("Before: " + metricValue(edits.base.metrics.first { $0.id == id }))
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("After: " + metricValue(edits.proposed.metrics.first { $0.id == id })).font(.callout)
                 Toggle(edits.proposed.metrics.first { $0.id == id }?.name ?? "Remove metric", isOn: Binding(
                     get: { model.selectedMetrics.contains(id) }, set: {
                         var metrics = model.selectedMetrics
@@ -195,6 +199,41 @@ struct ReportComposerView: View {
                     }))
             }
         }
+    }
+
+    @ViewBuilder private var candidateEditor: some View {
+        DisclosureGroup("Adjust candidate text") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Edits stay in this candidate until Apply. Editing replaces the current AI change selection and requires a new review.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextField("Code name", text: candidateText(\.codeName))
+                TextField("Product line", text: candidateText(\.lineOfBusiness))
+                TextField("Milestone phase", text: candidateText(\.milestonePhase))
+                TextField("Lead EPM", text: candidateText(\.leadEPMName))
+                TextField("Project DRI", text: candidateText(\.projectDRIName))
+                Text("Executive summary").font(.caption)
+                TextEditor(text: candidateText(\.summaryMessage))
+                    .font(.system(size: 13)).frame(minHeight: 110).padding(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.secondary.opacity(0.3)))
+                    .accessibilityLabel("Candidate executive summary")
+            }.textFieldStyle(.roundedBorder).padding(.top, 8)
+        }.disabled(generating || model.graph.state == .stale || model.graph.state == .closed)
+    }
+
+    private func candidateText(_ keyPath: WritableKeyPath<ReportEditorDraft, String>) -> Binding<String> {
+        Binding(get: { model.candidate[keyPath: keyPath] }, set: { value in
+            var draft = model.candidate
+            draft[keyPath: keyPath] = value
+            model.editCandidate(draft)
+        })
+    }
+
+    private func metricValue(_ metric: EngineeringMetricDraft?) -> String {
+        guard let metric else { return "Not present" }
+        var description = "\(metric.name): \(metric.currentValueText) \(metric.unit)"
+        if metric.hasTarget { description += " — target \(metric.comparison.rawValue) \(metric.targetValueText)" }
+        if let severity = metric.severity { description += " (\(severity.rawValue))" }
+        return description
     }
 
     @ViewBuilder private var actions: some View {

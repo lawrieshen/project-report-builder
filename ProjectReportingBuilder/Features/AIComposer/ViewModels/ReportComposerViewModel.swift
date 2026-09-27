@@ -98,6 +98,30 @@ final class ReportComposerViewModel: ObservableObject {
         graph.send(.evaluated(hasQuestions: false))
     }
 
+    /// Keep manual candidate edits in memory and invalidate review of the previous version.
+    func editCandidate(_ updated: ReportEditorDraft) {
+        guard updated != candidate, updated.assets == candidate.assets,
+              graph.state != .stale, graph.state != .closed else { return }
+        guard graph.send(.candidateChanged(version(goal: graph.version.goal))) else { return }
+        requestTask?.cancel()
+        requestTask = nil
+        candidate = updated
+        // A manual revision becomes the new candidate; old selection must not overwrite it.
+        edits = nil
+        selectedFields = []
+        selectedMetrics = []
+        assessment = nil
+        proposal = nil
+        graph.send(.evaluated(hasQuestions: false))
+    }
+
+    func reviewAgain() {
+        guard graph.state == .confirmed,
+              graph.send(.candidateChanged(version(goal: graph.version.goal))) else { return }
+        assessment = nil
+        graph.send(.evaluated(hasQuestions: false))
+    }
+
     func changeGoal(_ goal: ReportCompositionGoal) {
         guard graph.send(.candidateChanged(version(goal: goal))) else { return }
         requestTask?.cancel()

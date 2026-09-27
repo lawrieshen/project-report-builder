@@ -88,6 +88,48 @@ struct ReportComposerViewModelTests {
         #expect(model.candidate == candidate)
     }
 
+    @Test func manualCandidateEditsInvalidateReviewWithoutSavingOrCallingAI() async {
+        let service = FakeComposer()
+        let model = make(service)
+        await model.send("Write")
+        model.confirm(reviewedCriteria: [.audienceFit, .languageFit, .factualAccuracy])
+        #expect(model.graph.state == .confirmed)
+        let before = model.base
+        var updated = model.candidate
+        updated.summaryMessage = "Manually corrected facts"
+        model.editCandidate(updated)
+        #expect(model.graph.state == .reviewing)
+        #expect(model.graph.confirmation == nil)
+        #expect(model.candidate.summaryMessage == "Manually corrected facts")
+        #expect(model.base == before)
+        #expect(model.edits == nil)
+        #expect(service.requests.count == 1)
+        model.confirm(reviewedCriteria: [.audienceFit, .languageFit, .factualAccuracy])
+        #expect(model.graph.state == .confirmed)
+        model.reviewAgain()
+        #expect(model.graph.state == .reviewing)
+        #expect(model.graph.confirmation == nil)
+    }
+
+    @Test func candidateEditsCannotChangeImagesOrReviveStaleSession() async {
+        let model = make(FakeComposer())
+        await model.send("Write")
+        let original = model.candidate
+        var edited = original
+        edited.assets = [ImageAsset(id: UUID(), fileName: "new.png", localReference: "new.png")]
+        model.editCandidate(edited)
+        #expect(model.candidate == original)
+        var current = model.base
+        current.summaryMessage = "Editor change"
+        model.observeEditor(current, reportID: model.graph.version.reportID,
+                            accountSessionID: model.graph.version.accountSessionID)
+        edited = original
+        edited.summaryMessage = "Late edit"
+        model.editCandidate(edited)
+        #expect(model.graph.state == .stale)
+        #expect(model.candidate == original)
+    }
+
     @Test func selectionInvalidatesConfirmationWithoutNetwork() async {
         let service = FakeComposer()
         let model = make(service)
