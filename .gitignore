@@ -15,3 +15,6 @@ build/
 *.p12
 *.p8
 *.mobileprovision
+
+# Local planning and documentation
+/docs/
