@@ -140,14 +140,13 @@ strict callback/state validation, Keychain refresh-token storage, and in-memory
 access tokens. Opening Cloud Account attempts saved-session restoration once;
 future report requests can request a refreshed access token on demand. No login
 is required for local editing. The client does not use ID-token claims to grant
-report access; authorization belongs to the future server adapter.
+report access; authorization is enforced by API Gateway and the Lambda adapter.
 
 Automated tests cover PKCE, callback tampering, form encoding, session refresh,
 expiry, transient errors, and local logout/revocation failure. On 2026-09-27,
 the developer reported that the manual Cloud Account verification passed.
 Validation of the distributed app remains separate from local development
-validation. The report API is deployed, but authenticated report HTTP access remains
-to be verified.
+validation. Authenticated report and image transfers were manually verified.
 
 References:
 - [Cognito pricing](https://aws.amazon.com/cognito/pricing/)
@@ -161,9 +160,8 @@ Essentials and report storage, with local template tests. These definitions
 were deployed on 2026-09-27 as `prb-dev-foundation` in Sydney.
 `prb-dev` remains read-only; `prb-deploy` uses PRBFoundationDeploy.
 Confirmed callback/logout URIs and deployed IDs are recorded in
-[dev outputs](../infrastructure/dev-outputs.json). The app still needs to implement
-these callbacks.
-No HTTP API, cloud authentication adapter, or image transfer is implemented yet.
+[dev outputs](../infrastructure/dev-outputs.json). The app implements
+these callbacks in its authentication client. Report and image APIs are deployed.
 
 ## Report API adapter milestone
 
@@ -172,13 +170,13 @@ are implemented locally. See [deployment preparation](../infrastructure/REPORT-A
 JWT signature verification is delegated to API Gateway; Lambda checks trusted
 claims, access-token use, the approved subject and operation scope. SDK response
 fakes test repository requests; they do not prove live AWS behavior. Deployment and artifact upload are complete. Missing/invalid-token requests
-return HTTP 401. Authenticated cloud smoke tests remain pending; the macOS manual transfer UI is implemented.
+return HTTP 401. The developer confirmed authenticated manual transfers passed.
 
 ## macOS manual transfer milestone
 
 Settings > Cloud Account now lists saved local projects and cloud reports.
 Upload Saved Version re-reads the saved project; it does not upload unsaved
-workspace edits. Reports containing images are rejected before any request.
+workspace edits. Schema 2 includes private image transfers.
 Downloads always create independent local projects and notify the Browser to
 refresh. This POC does not overwrite existing projects or synchronize drafts.
 
@@ -193,8 +191,8 @@ of silently resetting the revision.
 The transport encodes explicit JSON nulls, canonical lowercase metric UUIDs,
 backend comparison/severity values, and date-only milestone deadlines. The
 client requests cloud lists in pages of 10. Build and 17 authentication/transfer
-unit tests passed. Real authenticated upload/download and server conflict
-behavior still need verification using the signed-in app.
+unit tests passed. Authenticated upload/download passed manual verification; broader concurrent-client
+scenarios remain to be verified.
 
 The developer subsequently confirmed that the guided upload, update and download
 flow worked after deployment fixes (2026-09-27). This result was reported from
@@ -212,3 +210,5 @@ schema 1 reports remain readable. See [deployment notes](../infrastructure/REPOR
 This prerequisite does not remove local storage or change autosave. Cloud-primary
 storage should follow only after a deployed image round trip passes. Unreferenced
 upload cleanup and cloud-primary migration are separate follow-up work.
+
+The next milestone follows [Cloud-primary storage](CLOUD-PRIMARY-STORAGE.md).
