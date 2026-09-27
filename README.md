@@ -57,6 +57,7 @@ package a distributable app.
 ## Further reading
 
 - [Local Java cloud service and API contract](backend/README.md) — initial local
-  milestone only; no cloud deployment or Cognito authentication yet.
+  report API milestone; Cognito foundation and macOS sign-in are implemented,
+  while cloud report transfer remains pending.
 - [Product behavior and engineering notes](docs/PRODUCT-AND-ENGINEERING.md)
 - [Proposed cloud storage and identity scope](docs/CLOUD-STORAGE-PLAN.md)
