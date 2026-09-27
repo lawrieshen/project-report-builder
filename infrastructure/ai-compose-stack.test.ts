@@ -28,7 +28,8 @@ test('isolated Python runtime is bounded and disabled', () => {
   const stack = template();
   stack.hasParameter('AiEnabled', { Default: 'false', AllowedValues: ['false', 'true'] });
   stack.hasResourceProperties('AWS::Lambda::Function', {
-    Runtime: 'python3.12', Architectures: ['arm64'], Timeout: 25, ReservedConcurrentExecutions: 2,
+    Runtime: 'python3.12', Architectures: ['arm64'], Timeout: 25,
+    ReservedConcurrentExecutions: Match.absent(),
     Handler: 'prb_ai.handler.lambda_handler',
     Environment: { Variables: Match.objectLike({ AI_ENABLED: { Ref: 'AiEnabled' } }) },
   });

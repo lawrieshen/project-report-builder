@@ -77,7 +77,9 @@ export class AiComposeStack extends Stack {
     const handler = new lambda.CfnFunction(this, 'Handler', {
       functionName: 'prb-dev-ai-compose', runtime: 'python3.12', architectures: ['arm64'],
       handler: 'prb_ai.handler.lambda_handler', role: role.roleArn,
-      memorySize: 512, timeout: 25, reservedConcurrentExecutions: 2,
+      // Development uses shared account concurrency until the quota increase is approved.
+      // Restore reserved concurrency 2 before production enablement.
+      memorySize: 512, timeout: 25,
       code: { s3Bucket: bucket.valueAsString, s3Key: key.valueAsString },
       environment: { variables: {
         AI_ENABLED: enabled.valueAsString, AI_BUDGET_POLICY: policy.valueAsString,
