@@ -62,6 +62,9 @@ final class AppRouter {
         }
     }
 
+    /// Request navigation to a project while protecting unsaved edits.
+    ///
+    /// - Parameter id: The destination project identifier.
     func openProject(id: UUID) {
         guard route != .reportEditor(projectID: id) else { return }
         request(.editor(id))
@@ -76,6 +79,7 @@ final class AppRouter {
         editor?.setAutosavePaused(false)
     }
 
+    /// Leave only after the current draft and its recovery data can be discarded.
     func discardAndLeave() async {
         guard maintenance?.isClearing != true, editor?.isSaving != true, editor?.isImporting != true else { return }
         guard await editor?.discardChanges() == true else {
@@ -85,6 +89,7 @@ final class AppRouter {
         completePendingNavigation()
     }
 
+    /// Leave only after saving succeeds and no newer unsaved changes remain.
     func saveAndLeave() async {
         guard let editor, await editor.save(), !editor.isDirty else {
             cancelNavigation()

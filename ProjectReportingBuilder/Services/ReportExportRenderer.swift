@@ -6,6 +6,15 @@ import ImageIO
 struct ReportExportRenderer: ReportExportRendering {
     let loadImage: (ImageAsset) async throws -> Data
 
+    /// Prepare images and encode the report in the requested format.
+    ///
+    /// - Parameters:
+    ///   - model: The immutable report presentation snapshot.
+    ///   - options: Format, appearance, resolution, and rendering date.
+    /// - Returns: Encoded content with its suggested filename and format.
+    /// - Throws: `CancellationError` or an export error for unavailable images,
+    ///   unsafe output size, or failed rendering.
+    /// - Note: Rendering runs on the main actor and does not persist the report.
     func render(model: ReportPreviewModel, options: ExportOptions) async throws -> ExportResult {
         try Task.checkCancellation()
         let images = try await preparedImages(model.assets)

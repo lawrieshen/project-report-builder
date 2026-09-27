@@ -2,6 +2,12 @@ import Foundation
 
 /// Read a bounded UTF-8 text file while its sandbox access is available.
 actor SourceTextReader {
+    /// Read a regular UTF-8 file of at most one mebibyte.
+    ///
+    /// - Parameter url: The selected file URL, including any security-scoped access.
+    /// - Returns: The decoded source text.
+    /// - Throws: `TextImportError.invalidFile` for invalid size, type, or encoding,
+    ///   or a file-system error when metadata or bytes cannot be read.
     func read(from url: URL) throws -> String {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
