@@ -107,3 +107,19 @@ count behavior, current prices and end-to-end latency in the target Google proje
 References: [Google SDK](https://googleapis.github.io/python-genai/),
 [complete token counting request](https://ai.google.dev/api/tokens),
 [structured output](https://ai.google.dev/gemini-api/docs/structured-output).
+
+## Lambda package
+
+Run `python3 scripts/package_lambda.py` from this directory. It exports runtime
+requirements from the unchanged lockfile, verifies wheel hashes, installs only
+Linux arm64 Python 3.12 wheels, checks native ELF architecture, and writes
+`dist/ai-compose-lambda.zip` plus its SHA-256. It never copies the macOS virtualenv
+or includes credentials. Source and dependencies are at the archive root.
+
+CI imports the extracted artifact in the Python 3.12 arm64 Lambda container with
+network disabled. A local cross-build verifies packaging and binary architecture;
+it is not proof that the code ran in Lambda. Deployment must use the artifact from
+a successful runtime smoke check. Upload it under an immutable SHA-based S3 key;
+pass that key as `ArtifactKey` to the opt-in AI stack. Packaging does not deploy.
+
+See [AWS Python packaging guidance](https://docs.aws.amazon.com/lambda/latest/dg/python-package.html).
