@@ -65,6 +65,7 @@ export class ReportApiStack extends Stack {
       ['Get', 'GET /reports/{reportID}', 'reports/read'],
       ['UploadImage', 'POST /reports/{reportID}/assets/upload', 'reports/write'],
       ['DownloadImage', 'GET /reports/{reportID}/assets/{assetID}', 'reports/read'],
+      ['Delete', 'DELETE /reports/{reportID}', 'reports/write'],
       ['Save', 'PUT /reports/{reportID}', 'reports/write'],
     ];
     for (const [name, routeKey, scope] of routes) {

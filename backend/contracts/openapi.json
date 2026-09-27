@@ -180,6 +180,51 @@
             }
           }
         }
+      },
+      "delete": {
+        "description": "Require reports/write. Preserve a tombstone; retrying the same revision succeeds.",
+        "parameters": [
+          {
+            "name": "reportID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "expectedRevision"
+                ],
+                "properties": {
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted, including repeat requests"
+          },
+          "409": {
+            "description": "Revision conflict"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
       }
     },
     "/reports/{reportID}/assets/upload": {

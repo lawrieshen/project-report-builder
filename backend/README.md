@@ -74,3 +74,10 @@ S3 validates the signed checksum; the app also decodes and validates downloaded
 images. Object keys use owner/report/content hash. URLs and tokens must not be
 logged. Failed or conflicted uploads can leave unreferenced objects; automatic
 orphan cleanup is deferred. Do not apply a blanket expiration to this bucket.
+
+
+DELETE `/reports/{reportID}` accepts `expectedRevision` and requires reports/write.
+Deletion conditionally replaces the report with a tombstone. Repeating the same
+delete succeeds; stale saves and creates cannot resurrect it. Lists and reads
+hide tombstones, while pagination continues past them. Image bytes are retained
+until reference-aware cleanup is implemented.
