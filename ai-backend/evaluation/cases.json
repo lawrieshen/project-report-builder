@@ -51,6 +51,7 @@
     "review": [
       "Blocker and two engineers preserved",
       "No delivery date invented",
+      "No RAG status selected without an explicit source value or recommendation request",
       "Clear escalation without claiming it is solved"
     ]
   },
