@@ -30,6 +30,28 @@ struct CloudImageTests {
         #expect(throws: (any Error).self) { try unsafe.validateMetadata() }
     }
 
+    @Test func unchangedImagesUseCacheWithoutNetworkRequests() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = ProjectFileStore(storage: ApplicationStorage(root: root))
+        let data = try png()
+        let asset = ImageAsset(id: UUID(), fileName: "image.png", localReference: "image.png", altText: "Blue")
+        let metadata = try CloudImageAsset(asset: asset, data: data)
+        let local = try metadata.localAsset()
+        let project = ProjectReport(id: UUID(), codeName: "Test", lineOfBusiness: "Mac", status: .draft,
+            card: SnippetCard(id: UUID(), health: ProjectHealth(ragStatus: nil, milestone: nil),
+                summary: ExecutiveSummary(type: .update, message: ""),
+                accountability: Accountability(leadEPM: nil, projectDRI: nil), assets: [local]),
+            createdAt: .now, updatedAt: .now)
+        try await files.save(project)
+        try await files.writeAsset(data, asset: local, projectID: project.id)
+        let report = CloudReport(reportID: project.id, ownerID: "test", revision: 1, schemaVersion: 2,
+            updatedAt: "2026-09-27T00:00:00Z", report: try CloudReportContent(project: project, images: [metadata]))
+        let images = CloudImageTransfer(files: files, client: NoImageRequests())
+        #expect(try await images.upload(project: project, previous: report) == [metadata])
+        try await images.cache(report: report, project: project)
+    }
+
     @Test func importPublishesAllAssetsOrNothing() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -52,5 +74,17 @@ struct CloudImageTests {
         try await files.importCloudCopy(project, images: [asset.id: data])
         #expect(try await files.fetchProject(id: project.id) == project)
         #expect(try await files.cloudImageData(asset, projectID: project.id) == data)
+    }
+}
+
+@MainActor
+private struct NoImageRequests: CloudImageURLServing {
+    func uploadURL(projectID: UUID, asset: CloudImageAsset) async throws -> CloudAssetTransfer {
+        Issue.record("Unchanged bytes must not be uploaded again")
+        throw CloudTransferError.rejected
+    }
+    func downloadURL(projectID: UUID, assetID: String) async throws -> CloudAssetTransfer {
+        Issue.record("Valid cached bytes must not be downloaded again")
+        throw CloudTransferError.rejected
     }
 }
