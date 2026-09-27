@@ -7,7 +7,7 @@ The Swift Goal evaluator and UI state graph remain in the app.
 **Foundation only: not deployed or enabled.** The Lambda entry point
 `prb_ai.handler.lambda_handler` returns `AI_DISABLED` for valid authorized requests.
 Setting `AI_ENABLED` cannot bypass this gate. No Gemini client or API key is loaded.
-The official Google GenAI SDK adapter, verified model/pricing, deployment packaging,
+The SDK adapter is implemented and tested offline. Verified model/pricing, deployment packaging,
 CDK resources, live latency/cost checks, and app enablement remain later milestones.
 
 ## Local development
@@ -34,6 +34,7 @@ distribution; it does not package Lambda's Linux dependencies or deploy AWS reso
 | `budget.py` | Integer micro-USD pricing, atomic quota reservation, one dispatch claim and idempotent settlement |
 | `storage.py` | Strong DynamoDB reads and conditional transactional writes |
 | `service.py` | One injectable provider invocation, proposal validation, durable result and cost accounting |
+| `gemini.py` | Official SDK adapter, complete prompt counting, single attempt and reasoning usage |
 | `handler.py` | Gateway Cognito claims, approved subject, `reports/write`, input bounds and sanitized HTTP errors |
 
 Shared request/response examples are in
@@ -81,3 +82,29 @@ Python controls request accounting and generation. There is no LangGraph depende
 or autonomous loop in this foundation. Introduce backend graph orchestration only
 when the product needs multiple persisted generation/tool steps; it must not own
 or bypass the application's quota and idempotency rules.
+
+## Gemini adapter (offline milestone)
+
+`GeminiProvider` accepts a caller-owned `google.genai.Client` configured explicitly
+with `vertexai=False` and an API key. The production handler does not construct this
+client yet. No secret is read by importing the adapter. Model and pricing come from
+the server's `BudgetPolicy`; no production model or rate is selected in this stage.
+
+Both SDK operations disable retries. Counting sends the complete
+`generateContentRequest` (instructions, context and response schema) through public
+`HttpOptions.extra_body`, because the Developer API SDK count config does not expose
+those fields. Generation uses the same payload, one candidate and no tools. HTTP
+timeouts are 3 seconds for counting and 18 seconds for generation; these are transport
+timeouts, not an end-to-end wall-clock deadline. Lambda timeout and live latency
+validation remain required before enablement.
+
+Only a completed text candidate reaches strict proposal validation. Truncated,
+blocked and tool responses fail. Usage includes candidate and thinking tokens;
+missing or inconsistent totals retain the full budget reservation. Tests use the
+real SDK with HTTP mock transport and a dummy key, with no live model calls.
+Before enabling, verify model availability, structured-schema acceptance, full token
+count behavior, current prices and end-to-end latency in the target Google project.
+
+References: [Google SDK](https://googleapis.github.io/python-genai/),
+[complete token counting request](https://ai.google.dev/api/tokens),
+[structured output](https://ai.google.dev/gemini-api/docs/structured-output).
