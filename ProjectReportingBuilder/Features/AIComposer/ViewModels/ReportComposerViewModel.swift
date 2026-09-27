@@ -79,9 +79,7 @@ final class ReportComposerViewModel: ObservableObject {
             let code = (error as? CompositionServiceError)?.code
             let limited = code == .dailyQuota || code == .budgetExhausted || code == .rateLimited
             guard graph.send(.failure(requestID: id, limited: limited)) else { return }
-            errorMessage = limited
-                ? "AI usage is currently limited. You can continue editing and saving manually."
-                : "AI could not complete this request. Your draft and previous candidate are unchanged."
+            errorMessage = code?.userMessage ?? "AI could not complete this request. Your draft and previous candidate are unchanged."
             requestTask = nil
         }
     }
