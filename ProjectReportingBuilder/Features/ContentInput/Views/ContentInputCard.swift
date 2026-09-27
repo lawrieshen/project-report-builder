@@ -58,7 +58,16 @@ struct ContentInputCard: View {
             Text("Example: Health: Amber\nDeadline: 2026-09-30\nSummary: Camera latency remains high.")
                 .font(.caption).textSelection(.enabled)
             TextEditor(text: $model.rawText)
+                .font(.system(size: 14))
+                .scrollContentBackground(.hidden)
+                .padding(AppSpacing.field)
                 .frame(height: 180)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(.secondary.opacity(0.35), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
                 .accessibilityLabel("Raw Project Notes")
                 .accessibilityIdentifier("sourceText")
                 .disabled(model.isProcessing || model.isImportingText)
