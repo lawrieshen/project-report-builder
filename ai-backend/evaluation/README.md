@@ -94,6 +94,30 @@ partial selection, manual edits, confirmation invalidation, Apply, Undo, autosav
 reopen and export, plus cancellation, stale drafts, account changes and exhausted
 quota. Verify normal report editing remains usable when AI is unavailable.
 
+### Development app acceptance
+
+In Xcode, edit the app scheme's **Run > Arguments > Environment Variables** and
+set `PROJECT_REPORT_AI_COMPOSER` to `1`. Run a Debug build, sign in with the approved
+test account, and open a disposable report. The editor header shows **Compose**.
+Release builds ignore this variable, and Debug builds default to hiding the entry.
+This switch does not bypass backend authentication or daily/monthly limits.
+
+Use synthetic notes and record each outcome separately:
+
+1. Send notes and inspect the candidate without applying; the report must stay unchanged.
+2. Refine the candidate in chat, select a subset of changes, and edit candidate text.
+   Changes must invalidate prior goal confirmation.
+3. Review the goal checklist, Apply, then Undo; unrelated manual edits must survive.
+4. Apply again and wait for the report save indicator. Close/reopen the report and
+   export it, checking selected text and existing images are preserved.
+5. Cancel an in-flight request, switch reports, and sign out; late responses must
+   not affect another report or account.
+6. Exercise exhausted quota or service failure and confirm manual editing/save/export
+   remain usable. Record keyboard navigation and VoiceOver labels for the composer.
+
+Respect the remaining daily quota; do not change limits to finish acceptance.
+Local UI automation is not run by default; project instructions assign UI tests to CI.
+
 The budget alarm template includes an SNS topic and optional `BudgetAlertEmail`
 subscription. Delivery requires deployment, an owner-approved address and confirmed
 subscription. A visible alarm state alone is not proof of delivered alerts or a
