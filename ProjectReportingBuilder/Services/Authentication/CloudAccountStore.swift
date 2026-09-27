@@ -31,6 +31,8 @@ private final class CloudSignInBrowser: NSObject, ASWebAuthenticationPresentatio
 /// Manage cloud credentials independently of local editing and recovery.
 @MainActor @Observable
 final class CloudAccountStore {
+    private(set) var sessionID = UUID()
+    var beforeSignOut: (() async throws -> Void)?
     private(set) var isSignedIn = false
     private(set) var isBusy = false
     private(set) var message: String?
@@ -79,7 +81,7 @@ final class CloudAccountStore {
             try credentials.save(refresh)
             accept(tokens)
         } catch ASWebAuthenticationSessionError.canceledLogin {
-            message = "Sign-in cancelled. Your local reports are still available."
+            message = "Sign-in cancelled."
         } catch { message = error.localizedDescription }
     }
 
@@ -98,12 +100,14 @@ final class CloudAccountStore {
         message = nil
         defer { isBusy = false }
         do {
+            try await beforeSignOut?()
             let refresh = try credentials.read()
             // If deletion fails, keep the session visible so the user can retry.
             try credentials.delete()
             accessToken = nil
             expiresAt = .distantPast
             isSignedIn = false
+            sessionID = UUID()
             if let refresh {
                 do { try await client.revoke(refresh) }
                 catch { message = "Signed out on this Mac. Server token revocation could not be confirmed." }
@@ -112,19 +116,24 @@ final class CloudAccountStore {
     }
 
     private func refreshSession(_ refresh: String) async throws {
+        let startedSession = sessionID
         do {
             let tokens = try await client.tokens(fields: ["grant_type": "refresh_token", "refresh_token": refresh])
+            guard sessionID == startedSession else { throw CancellationError() }
             if let replacement = tokens.refresh_token { try credentials.save(replacement) }
             accept(tokens)
         } catch CloudAuthError.expiredSession {
+            guard sessionID == startedSession else { throw CancellationError() }
             accessToken = nil
             isSignedIn = false
+            sessionID = UUID()
             try credentials.delete()
             throw CloudAuthError.expiredSession
         }
     }
 
     private func accept(_ tokens: CognitoTokens) {
+        if !isSignedIn { sessionID = UUID() }
         accessToken = tokens.access_token
         expiresAt = Date().addingTimeInterval(tokens.expires_in)
         isSignedIn = true

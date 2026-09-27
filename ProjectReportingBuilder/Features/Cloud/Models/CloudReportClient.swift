@@ -65,6 +65,7 @@ final class CloudReportClient: CloudReportServing {
     private func request<Response: Decodable>(path: String, method: String, body: Data?) async throws -> Response {
         guard let url = URL(string: endpoint + path) else { throw CloudTransferError.invalidResponse }
         let token = try await account.validAccessToken()
+        let requestSession = account.sessionID
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
@@ -73,6 +74,7 @@ final class CloudReportClient: CloudReportServing {
         request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await session.data(for: request)
+        guard account.isSignedIn, account.sessionID == requestSession else { throw CancellationError() }
         guard let response = response as? HTTPURLResponse else { throw CloudTransferError.invalidResponse }
         switch response.statusCode {
         case 200: return try JSONDecoder().decode(Response.self, from: data)
