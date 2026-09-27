@@ -1,5 +1,14 @@
 import json
 
+from prb_ai.audit import provider_failure
+
+
+def test_provider_failure_does_not_log_untrusted_status(capsys):
+    provider_failure('api', 'private provider response')
+    output = capsys.readouterr().out
+    assert 'private' not in output
+    assert json.loads(output)['httpStatus'] is None
+
 
 def test_generation_audit_has_usage_without_content(service, request_model, capsys):
     service.compose('private-user', request_model)

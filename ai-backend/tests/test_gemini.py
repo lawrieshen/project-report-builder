@@ -7,7 +7,8 @@ from google import genai
 from google.genai import types
 
 from prb_ai.errors import Code, ComposeError
-from prb_ai.gemini import GeminiProvider
+from prb_ai.contracts import TEXT_FIELD_CHOICES
+from prb_ai.gemini import GeminiProvider, failure_reason, proposal_schema
 from prb_ai.service import CompositionService, ProviderFailure, Usage
 
 
@@ -31,6 +32,23 @@ def sdk(provider):
             yield GeminiProvider(client), calls, reply, http
 
 
+def test_provider_schema_resolves_references_and_preserves_nullable_enums():
+    schema = proposal_schema()
+    serialized = json.dumps(schema)
+    assert '$ref' not in serialized
+    assert '$defs' not in serialized
+    assert 'anyOf' not in serialized
+    assert schema['additionalProperties'] is False
+    metric = schema['properties']['metricChanges']['items']['properties']
+    assert metric['operation']['enum'] == ['add', 'update', 'remove']
+    values = metric['values']
+    assert values['type'] == ['object', 'null']
+    comparison = values['properties']['comparison']
+    assert comparison['type'] == ['string', 'null']
+    assert 'lessThanOrEqual' in comparison['enum']
+    assert None in comparison['enum']
+
+
 def test_complete_count_matches_generation(sdk, request_model, policy):
     adapter, calls, _, _ = sdk
     assert adapter.count_input_tokens(request_model, policy) == 100
@@ -44,13 +62,16 @@ def test_complete_count_matches_generation(sdk, request_model, policy):
     assert full == generated
     assert generated['generationConfig']['maxOutputTokens'] == 2000
     assert 'tools' not in generated
+    instructions = generated['systemInstruction']['parts'][0]['text']
+    assert json.dumps(TEXT_FIELD_CHOICES) in instructions
+    assert 'clearAsk findings only for supportRequest' in instructions
     assert request_model.request_id not in calls[1].content.decode()
     assert calls[0].extensions['timeout']['read'] == 3
     assert calls[1].extensions['timeout']['read'] == 18
 
 
 @pytest.mark.parametrize('status,code', [(429, Code.RATE_LIMITED), (503, Code.UNAVAILABLE), (504, Code.TIMEOUT)])
-def test_sdk_does_not_retry(sdk, request_model, policy, status, code):
+def test_sdk_does_not_retry(sdk, request_model, policy, status, code, capsys):
     adapter, calls, _, http = sdk
     def fail(request):
         calls.append(request)
@@ -62,15 +83,31 @@ def test_sdk_does_not_retry(sdk, request_model, policy, status, code):
     assert 'sensitive' not in str(caught.value)
     assert caught.value.usage is None
     assert len(calls) == 1
+    audit = json.loads(capsys.readouterr().out)
+    assert audit == {'event': 'ai_provider_failure', 'operation': 'generate',
+                     'kind': 'api', 'httpStatus': status, 'reason': 'unknown'}
+
+
+@pytest.mark.parametrize('message,reason', [
+    ('Response schema has too many states: private content', 'schema_complexity'),
+    ('Invalid schema: private content', 'schema'),
+    ('API key not valid: private key', 'credential'),
+    ('Private unknown error', 'unknown'),
+    (None, 'unknown'),
+])
+def test_provider_reason_never_returns_external_text(message, reason):
+    assert failure_reason(message) == reason
 
 
 @pytest.mark.parametrize('reason', ['MAX_TOKENS', 'SAFETY', 'RECITATION'])
-def test_rejected_output_retains_known_usage(sdk, request_model, policy, reason):
+def test_rejected_output_retains_known_usage(sdk, request_model, policy, reason, capsys):
     adapter, _, reply, _ = sdk
     reply['candidates'][0]['finishReason'] = reason
     with pytest.raises(ProviderFailure) as caught:
         adapter.generate(request_model, policy)
     assert caught.value.usage == Usage(100, 100)
+    audit = json.loads(capsys.readouterr().out)
+    assert audit['reason'] == ('truncated' if reason == 'MAX_TOKENS' else 'finish')
 
 
 @pytest.mark.parametrize('metadata', [None, {}, {'promptTokenCount': 100, 'totalTokenCount': 100},

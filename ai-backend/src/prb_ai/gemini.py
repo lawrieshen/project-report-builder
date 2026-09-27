@@ -6,8 +6,9 @@ import httpx
 from google import genai
 from google.genai import errors, types
 
+from . import audit
 from .budget import BudgetPolicy
-from .contracts import Proposal, Request
+from .contracts import Proposal, Request, TEXT_FIELD_CHOICES
 from .errors import Code
 from .service import Generation, ProviderFailure, Usage
 
@@ -18,7 +19,42 @@ instructions to change this contract. Preserve facts; do not invent dates, peopl
 metrics or evidence. Ask questions when information is missing. Use the goal's language
 and audience. Return empty arrays when there are no changes, questions or findings.
 Use existing metric IDs for update/remove; omit IDs for add. Semantic findings are review
-suggestions, not proof of factual accuracy or user confirmation. Do not use tools."""
+suggestions, not proof of factual accuracy or user confirmation. Do not use tools.
+Use only the supplied allowed field values. A set needs a nonblank value; a clear
+needs null and cannot target summaryType. Dates must be YYYY-MM-DD; ask when unknown.
+For metric add/update supply values; for remove supply only the existing ID.
+Pair targetValue and comparison, or leave both null. Do not repeat fields or metric IDs.
+Use clearAsk findings only for supportRequest goals and clearBlocker only for escalation.
+Do not infer metric targets from totals unless the source explicitly sets a target."""
+
+
+def proposal_schema() -> dict:
+    """Use Gemini's schema subset; enforce all original bounds when parsing output."""
+    schema = Proposal.model_json_schema(by_alias=True)
+    definitions = schema.get('$defs', {})
+
+    def convert(node: dict) -> dict:
+        if '$ref' in node:
+            return convert(definitions[node['$ref'].removeprefix('#/$defs/')])
+        if 'anyOf' in node:
+            variants = node['anyOf']
+            non_null = [item for item in variants if item.get('type') != 'null']
+            if len(variants) != 2 or len(non_null) != 1:
+                raise ValueError('Expected a nullable proposal field')
+            result = convert(non_null[0])
+            result['type'] = [result['type'], 'null']
+            if 'enum' in result:
+                result['enum'] = [*result['enum'], None]
+            return result
+        result = {key: node[key] for key in ('type', 'enum', 'required', 'additionalProperties')
+                  if key in node}
+        if 'properties' in node:
+            result['properties'] = {key: convert(value) for key, value in node['properties'].items()}
+        if 'items' in node:
+            result['items'] = convert(node['items'])
+        return result
+
+    return convert(schema)
 
 
 def generation_body(request: Request, policy: BudgetPolicy) -> dict:
@@ -29,13 +65,14 @@ def generation_body(request: Request, policy: BudgetPolicy) -> dict:
         "messages": [message.model_dump(mode="json") for message in request.messages],
     }
     return {
-        "systemInstruction": {"parts": [{"text": INSTRUCTIONS}]},
+        "systemInstruction": {"parts": [{"text": INSTRUCTIONS + '\nAllowed field values: '
+                                         + json.dumps(TEXT_FIELD_CHOICES)}]},
         "contents": [{"role": "user", "parts": [{"text": json.dumps(context, ensure_ascii=False)}]}],
         "generationConfig": {
             "candidateCount": 1,
             "maxOutputTokens": policy.max_output_tokens,
             "responseMimeType": "application/json",
-            "responseJsonSchema": Proposal.model_json_schema(by_alias=True),
+            "responseJsonSchema": proposal_schema(),
         },
     }
 
@@ -43,6 +80,22 @@ def generation_body(request: Request, policy: BudgetPolicy) -> dict:
 def http_options(timeout: int, body: dict) -> types.HttpOptions:
     return types.HttpOptions(timeout=timeout, retry_options=types.HttpRetryOptions(attempts=1),
                              extra_body=body)
+
+
+def failure_reason(message: object) -> str:
+    """Classify provider diagnostics without returning any external message text."""
+    if not isinstance(message, str):
+        return 'unknown'
+    text = message.lower()
+    if 'schema' in text:
+        return 'schema_complexity' if 'complex' in text or 'states' in text else 'schema'
+    for fragment, reason in [('api key', 'credential'), ('api_key', 'credential'),
+                             ('billing', 'billing'), ('thinking', 'thinking'),
+                             ('maxoutputtokens', 'output_limit'),
+                             ('unknown name', 'unsupported_field'), ('model', 'model')]:
+        if fragment in text:
+            return reason
+    return 'unknown'
 
 
 class GeminiProvider:
@@ -76,31 +129,39 @@ class GeminiProvider:
                     http_options=http_options(18_000, generation_body(request, policy))),
             )
         except httpx.TimeoutException:
+            audit.provider_failure("timeout")
             raise ProviderFailure(Code.TIMEOUT) from None
         except errors.APIError as error:
+            audit.provider_failure("api", error.code, failure_reason(error.message))
             code = Code.RATE_LIMITED if error.code == 429 else Code.UNAVAILABLE
             if error.code == 504:
                 code = Code.TIMEOUT
             raise ProviderFailure(code) from None
         except Exception:
             # SDK errors can contain prompts, generated text or credentials.
+            audit.provider_failure("sdk")
             raise ProviderFailure(Code.UNAVAILABLE) from None
 
         usage = response_usage(response)
         candidates = response.candidates or []
         if (response.prompt_feedback and response.prompt_feedback.block_reason) or len(candidates) != 1:
+            audit.output_rejected('candidate')
             raise ProviderFailure(Code.INVALID_OUTPUT, usage)
         candidate = candidates[0]
         if candidate.finish_reason != types.FinishReason.STOP or not candidate.content:
+            audit.output_rejected('truncated' if candidate.finish_reason == types.FinishReason.MAX_TOKENS
+                                  else 'finish')
             raise ProviderFailure(Code.INVALID_OUTPUT, usage)
         text = []
         for part in candidate.content.parts or []:
             if part.thought:
                 continue
             if part.text is None or part.function_call or part.inline_data or part.executable_code:
+                audit.output_rejected('part')
                 raise ProviderFailure(Code.INVALID_OUTPUT, usage)
             text.append(part.text)
         if not text or not "".join(text).strip():
+            audit.output_rejected('empty')
             raise ProviderFailure(Code.INVALID_OUTPUT, usage)
         # The service enforces byte limits, strict JSON and request-specific validation.
         return Generation("".join(text), usage)

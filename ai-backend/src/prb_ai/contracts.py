@@ -122,6 +122,14 @@ class Request(Model):
         return self
 
 
+TEXT_FIELD_CHOICES = {
+    "lineOfBusiness": ("iPhone", "Mac", "iPad", "Wearables, Home and Accessories", "Services"),
+    "ragStatus": ("green", "amber", "red"),
+    "milestonePhase": ("Prototype", "EVT", "DVT", "PVT", "Mass Production"),
+    "summaryType": ("update", "blocker", "ask"),
+}
+
+
 class TextChange(Model):
     field: TextField
     operation: Literal["set", "clear"]
@@ -136,13 +144,7 @@ class TextChange(Model):
         limit = 20_000 if self.field == "summaryMessage" else 200
         if self.value is None or not self.value.strip() or len(self.value.encode("utf-16-le")) // 2 > limit:
             raise ValueError("Invalid set value")
-        choices = {
-            "lineOfBusiness": {"iPhone", "Mac", "iPad", "Wearables, Home and Accessories", "Services"},
-            "ragStatus": {"green", "amber", "red"},
-            "milestonePhase": {"Prototype", "EVT", "DVT", "PVT", "Mass Production"},
-            "summaryType": {"update", "blocker", "ask"},
-        }
-        if self.field in choices and self.value not in choices[self.field]:
+        if self.field in TEXT_FIELD_CHOICES and self.value not in TEXT_FIELD_CHOICES[self.field]:
             raise ValueError("Unsupported field value")
         if self.field == "milestoneDeadline":
             if len(self.value) != 10 or date.fromisoformat(self.value).isoformat() != self.value:

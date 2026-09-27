@@ -117,11 +117,17 @@ class CompositionService:
             return self._unknown(Code.INVALID_OUTPUT)
         try:
             if len(generation.proposal_json.encode("utf-8")) > MAX_PROPOSAL_BYTES:
+                audit.output_rejected('size')
                 return Outcome("FAILED_KNOWN", cost, error=Code.INVALID_OUTPUT, usage=generation.usage)
             proposal = parse_json(Proposal, generation.proposal_json)
+        except (ValueError, TypeError, AttributeError, RecursionError):
+            audit.output_rejected('schema')
+            return Outcome("FAILED_KNOWN", cost, error=Code.INVALID_OUTPUT, usage=generation.usage)
+        try:
             proposal.validate_against(request)
             return Outcome("COMPLETED", cost, proposal, usage=generation.usage)
         except (ValueError, TypeError, AttributeError, RecursionError):
+            audit.output_rejected('business')
             return Outcome("FAILED_KNOWN", cost, error=Code.INVALID_OUTPUT, usage=generation.usage)
 
     def _known_cost(self, usage: Usage | None) -> int | None:
