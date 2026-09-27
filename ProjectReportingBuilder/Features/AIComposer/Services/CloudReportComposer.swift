@@ -61,7 +61,7 @@ final class CloudReportComposer: ReportComposing {
                 let result: CompositionResponse
                 do { result = try JSONDecoder().decode(CompositionResponse.self, from: reply.0) }
                 catch { throw CompositionServiceError(code: .invalidOutput) }
-                guard result.matches(input), (0...20).contains(result.remainingDailyRequests) else {
+                guard result.matches(input), (0...CompositionResponse.maximumDailyRequests).contains(result.remainingDailyRequests) else {
                     throw CompositionServiceError(code: .invalidOutput)
                 }
                 return result

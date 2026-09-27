@@ -131,7 +131,7 @@ See [AWS Python packaging guidance](https://docs.aws.amazon.com/lambda/latest/dg
 `GEMINI_SECRET_ARN`, `AWS_REGION`, `AI_BUDGET_POLICY` (the strict BudgetPolicy JSON),
 and `AI_PRICE_VALID_UNTIL` (an offset-aware ISO timestamp). No production prices are
 provided: verify the model, input/output rates and validity period before setting
-these values. The policy ceiling is USD 8; daily/input/output bounds remain 20/8000/2000.
+these values. The policy ceiling is USD 8; daily/input/output bounds remain 100/8000/2000.
 Expired or malformed pricing fails before secret access. The secret must contain
 `{"GEMINI_API_KEY":"..."}`. Never place its value in configuration files or commands.
 

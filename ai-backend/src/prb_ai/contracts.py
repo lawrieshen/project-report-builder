@@ -10,6 +10,7 @@ from pydantic.alias_generators import to_camel
 
 MAX_REQUEST_BYTES = 64_000
 MAX_PROPOSAL_BYTES = 24_000
+MAX_DAILY_REQUESTS = 100
 
 
 def utf16_bound(limit: int) -> AfterValidator:
@@ -240,7 +241,7 @@ class Response(Model):
     goal_id: Identifier = Field(alias="goalID")
     goal_revision: int = Field(gt=0)
     proposal: Proposal
-    remaining_daily_requests: int = Field(ge=0, le=20)
+    remaining_daily_requests: int = Field(ge=0, le=MAX_DAILY_REQUESTS)
 
     @classmethod
     def for_request(cls, request: Request, proposal: Proposal, remaining: int) -> Self:

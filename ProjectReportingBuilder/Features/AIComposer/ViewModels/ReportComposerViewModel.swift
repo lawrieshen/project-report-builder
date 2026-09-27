@@ -71,7 +71,7 @@ final class ReportComposerViewModel: ObservableObject {
         do {
             let response = try await task.value
             guard graph.state == .generating(requestID: id), graph.version == version else { return }
-            guard response.matches(request), (0...20).contains(response.remainingDailyRequests) else {
+            guard response.matches(request), (0...CompositionResponse.maximumDailyRequests).contains(response.remainingDailyRequests) else {
                 throw CompositionEditError.invalidProposal
             }
             let changes = try CompositionEdits(base: submitted, proposal: response.proposal)

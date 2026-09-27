@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import audit
-from .contracts import Response
+from .contracts import MAX_DAILY_REQUESTS, Response
 from .errors import Code, ComposeError
 from .storage import Row, UsageStore, Write
 
@@ -21,7 +21,7 @@ class BudgetPolicy(LedgerModel):
     input_micros_per_million: int = Field(gt=0)
     output_micros_per_million: int = Field(gt=0)
     monthly_limit_micros: int = Field(gt=0, le=10_000_000)
-    daily_limit: int = Field(gt=0, le=20)
+    daily_limit: int = Field(gt=0, le=MAX_DAILY_REQUESTS)
     max_input_tokens: int = Field(gt=0, le=8_000)
     max_output_tokens: int = Field(gt=0, le=2_000)
 
@@ -50,7 +50,7 @@ class Entry(LedgerModel):
     policy: BudgetPolicy
     reserved_micros: int = Field(ge=0)
     charged_micros: int = Field(ge=0)
-    remaining_daily_requests: int = Field(ge=0, le=20)
+    remaining_daily_requests: int = Field(ge=0, le=MAX_DAILY_REQUESTS)
     lease_until: int
     result_until: int = 0
     state: State = "RESERVED"

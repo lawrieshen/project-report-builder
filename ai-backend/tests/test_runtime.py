@@ -21,7 +21,7 @@ def test_acceptance_budget_is_disabled_bounded_and_expires():
     policy = runtime_policy(environment, datetime(2026, 9, 28, tzinfo=UTC))
     assert policy.monthly_limit_micros == 8_000_000
     assert policy.reservation_micros == 13_500
-    assert policy.daily_limit == 20
+    assert policy.daily_limit == 100
     with pytest.raises(ComposeError):
         runtime_policy(environment, datetime.fromisoformat(parameters['PriceValidUntil']))
 

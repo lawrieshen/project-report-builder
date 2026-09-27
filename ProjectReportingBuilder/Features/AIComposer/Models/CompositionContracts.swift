@@ -99,6 +99,9 @@ nonisolated struct CompositionResponse: Codable, Equatable, Sendable {
     let proposal: CompositionProposal
     let remainingDailyRequests: Int
 
+    /// Match the backend's approved maximum without trusting arbitrary response counts.
+    static let maximumDailyRequests = 100
+
     func matches(_ request: CompositionRequest) -> Bool {
         requestID == request.requestID && baseDraftVersion == request.baseDraftVersion
             && candidateVersion == request.candidateVersion && goalID == request.goal.id

@@ -11,12 +11,12 @@ struct CloudReportComposerTests {
         return try JSONDecoder().decode(CompositionRequest.self, from: data)
     }
 
-    private func response(_ request: CompositionRequest) throws -> Data {
+    private func response(_ request: CompositionRequest, remaining: Int = 19) throws -> Data {
         try JSONEncoder().encode(CompositionResponse(requestID: request.requestID,
             baseDraftVersion: request.baseDraftVersion, candidateVersion: request.candidateVersion,
             goalID: request.goal.id, goalRevision: request.goal.revision,
             proposal: .init(assistantMessage: "Ready", clarifyingQuestions: [], proposedChanges: [],
-                metricChanges: [], warnings: [], semanticFindings: []), remainingDailyRequests: 19))
+                metricChanges: [], warnings: [], semanticFindings: []), remainingDailyRequests: remaining))
     }
 
     private func http(_ request: URLRequest, _ status: Int) throws -> HTTPURLResponse {
@@ -85,6 +85,27 @@ struct CloudReportComposerTests {
         do { _ = try await service.compose(request()); Issue.record("Expected quota error") }
         catch let error as CompositionServiceError { #expect(error.code == .budgetExhausted) }
         #expect(calls == 1)
+    }
+
+    @Test(arguments: [0, 81, 99, 100])
+    func acceptsApprovedDailyCounts(_ remaining: Int) async throws {
+        let input = try request()
+        let data = try response(input, remaining: remaining)
+        let service = CloudReportComposer(account: ComposerAccount(), transport: { request in
+            (data, try http(request, 200))
+        })
+        let result = try await service.compose(input)
+        #expect(result.remainingDailyRequests == remaining)
+    }
+
+    @Test(arguments: [-1, 101])
+    func rejectsOutOfRangeDailyCounts(_ remaining: Int) async throws {
+        let input = try request()
+        let data = try response(input, remaining: remaining)
+        let service = CloudReportComposer(account: ComposerAccount(), transport: { request in
+            (data, try http(request, 200))
+        })
+        await #expect(throws: (any Error).self) { try await service.compose(input) }
     }
 }
 

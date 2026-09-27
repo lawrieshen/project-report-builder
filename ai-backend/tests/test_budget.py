@@ -14,6 +14,18 @@ def reserve(ledger, policy, now, subject="alice"):
     return ledger.reserve(subject, str(uuid4()), "hash", policy, now)
 
 
+def test_approved_hundred_attempt_limit_preserves_existing_daily_count(ledger, policy, now):
+    first = reserve(ledger, policy, now)
+    ledger.claim(first, now)
+    ledger.settle(first, 'FAILED_KNOWN', 0, None, Code.INVALID_OUTPUT, now)
+    upgraded = BudgetPolicy(**{**policy.model_dump(), 'daily_limit': 100})
+    second = reserve(ledger, upgraded, now)
+    assert second.remaining_daily_requests == 98
+    assert ledger.reserve('alice', first.request_id, 'hash', upgraded, now).remaining_daily_requests == 1
+    with pytest.raises(ValueError):
+        BudgetPolicy(**{**policy.model_dump(), 'daily_limit': 101})
+
+
 def test_integer_money_rounds_up(policy):
     fractional = policy.model_copy(update={"input_micros_per_million": 1, "output_micros_per_million": 1})
     assert fractional.cost(1, 1) == 2
