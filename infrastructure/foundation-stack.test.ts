@@ -15,6 +15,7 @@ test('login is admin-provisioned with a public authorization-code client', () =>
   });
   template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
     GenerateSecret: false, AllowedOAuthFlows: ['code'],
+    ExplicitAuthFlows: ['ALLOW_USER_PASSWORD_AUTH', 'ALLOW_REFRESH_TOKEN_AUTH'],
     AllowedOAuthScopes: ['openid', 'email', 'reports/read', 'reports/write'],
     EnableTokenRevocation: true,
   });
@@ -34,6 +35,15 @@ test('reports are owner-partitioned and retained on stack deletion', () => {
 });
 
 test('foundation exposes no report endpoint before authentication adapters exist', () => {
-  template.resourceCountIs('AWS::Lambda::Function', 0);
+  template.resourceCountIs('AWS::Lambda::Function', 1);
   template.resourceCountIs('AWS::ApiGatewayV2::Api', 0);
+});
+
+ test('native sign-in customizes access tokens with a V2 trigger', () => {
+  template.hasResourceProperties('AWS::Cognito::UserPool', {
+    LambdaConfig: { PreTokenGenerationConfig: { LambdaVersion: 'V2_0' } },
+  });
+  template.hasResourceProperties('AWS::Lambda::Permission', {
+    Principal: 'cognito-idp.amazonaws.com', SourceAccount: '543123648742',
+  });
 });
