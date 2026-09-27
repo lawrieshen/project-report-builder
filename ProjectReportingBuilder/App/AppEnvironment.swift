@@ -9,6 +9,7 @@ struct AppEnvironment {
     let settings: AppSettingsStore
     let storage: ApplicationStorage
     let store: ProjectFileStore
+    let cloudTransfers: CloudTransferStore
     let projects: LocalProjectRepository
 
     init(storage: ApplicationStorage, defaults: UserDefaults = .standard,
@@ -18,6 +19,8 @@ struct AppEnvironment {
         self.storage = storage
         store = ProjectFileStore(storage: storage)
         projects = LocalProjectRepository(store: store)
+        cloudTransfers = CloudTransferStore(projects: projects, client: CloudReportClient(account: cloudAccount),
+            history: CloudUploadHistory(file: storage.root.appendingPathComponent("cloud-uploads-prb-dev-092e2408-5041-706a-684d-db818c51805c.json")))
     }
 
     func assets(for projectID: UUID) -> any AssetRepository {

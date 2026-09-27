@@ -1,0 +1,107 @@
+import Foundation
+import Observation
+
+extension Notification.Name {
+    static let cloudProjectImported = Notification.Name("cloudProjectImported")
+}
+
+@MainActor @Observable
+final class CloudTransferStore {
+    private(set) var localProjects: [ProjectReport] = []
+    private(set) var cloudReports: [CloudReport] = []
+    private(set) var nextCursor: UUID?
+    private(set) var isBusy = false
+    private(set) var message: String?
+    private let projects: any ProjectRepository
+    private let client: any CloudReportServing
+    private let history: any CloudUploadTracking
+
+    init(projects: any ProjectRepository, client: any CloudReportServing, history: any CloudUploadTracking) {
+        self.projects = projects
+        self.client = client
+        self.history = history
+    }
+
+    func refresh() async {
+        guard !isBusy else { return }
+        isBusy = true
+        message = nil
+        defer { isBusy = false }
+        do {
+            localProjects = try await projects.fetchProjects()
+            let page = try await client.list(after: nil)
+            cloudReports = page.items
+            nextCursor = page.nextCursor
+        } catch { message = error.localizedDescription }
+    }
+
+    func loadMore() async {
+        guard !isBusy, let cursor = nextCursor else { return }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let page = try await client.list(after: cursor)
+            let existing = Set(cloudReports.map(\.id))
+            cloudReports += page.items.filter { !existing.contains($0.id) }
+            nextCursor = page.nextCursor
+        } catch { message = error.localizedDescription }
+    }
+
+    func upload(id: UUID) async {
+        guard !isBusy else { return }
+        isBusy = true
+        message = nil
+        defer { isBusy = false }
+        do {
+            guard let project = try await projects.fetchProject(id: id) else { throw CloudTransferError.missingProject }
+            let content = try CloudReportContent(project: project)
+            let revision = try history.revision(for: id)
+            let saved: CloudReport
+            do { saved = try await client.save(id: id, revision: revision, content: content) }
+            catch CloudTransferError.conflict {
+                let remote = try await client.get(id: id)
+                // Reconcile a lost response only when the exact attempted content was saved.
+                guard revision < Int64.max, remote.revision == revision + 1, remote.report == content else {
+                    throw CloudTransferError.conflict
+                }
+                saved = remote
+            }
+            guard saved.reportID == id, saved.schemaVersion == 1, saved.revision > revision else {
+                throw CloudTransferError.invalidResponse
+            }
+            do { try history.record(id: id, revision: saved.revision) }
+            catch {
+                message = "Uploaded, but the local upload record could not be saved. Retry to reconcile the cloud version."
+                return
+            }
+            cloudReports.removeAll { $0.id == id }
+            cloudReports.insert(saved, at: 0)
+            message = "Uploaded \(project.codeName)."
+        } catch { message = error.localizedDescription }
+    }
+
+    func download(id: UUID) async {
+        guard !isBusy else { return }
+        isBusy = true
+        message = nil
+        defer { isBusy = false }
+        do {
+            let remote = try await client.get(id: id)
+            guard remote.reportID == id, remote.schemaVersion == 1, remote.revision > 0 else {
+                throw CloudTransferError.invalidResponse
+            }
+            let copy = try remote.report.localCopy()
+            try await projects.save(copy)
+            localProjects.insert(copy, at: 0)
+            NotificationCenter.default.post(name: .cloudProjectImported, object: nil)
+            message = "Downloaded \(copy.codeName) as a new local project."
+        } catch { message = error.localizedDescription }
+    }
+
+    func clear() {
+        localProjects = []
+        cloudReports = []
+        nextCursor = nil
+        message = nil
+    }
+}

@@ -22,7 +22,7 @@ report creation, reading, updates, owner isolation, pagination, and atomic revis
 checks using in-memory storage. JUnit and JSON contract tests run locally and
 are configured in the backend CI workflow.
 
-No report HTTP server, AWS data adapter, or image transfer is implemented.
+The report API is deployed; image transfer is not implemented.
 Request retries cannot duplicate a committed revision, but operation-ID replay support remains future work. This milestone
 does not change the app's local persistence or enable uploads.
 
@@ -147,8 +147,8 @@ Automated tests cover PKCE, callback tampering, form encoding, session refresh,
 expiry, transient errors, and local logout/revocation failure. On 2026-09-27,
 the developer reported that the manual Cloud Account verification passed.
 Validation of the distributed app remains separate from local development
-validation. The token verifier remains unimplemented; these checks do not prove
-authenticated report HTTP access.
+validation. The report API is deployed, but authenticated report HTTP access remains
+to be verified.
 
 References:
 - [Cognito pricing](https://aws.amazon.com/cognito/pricing/)
@@ -165,3 +165,38 @@ Confirmed callback/logout URIs and deployed IDs are recorded in
 [dev outputs](../infrastructure/dev-outputs.json). The app still needs to implement
 these callbacks.
 No HTTP API, cloud authentication adapter, or image transfer is implemented yet.
+
+## Report API adapter milestone
+
+The Java Lambda adapter, DynamoDB repository and opt-in CDK report API stack
+are implemented locally. See [deployment preparation](../infrastructure/REPORT-API.md).
+JWT signature verification is delegated to API Gateway; Lambda checks trusted
+claims, access-token use, the approved subject and operation scope. SDK response
+fakes test repository requests; they do not prove live AWS behavior. Deployment and artifact upload are complete. Missing/invalid-token requests
+return HTTP 401. Authenticated cloud smoke tests remain pending; the macOS manual transfer UI is implemented.
+
+## macOS manual transfer milestone
+
+Settings > Cloud Account now lists saved local projects and cloud reports.
+Upload Saved Version re-reads the saved project; it does not upload unsaved
+workspace edits. Reports containing images are rejected before any request.
+Downloads always create independent local projects and notify the Browser to
+refresh. This POC does not overwrite existing projects or synchronize drafts.
+
+Acknowledged upload revisions are stored atomically in a separate local file,
+scoped to the development environment and its single approved Cognito subject.
+A conflict does not adopt the server revision automatically. The sole exception
+is reconciliation of the exact attempted content at expectedRevision + 1 after
+a lost response. A downloaded copy has a new local identity and becomes a new
+cloud report if uploaded later. Corrupted upload history fails visibly instead
+of silently resetting the revision.
+
+The transport encodes explicit JSON nulls, canonical lowercase metric UUIDs,
+backend comparison/severity values, and date-only milestone deadlines. The
+client requests cloud lists in pages of 10. Build and 17 authentication/transfer
+unit tests passed. Real authenticated upload/download and server conflict
+behavior still need verification using the signed-in app.
+
+The developer subsequently confirmed that the guided upload, update and download
+flow worked after deployment fixes (2026-09-27). This result was reported from
+the app; broader authorization and concurrent-client scenarios remain separate.

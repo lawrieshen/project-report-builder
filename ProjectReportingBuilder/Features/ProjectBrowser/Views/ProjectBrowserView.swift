@@ -48,6 +48,9 @@ struct ProjectBrowserView: View {
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: presentedFilter)
         .task { await viewModel.loadProjects() }
+        .onReceive(NotificationCenter.default.publisher(for: .cloudProjectImported)) { _ in
+            Task { await viewModel.loadProjects() }
+        }
         .confirmationDialog("Delete this project?", isPresented: Binding(
             get: { projectToDelete != nil },
             set: { if !$0 { projectToDelete = nil } }
