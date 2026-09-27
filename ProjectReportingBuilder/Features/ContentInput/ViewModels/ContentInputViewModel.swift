@@ -11,15 +11,51 @@ final class ContentInputViewModel {
     private(set) var isProcessing = false
     private(set) var suggestions: ReportContentSuggestions?
     private(set) var processingError: String?
+    private(set) var isImportingText = false
+    private(set) var importError: String?
+    private let textReader: any SourceTextReading
+    private var importGeneration = 0
     private let processor: any ContentProcessing
     private var generation = 0
 
-    init(processor: (any ContentProcessing)? = nil) {
+    init(processor: (any ContentProcessing)? = nil,
+         textReader: any SourceTextReading = SourceTextReader()) {
+        self.textReader = textReader
         self.processor = processor ?? ContentProcessor()
     }
 
     var canProcess: Bool {
-        !isProcessing && !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !isProcessing && !isImportingText && !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func importText(from url: URL) async {
+        guard !isImportingText, !isProcessing else { return }
+        importGeneration += 1
+        let request = importGeneration
+        let originalText = rawText
+        isImportingText = true
+        importError = nil
+        defer { if importGeneration == request { isImportingText = false } }
+        do {
+            let text = try await textReader.read(from: url)
+            guard importGeneration == request, !Task.isCancelled, rawText == originalText else { return }
+            rawText = text
+        } catch is CancellationError {
+            // Dismissed imports must not replace the user's notes.
+        } catch {
+            guard importGeneration == request, !Task.isCancelled else { return }
+            importError = error.localizedDescription
+        }
+    }
+
+    func prepareTextImport() { importError = nil }
+
+    func reportImportFailure(_ error: Error) { importError = error.localizedDescription }
+
+    func cancelPendingWork() {
+        importGeneration += 1
+        isImportingText = false
+        clearResults()
     }
 
     func processText() async {
