@@ -1,4 +1,4 @@
-# Cloud report service — local milestone
+# Cloud report service
 
 Java 21 language/API target, Maven 3.9+. No AWS account is needed.
 
@@ -13,20 +13,23 @@ python3 -m pip install -r backend/tests/requirements.txt
 python3 backend/tests/test_contract.py
 ```
 
-This builds a library and runs JUnit tests. There is no HTTP listener, Lambda
-adapter, Cognito access-token verifier, or deployed endpoint yet. Tests invoke
-`ReportService` directly; `InMemoryReportRepository` loses state on restart.
+This builds the Java service and Lambda adapter and runs JUnit tests.
+`DynamoReportRepository` provides persistent snapshots with conditional writes;
+local tests use fake SDK responses and in-memory repositories. The development endpoint is deployed; authenticated live data tests remain
+pending. See [deployment preparation](../infrastructure/REPORT-API.md).
 
 ## Contract
 
 - [OpenAPI 3.1 contract](contracts/openapi.json)
 - [Create request example](contracts/create-report.json)
 
-The contract describes the future HTTP mapping for the implemented service.
-A future adapter must strictly decode JSON, reject unknown fields and malformed
-UUIDs/dates/numbers, verify credentials, and construct a trusted `Principal`.
-Never construct that principal from a request-body owner ID. Cognito Managed Login, access-token verification,
-allowlisting, sessions, asset transfers and transport parsing are later milestones.
+The Lambda adapter implements GET /reports, GET /reports/{reportID}, and
+PUT /reports/{reportID}. It strictly decodes JSON and rejects unknown fields,
+missing required properties, malformed UUIDs/dates and scalar coercion. Bodies
+are limited to 300 KB; stored snapshots are capped below DynamoDB's item limit.
+API Gateway verifies JWT signatures; the adapter checks trusted authorizer
+claims and the approved subject before constructing a Principal. No owner ID
+is accepted from a body. Asset transfers remain a later milestone.
 
 The transport model is deliberately separate from Swift Codable. Map the Swift
 project/card into `ReportContent`; keep local entity IDs and recovery data local.
@@ -47,7 +50,7 @@ asset support is added, rather than discard them.
 - Replaying a successful request returns a conflict without a duplicate write.
   After losing a response, read and reconcile. Operation-ID replay support is
   deferred to the upload milestone.
-- Future HTTP status mapping: INVALID_REPORT → 400, UNAUTHENTICATED → 401,
+- HTTP status mapping: INVALID_REPORT → 400, UNAUTHENTICATED → 401,
   NOT_FOUND → 404, REVISION_CONFLICT → 409. Do not expose internal exceptions.
 
 Tests cover round trips, isolation, concurrent updates, pagination, invalid
