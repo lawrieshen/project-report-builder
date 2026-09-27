@@ -33,4 +33,13 @@ struct CompositionContractTests {
         #expect(object["id"] == nil)
         #expect(!String(decoding: data, as: UTF8.self).contains("private.png"))
     }
+
+    @Test func followUpPreservesMetricPrecisionEnumsAndDate() throws {
+        let request = try JSONDecoder().decode(CompositionRequest.self, from: fixture("follow-up-request"))
+        #expect(request.draft.metrics.first?.currentValueText == "2.50")
+        #expect(request.draft.metrics.first?.comparison == .lessThanOrEqual)
+        #expect(request.draft.metrics.first?.severity == .p1)
+        #expect(request.draft.milestoneDeadline == "2026-10-01")
+        #expect(request.messages.count == 3)
+    }
 }

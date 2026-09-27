@@ -24,10 +24,16 @@ nonisolated struct GoalEvaluation: Equatable, Sendable {
     var isConfirmed: Bool { criteria.allSatisfy { $0.status == .satisfied } }
 }
 
+/// Keep advisory model findings tied to the candidate that was actually assessed.
+nonisolated struct CompositionAssessment: Equatable, Sendable {
+    let version: CompositionVersion
+    let findings: [CompositionFinding]
+}
+
 /// Evaluate a candidate locally; model findings never satisfy human review criteria.
 nonisolated enum GoalEvaluator {
     static func evaluate(draft: ReportEditorDraft, version: CompositionVersion,
-                         findings: [CompositionFinding] = [],
+                         assessment: CompositionAssessment? = nil,
                          confirmation: GoalConfirmation? = nil) -> GoalEvaluation {
         let goal = version.goal
         var criteria: [GoalCriterion] = []
@@ -63,6 +69,7 @@ nonisolated enum GoalEvaluator {
         case .supportRequest: review.append((.clearAsk, "Confirm the summary makes a clear support request."))
         }
         let accepted = confirmation?.version == version ? confirmation?.reviewedCriteria ?? [] : []
+        let findings = assessment?.version == version ? assessment?.findings ?? [] : []
         for (id, explanation) in review {
             let finding = findings.first { $0.criterionID == id }
             criteria.append(GoalCriterion(id: id, status: accepted.contains(id) ? .satisfied : .needsReview,

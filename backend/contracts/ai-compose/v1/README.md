@@ -1,10 +1,10 @@
 # Composition contract v1
 
-`request.json` and `response.json` are shared Java/Swift test fixtures. This contract
+`request.json`, `follow-up-request.json`, and `response.json` are shared Python/Swift test fixtures. This contract
 is not deployed yet. The response envelope is produced by the server; the model
 can produce only the nested `proposal` object.
 
-The Java records in `AiContracts` are the input/output validation boundary. Reject
+The Pydantic models in `ai-backend/src/prb_ai/contracts.py` are the input/output validation boundary. Reject
 unknown properties, scalar coercion, duplicate JSON keys, invalid UUIDs, and trailing
 JSON. UUID casing is insignificant. Optional fields may be omitted or null. Required
 arrays must be present, even when empty. Preserve array order in the request hash.

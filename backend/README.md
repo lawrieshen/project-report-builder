@@ -2,6 +2,9 @@
 
 Java 21 language/API target, Maven 3.9+. No AWS account is needed.
 
+AI composition is a separate [Python service](../ai-backend/README.md). This Java
+module continues to own report CRUD and image storage; it does not call Gemini.
+
 ```sh
 mvn -f backend/pom.xml verify
 ```

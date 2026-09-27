@@ -19,9 +19,10 @@ struct CompositionGoalTests {
         #expect(!missing.readyForReview)
         var candidate = draft()
         candidate.summaryMessage = "Validation is in progress."
-        let evaluation = GoalEvaluator.evaluate(draft: candidate, version: version, findings: [
+        let evaluation = GoalEvaluator.evaluate(draft: candidate, version: version,
+            assessment: CompositionAssessment(version: version, findings: [
             CompositionFinding(criterionID: .factualAccuracy, explanation: "Everything looks correct.")
-        ])
+        ]))
         #expect(evaluation.readyForReview)
         #expect(!evaluation.isConfirmed)
         #expect(evaluation.criteria.first { $0.id == .factualAccuracy }?.status == .needsReview)
@@ -63,5 +64,16 @@ struct CompositionGoalTests {
     @Test func unsupportedPolicyCannotBeConfirmed() {
         let version = version(goal: ReportCompositionGoal(criterionPolicyVersion: 99))
         #expect(!GoalEvaluator.evaluate(draft: draft(), version: version).readyForReview)
+    }
+
+    @Test func findingsFromAnOlderCandidateAreDiscarded() {
+        let oldVersion = version()
+        let assessment = CompositionAssessment(version: oldVersion, findings: [
+            CompositionFinding(criterionID: .factualAccuracy, explanation: "Old assessment")
+        ])
+        let updated = CompositionVersion(accountSessionID: oldVersion.accountSessionID, reportID: oldVersion.reportID,
+            baseDraftVersion: oldVersion.baseDraftVersion, goal: oldVersion.goal, candidateVersion: UUID())
+        let result = GoalEvaluator.evaluate(draft: draft(), version: updated, assessment: assessment)
+        #expect(result.criteria.first { $0.id == .factualAccuracy }?.evidence == .rule)
     }
 }
