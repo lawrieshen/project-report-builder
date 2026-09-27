@@ -5,11 +5,11 @@ import { ReportApiStack } from './report-api-stack';
 
 test('all report routes require JWT and operation scope', () => {
   const template = Template.fromStack(new ReportApiStack(new App(), 'ApiTest'));
-  template.resourceCountIs('AWS::ApiGatewayV2::Route', 5);
-  for (const route of ['GET /reports', 'GET /reports/{reportID}', 'PUT /reports/{reportID}', 'POST /reports/{reportID}/assets/upload', 'GET /reports/{reportID}/assets/{assetID}']) {
+  template.resourceCountIs('AWS::ApiGatewayV2::Route', 6);
+  for (const route of ['GET /reports', 'GET /reports/{reportID}', 'DELETE /reports/{reportID}', 'PUT /reports/{reportID}', 'POST /reports/{reportID}/assets/upload', 'GET /reports/{reportID}/assets/{assetID}']) {
     template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
       RouteKey: route, AuthorizationType: 'JWT', AuthorizerId: Match.anyValue(),
-      AuthorizationScopes: [(route.startsWith('PUT') || route.startsWith('POST')) ? 'reports/write' : 'reports/read'],
+      AuthorizationScopes: [(route.startsWith('PUT') || route.startsWith('POST') || route.startsWith('DELETE')) ? 'reports/write' : 'reports/read'],
     });
   }
   template.resourceCountIs('AWS::Lambda::Url', 0);
