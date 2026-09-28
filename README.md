@@ -1,4 +1,4 @@
-# Project Report Builder
+#  Project Report Builder
 
 ![Project Report Builder cover](assets/cover.png)
 
