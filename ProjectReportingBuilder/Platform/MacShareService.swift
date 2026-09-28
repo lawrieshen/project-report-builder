@@ -69,6 +69,36 @@ final class MacShareService: NSObject, ReportSharing, NSSharingServicePickerDele
                     of: view, preferredEdge: .maxY)
     }
 
+    /// Prioritize Email, Messages, Slack and Discord while preserving other services' order.
+    func sharingServicePicker(_ sharingServicePicker: NSSharingServicePicker,
+                              sharingServicesForItems items: [Any],
+                              proposedSharingServices proposedServices: [NSSharingService]) -> [NSSharingService] {
+        var remainingServices = proposedServices
+        var preferredServices: [NSSharingService] = []
+        let preferredNames: [NSSharingService.Name] = [.composeEmail, .composeMessage]
+
+        for name in preferredNames {
+            guard let preferredService = NSSharingService(named: name),
+                  let index = remainingServices.firstIndex(where: {
+                      // AppKit exposes no service identifier; use its localized title as a fallback.
+                      $0.isEqual(preferredService) || $0.title == preferredService.title
+                  }) else { continue }
+            preferredServices.append(remainingServices.remove(at: index))
+        }
+
+        // Third-party services have no public AppKit names. Match their displayed
+        // brand names only when the system already offers them for these items.
+        for title in ["Slack", "Discord"] {
+            guard let index = remainingServices.firstIndex(where: {
+                $0.title.localizedCaseInsensitiveCompare(title) == .orderedSame
+                    || $0.menuItemTitle.localizedCaseInsensitiveCompare(title) == .orderedSame
+            }) else { continue }
+            preferredServices.append(remainingServices.remove(at: index))
+        }
+
+        return preferredServices + remainingServices
+    }
+
     func sharingServicePicker(_ sharingServicePicker: NSSharingServicePicker,
                               delegateFor sharingService: NSSharingService) -> (any NSSharingServiceDelegate)? {
         self
