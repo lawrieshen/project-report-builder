@@ -5,6 +5,8 @@ struct LivePreviewView: View {
     let loadImage: (ImageAsset) async throws -> Data
     let onDismiss: () -> Void
     var maximumHeight: CGFloat = 600
+    /// Expand the preview canvas to fill a parent that already bounds its height.
+    var fillsAvailableHeight = false
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var viewModel = LivePreviewViewModel()
     @State private var images: [String: PreviewImageState] = [:]
@@ -50,7 +52,7 @@ struct LivePreviewView: View {
                     .onAppear { viewport = geometry.size }
                     .onChange(of: geometry.size) { _, size in viewport = size }
             }
-            .frame(height: min(max(1, maximumHeight - headerHeight - AppSpacing.field),
+            .frame(height: fillsAvailableHeight ? nil : min(max(1, maximumHeight - headerHeight - AppSpacing.field),
                                cardHeight * (viewModel.isFitting ? 1 : displayedZoom)
                                + ReportCardStyle.canvasInset * 2))
         }

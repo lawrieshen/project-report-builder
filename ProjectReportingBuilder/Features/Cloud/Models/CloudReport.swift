@@ -15,6 +15,7 @@ struct CloudReportContent: Codable, Equatable {
     var codeName: String
     var lineOfBusiness: String
     var status: ProjectStatus
+    var projectSize: ProjectSize?
     var ragStatus: RAGStatus?
     var milestonePhase: String?
     var milestoneDeadline: String?
@@ -31,6 +32,7 @@ struct CloudReportContent: Codable, Equatable {
         codeName = project.codeName
         lineOfBusiness = project.lineOfBusiness
         status = project.status
+        projectSize = project.projectSize
         let card = project.card
         ragStatus = card?.health.ragStatus
         milestonePhase = card?.health.milestone?.phase
@@ -61,7 +63,7 @@ struct CloudReportContent: Codable, Equatable {
             assets: try (assets ?? []).map { try $0.localAsset() },
             metrics: try metrics.map { try $0.localMetric() })
         return ProjectReport(id: id, codeName: codeName, lineOfBusiness: lineOfBusiness, status: status,
-                             card: card, createdAt: updatedAt, updatedAt: updatedAt)
+                             projectSize: projectSize, card: card, createdAt: updatedAt, updatedAt: updatedAt)
     }
 
     private func person(_ name: String) -> Person? {
@@ -78,7 +80,7 @@ struct CloudReportContent: Codable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case codeName, lineOfBusiness, status, ragStatus, milestonePhase, milestoneDeadline
+        case codeName, lineOfBusiness, status, projectSize, ragStatus, milestonePhase, milestoneDeadline
         case summaryType, summaryMessage, leadEPMName, projectDRIName, metrics, assets
     }
 
@@ -88,6 +90,8 @@ struct CloudReportContent: Codable, Equatable {
         try values.encode(codeName, forKey: .codeName)
         try values.encode(lineOfBusiness, forKey: .lineOfBusiness)
         try values.encode(status, forKey: .status)
+        // Explicit null clears the value; omission identifies an older client.
+        try values.encode(projectSize, forKey: .projectSize)
         try values.encode(ragStatus, forKey: .ragStatus)
         try values.encode(milestonePhase, forKey: .milestonePhase)
         try values.encode(milestoneDeadline, forKey: .milestoneDeadline)

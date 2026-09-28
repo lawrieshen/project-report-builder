@@ -40,6 +40,11 @@ struct ReportCardView: View {
                 .accessibilityAddTraits(style.headingSections.contains(.identity) ? .isHeader : [])
                 .accessibilityHeading(style.titleLevel == 1 ? .h1 : .unspecified)
                 .accessibilityIdentifier("previewCodeName")
+            if let size = model.projectSize {
+                Text("Project Size: \(size.displayName)")
+                    .foregroundStyle(palette.secondary.color)
+                    .accessibilityIdentifier("previewProjectSize")
+            }
             if !model.lineOfBusiness.isEmpty {
                 Text(model.lineOfBusiness).font(.system(size: style.headingSize)).foregroundStyle(palette.secondary.color)
             }

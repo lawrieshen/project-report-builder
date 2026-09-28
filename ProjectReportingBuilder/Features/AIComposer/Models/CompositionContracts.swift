@@ -4,6 +4,7 @@ import Foundation
 nonisolated struct CompositionDraft: Codable, Equatable, Sendable {
     let codeName: String
     let lineOfBusiness: String
+    let projectSize: ProjectSize?
     let ragStatus: RAGStatus?
     let milestonePhase: String
     let milestoneDeadline: String?
@@ -16,6 +17,7 @@ nonisolated struct CompositionDraft: Codable, Equatable, Sendable {
     init(draft: ReportEditorDraft) {
         codeName = draft.codeName
         lineOfBusiness = draft.lineOfBusiness
+        projectSize = draft.projectSize
         ragStatus = draft.ragStatus
         milestonePhase = draft.milestonePhase
         milestoneDeadline = draft.milestoneDeadline.map {
@@ -30,6 +32,29 @@ nonisolated struct CompositionDraft: Codable, Equatable, Sendable {
         leadEPMName = draft.leadEPMName
         projectDRIName = draft.projectDRIName
         metrics = draft.metrics
+    }
+}
+
+extension CompositionDraft {
+    enum CodingKeys: String, CodingKey {
+        case codeName, lineOfBusiness, projectSize, ragStatus, milestonePhase, milestoneDeadline
+        case summaryType, summaryMessage, leadEPMName, projectDRIName, metrics
+    }
+
+    /// Include an unset size so the backend can distinguish this client from older versions.
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(codeName, forKey: .codeName)
+        try values.encode(lineOfBusiness, forKey: .lineOfBusiness)
+        try values.encode(projectSize, forKey: .projectSize)
+        try values.encodeIfPresent(ragStatus, forKey: .ragStatus)
+        try values.encode(milestonePhase, forKey: .milestonePhase)
+        try values.encodeIfPresent(milestoneDeadline, forKey: .milestoneDeadline)
+        try values.encode(summaryType, forKey: .summaryType)
+        try values.encode(summaryMessage, forKey: .summaryMessage)
+        try values.encode(leadEPMName, forKey: .leadEPMName)
+        try values.encode(projectDRIName, forKey: .projectDRIName)
+        try values.encode(metrics, forKey: .metrics)
     }
 }
 
@@ -51,7 +76,7 @@ nonisolated struct CompositionRequest: Codable, Equatable, Sendable {
 /// Represent explicit set/clear intent; absence from the list means unchanged.
 nonisolated struct CompositionTextChange: Codable, Equatable, Sendable {
     enum Field: String, Codable, CaseIterable, Sendable {
-        case codeName, lineOfBusiness, ragStatus, milestonePhase, milestoneDeadline
+        case codeName, lineOfBusiness, projectSize, ragStatus, milestonePhase, milestoneDeadline
         case summaryType, summaryMessage, leadEPMName, projectDRIName
     }
     enum Operation: String, Codable, Sendable { case set, clear }

@@ -63,7 +63,7 @@ final class ProjectBrowserViewModel {
     
     /// Create a project and return it only after the repository saves successfully.
     func createProject(codeName: String, lineOfBusiness: String,
-                       status: ProjectStatus) async -> ProjectReport? {
+                       status: ProjectStatus, projectSize: ProjectSize? = nil) async -> ProjectReport? {
         guard !isSaving else { return nil }
         let name = codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         let business = lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -82,6 +82,7 @@ final class ProjectBrowserViewModel {
             codeName: name,
             lineOfBusiness: business,
             status: status,
+            projectSize: projectSize,
             createdAt: now,
             updatedAt: now
         )

@@ -8,6 +8,7 @@ struct NewProjectCard: View {
     @State private var codeName = ""
     @State private var lineOfBusiness = ""
     @State private var status: ProjectStatus = .draft
+    @State private var projectSize: ProjectSize?
     
     private var isValid: Bool {
         !codeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -58,6 +59,8 @@ struct NewProjectCard: View {
                 .focused($isCodeNameFocused)
             LineOfBusinessPicker(selection: $lineOfBusiness)
                 .accessibilityIdentifier("newProjectLineOfBusiness")
+            ProjectSizePicker(selection: $projectSize)
+                .accessibilityIdentifier("newProjectSize")
             Picker("Status", selection: $status) {
                 ForEach(ProjectStatus.allCases, id: \.self) { status in
                     Text(status.displayName).tag(status)
@@ -91,7 +94,7 @@ struct NewProjectCard: View {
             Button("Create & Open") {
                 Task {
                     let created = await viewModel.createProject(
-                        codeName: codeName, lineOfBusiness: lineOfBusiness, status: status)
+                        codeName: codeName, lineOfBusiness: lineOfBusiness, status: status, projectSize: projectSize)
                     if let created {
                         onCreated(created)
                     }

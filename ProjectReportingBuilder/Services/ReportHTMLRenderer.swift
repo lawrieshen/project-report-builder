@@ -16,6 +16,9 @@ enum ReportHTMLRenderer {
         let title = model.codeName.isEmpty ? "Untitled Project" : model.codeName
         var body = "<header><h1>\(escape(title))</h1>"
         if !model.lineOfBusiness.isEmpty { body += "<p class=secondary>\(escape(model.lineOfBusiness))</p>" }
+        if let size = model.projectSize {
+            body += "<p class=secondary>Project Size: \(escape(size.displayName))</p>"
+        }
         body += "</header>"
         if model.ragStatus != nil || model.milestonePhase != nil || model.milestoneDeadline != nil {
             var health = ""

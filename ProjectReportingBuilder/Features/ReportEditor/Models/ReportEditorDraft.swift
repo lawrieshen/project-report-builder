@@ -4,6 +4,7 @@ import Foundation
 nonisolated struct ReportEditorDraft: Codable, Equatable, Sendable {
     var codeName: String
     var lineOfBusiness: String
+    var projectSize: ProjectSize?
     var ragStatus: RAGStatus?
     var milestonePhase: String
     var milestoneDeadline: Date?
@@ -17,6 +18,7 @@ nonisolated struct ReportEditorDraft: Codable, Equatable, Sendable {
     init(project: ProjectReport) {
         codeName = project.codeName
         lineOfBusiness = project.lineOfBusiness
+        projectSize = project.projectSize
         ragStatus = project.card?.health.ragStatus
         milestonePhase = project.card?.health.milestone?.phase ?? ""
         milestoneDeadline = project.card?.health.milestone?.deadline
@@ -65,6 +67,7 @@ nonisolated struct ReportEditorDraft: Codable, Equatable, Sendable {
         var result = project
         result.codeName = trimmed(codeName)
         result.lineOfBusiness = trimmed(lineOfBusiness)
+        result.projectSize = projectSize
         result.updatedAt = updatedAt
         var milestone: Milestone?
         if let deadline = milestoneDeadline, !trimmed(milestonePhase).isEmpty {

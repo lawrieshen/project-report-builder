@@ -489,6 +489,19 @@
             "items": {
               "$ref": "#/components/schemas/Metric"
             }
+          },
+          "projectSize": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "small",
+              "medium",
+              "large",
+              null
+            ],
+            "description": "User-assigned project scope. Omission on update preserves the existing value for older clients; explicit null clears it. Old reports without this field are unset."
           }
         },
         "required": [
@@ -747,6 +760,19 @@
             "items": {
               "$ref": "#/components/schemas/ReportAsset"
             }
+          },
+          "projectSize": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "small",
+              "medium",
+              "large",
+              null
+            ],
+            "description": "User-assigned project scope. Omission on update preserves the existing value for older clients; explicit null clears it. Old reports without this field are unset."
           }
         },
         "required": [

@@ -18,6 +18,6 @@ extension ProjectReport {
                     currentValue: $0.currentValue, target: $0.target, unit: $0.unit, severity: $0.severity) })
         }
         return ProjectReport(id: UUID(), codeName: codeName, lineOfBusiness: lineOfBusiness,
-                             status: status, card: copiedCard, createdAt: .now, updatedAt: .now)
+                             status: status, projectSize: projectSize, card: copiedCard, createdAt: .now, updatedAt: .now)
     }
 }

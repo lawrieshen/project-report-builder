@@ -44,6 +44,11 @@ public final class ReportService {
     }
 
     public CloudReport save(Principal principal, UUID id, SaveRequest request) {
+        return save(principal, id, request, true);
+    }
+
+    /** Retain size for old clients that omit the field; explicit null clears it. */
+    public CloudReport save(Principal principal, UUID id, SaveRequest request, boolean projectSizeProvided) {
         String owner = owner(principal);
         require(id != null && request != null, "Report ID and request required");
         require((request.schemaVersion() == 1 || request.schemaVersion() == 2), "Unsupported schema version");
@@ -51,7 +56,17 @@ public final class ReportService {
                 "Invalid expected revision");
         require(request.report() != null, "Report content required");
         require(request.schemaVersion() == 2 || request.report().assets().isEmpty(), "Images require schema version 2");
-        return repository.save(owner, id, request.expectedRevision(), request.report(), clock.instant());
+        var content = request.report();
+        if (!projectSizeProvided && request.expectedRevision() > 0) {
+            var current = repository.find(owner, id).orElseThrow(() ->
+                    new ReportException(ReportException.Code.REVISION_CONFLICT, "Report changed; reload before saving"));
+            if (current.revision() != request.expectedRevision()) {
+                throw new ReportException(ReportException.Code.REVISION_CONFLICT, "Report changed; reload before saving");
+            }
+            content = content.withProjectSize(current.report().projectSize());
+        }
+        // The conditional write also detects updates or deletion after the compatibility read.
+        return repository.save(owner, id, request.expectedRevision(), content, clock.instant());
     }
 
     private static String owner(Principal principal) {

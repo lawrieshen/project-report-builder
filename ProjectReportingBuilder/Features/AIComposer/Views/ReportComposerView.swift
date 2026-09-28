@@ -11,12 +11,19 @@ struct ReportComposerView: View {
     @State private var input = ""
     @State private var audience: ReportCompositionGoal.Audience = .leadership
     @State private var purpose: ReportCompositionGoal.Purpose = .statusUpdate
-    @State private var language: ReportCompositionGoal.Language = .english
     @State private var sections: Set<ReportCompositionGoal.Section> = [.summary]
     @State private var goalAccepted = false
     @State private var reviewed: Set<GoalCriterion.ID> = []
     @State private var confirmClose = false
     @State private var confirmIncomplete = false
+    @State private var conversationHeight: CGFloat = 0
+    @State private var editorContentHeight: CGFloat = 0
+
+    private var contentHeight: CGFloat {
+        // Give the split view room to lay out both panels before measuring their content.
+        guard editorContentHeight > 0 else { return 600 }
+        return min(editorContentHeight, 600)
+    }
 
     private var generating: Bool {
         if case .generating = model.graph.state { return true }
@@ -27,30 +34,16 @@ struct ReportComposerView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            HSplitView {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        goalForm
-                        goalProgress
-                        conversation
-                        inputArea
-                        changes
-                        candidateEditor
-                    }.padding(20)
-                }.frame(minWidth: 340, idealWidth: 420)
-                LivePreviewView(model: ReportPreviewModel(draft: model.candidate), loadImage: loadImage,
-                                onDismiss: requestClose, maximumHeight: 700)
-                    .frame(minWidth: 380)
-            }
+            workspace
             Divider()
             actions
         }
-        .frame(minWidth: 850, minHeight: 650)
+        .frame(minWidth: 900, idealWidth: 1000)
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear {
             let goal = model.graph.version.goal
             audience = goal.audience
             purpose = goal.purpose
-            language = goal.language
             sections = Set(goal.requiredSections)
         }
         .onChange(of: model.graph.version) { _, _ in reviewed = [] }
@@ -69,6 +62,42 @@ struct ReportComposerView: View {
         }
     }
 
+    @ViewBuilder private var workspace: some View {
+        HSplitView {
+            editorPanel
+            previewPanel
+        }
+        .frame(height: contentHeight)
+    }
+
+    @ViewBuilder private var editorPanel: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                goalForm
+                goalProgress
+                conversation
+                inputArea
+                changes
+                candidateEditor
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(20)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                editorContentHeight = height
+            }
+            .frame(minHeight: contentHeight, alignment: .top)
+        }
+        .frame(minWidth: 420, idealWidth: 460, maxHeight: .infinity, alignment: .top)
+        .scrollIndicators(.hidden)
+    }
+
+    @ViewBuilder private var previewPanel: some View {
+        LivePreviewView(model: ReportPreviewModel(draft: model.candidate), loadImage: loadImage,
+                        onDismiss: requestClose, maximumHeight: 600, fillsAvailableHeight: true)
+            .frame(minWidth: 560, idealWidth: 620, maxHeight: .infinity, alignment: .top)
+    }
+
     @ViewBuilder private var header: some View {
         HStack {
             Label("AI Report Composer", systemImage: "sparkles").font(.title2)
@@ -82,33 +111,40 @@ struct ReportComposerView: View {
     @ViewBuilder private var goalForm: some View {
         GroupBox("Report goal") {
             VStack(alignment: .leading, spacing: 10) {
-                Picker("Audience", selection: $audience) {
-                    ForEach(ReportCompositionGoal.Audience.allCases, id: \.self) { Text(label($0.rawValue)).tag($0) }
-                }
-                Picker("Purpose", selection: $purpose) {
-                    ForEach(ReportCompositionGoal.Purpose.allCases, id: \.self) { Text(label($0.rawValue)).tag($0) }
-                }
-                Picker("Language", selection: $language) {
-                    ForEach(ReportCompositionGoal.Language.allCases, id: \.self) { Text(label($0.rawValue)).tag($0) }
-                }
-                ForEach(ReportCompositionGoal.Section.allCases, id: \.self) { section in
-                    Toggle(label(section.rawValue), isOn: Binding(get: { sections.contains(section) }, set: {
-                        if $0 { sections.insert(section) } else { sections.remove(section) }
-                    }))
-                }
-                Button(goalAccepted ? "Goal confirmed" : "Confirm goal") {
-                    let old = model.graph.version.goal
-                    model.changeGoal(ReportCompositionGoal(id: old.id, revision: old.revision + 1,
-                        audience: audience, purpose: purpose, language: language,
-                        requiredSections: ReportCompositionGoal.Section.allCases.filter { sections.contains($0) }))
-                    goalAccepted = true
-                }.disabled(goalAccepted || model.graph.state == .stale)
+                goalOptions
+                requiredSections
+                Button(goalAccepted ? "Goal confirmed" : "Confirm goal", action: confirmGoal)
+                    .disabled(goalAccepted || model.graph.state == .stale)
             }.padding(8)
         }
         .onChange(of: audience) { _, _ in goalAccepted = false }
         .onChange(of: purpose) { _, _ in goalAccepted = false }
-        .onChange(of: language) { _, _ in goalAccepted = false }
         .onChange(of: sections) { _, _ in goalAccepted = false }
+    }
+
+    @ViewBuilder private var goalOptions: some View {
+        Picker("Audience", selection: $audience) {
+            ForEach(ReportCompositionGoal.Audience.allCases, id: \.self) { Text(label($0.rawValue)).tag($0) }
+        }
+        Picker("Purpose", selection: $purpose) {
+            ForEach(ReportCompositionGoal.Purpose.allCases, id: \.self) { Text(label($0.rawValue)).tag($0) }
+        }
+    }
+
+    @ViewBuilder private var requiredSections: some View {
+        ForEach(ReportCompositionGoal.Section.allCases, id: \.self) { section in
+            Toggle(label(section.rawValue), isOn: Binding(get: { sections.contains(section) }, set: {
+                if $0 { sections.insert(section) } else { sections.remove(section) }
+            }))
+        }
+    }
+
+    private func confirmGoal() {
+        let old = model.graph.version.goal
+        model.changeGoal(ReportCompositionGoal(id: old.id, revision: old.revision + 1,
+            audience: audience, purpose: purpose, language: .english,
+            requiredSections: ReportCompositionGoal.Section.allCases.filter { sections.contains($0) }))
+        goalAccepted = true
     }
 
     @ViewBuilder private var goalProgress: some View {
@@ -129,13 +165,46 @@ struct ReportComposerView: View {
     }
 
     @ViewBuilder private var conversation: some View {
-        ForEach(Array(model.messages.enumerated()), id: \.offset) { _, message in
-            VStack(alignment: .leading, spacing: 4) {
-                Text(message.role == .user ? "You" : "AI").font(.caption.bold())
-                Text(message.text).textSelection(.enabled)
-            }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    conversationContent
+                    Color.clear.frame(height: 1).id("conversationBottom")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.size.height
+                } action: { height in
+                    conversationHeight = height
+                }
+            }
+            .frame(height: min(conversationHeight, 240))
+            .accessibilityLabel("AI conversation")
+            .onChange(of: model.messages.count) { _, _ in
+                proxy.scrollTo("conversationBottom", anchor: .bottom)
+            }
         }
+    }
+
+    @ViewBuilder private var conversationContent: some View {
+        ForEach(Array(model.messages.enumerated()), id: \.offset) { _, message in
+            messageBubble(message)
+        }
+        proposalNotices
+        if let error = model.errorMessage { Text(error).foregroundStyle(.secondary) }
+    }
+
+    @ViewBuilder private func messageBubble(_ message: CompositionMessage) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(message.role == .user ? "You" : "AI").font(.caption.bold())
+            Text(message.text).textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    @ViewBuilder private var proposalNotices: some View {
         if let proposal = model.proposal {
             ForEach(Array(proposal.clarifyingQuestions.enumerated()), id: \.offset) { _, question in
                 Label(question, systemImage: "questionmark.circle")
@@ -144,29 +213,35 @@ struct ReportComposerView: View {
                 Label(warning, systemImage: "exclamationmark.triangle")
             }
         }
-        if let error = model.errorMessage { Text(error).foregroundStyle(.secondary) }
     }
 
     @ViewBuilder private var inputArea: some View {
-        TextEditor(text: $input).font(.system(size: 13)).frame(minHeight: 90)
+        TextEditor(text: $input).font(.system(size: 13)).frame(height: 90)
             .padding(8).overlay(RoundedRectangle(cornerRadius: 8).stroke(.secondary.opacity(0.3)))
             .accessibilityLabel("Message to AI report composer")
+        inputActions
+    }
+
+    @ViewBuilder private var inputActions: some View {
         HStack {
             if generating {
                 ProgressView().controlSize(.small)
                 Button("Cancel request") { model.cancel() }
             } else {
-                Button("Send") {
-                    let text = input
-                    let previousCount = model.messages.count
-                    Task {
-                        await model.send(text)
-                        if model.messages.count > previousCount && input == text { input = "" }
-                    }
-                }.keyboardShortcut(.return, modifiers: .command)
+                Button("Send", action: sendMessage)
+                    .keyboardShortcut(.return, modifiers: .command)
                     .disabled(!goalAccepted || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.graph.state == .stale)
             }
             if let remaining = model.remainingDailyRequests { Text("\(remaining) attempts left at last request").font(.caption) }
+        }
+    }
+
+    private func sendMessage() {
+        let text = input
+        let previousCount = model.messages.count
+        Task {
+            await model.send(text)
+            if model.messages.count > previousCount && input == text { input = "" }
         }
     }
 
@@ -204,6 +279,12 @@ struct ReportComposerView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 TextField("Code name", text: candidateText(\.codeName))
                 TextField("Product line", text: candidateText(\.lineOfBusiness))
+                ProjectSizePicker(selection: Binding(get: { model.candidate.projectSize }, set: { size in
+                    var draft = model.candidate
+                    draft.projectSize = size
+                    model.editCandidate(draft)
+                }))
+                .accessibilityIdentifier("candidateProjectSize")
                 TextField("Milestone phase", text: candidateText(\.milestonePhase))
                 TextField("Lead EPM", text: candidateText(\.leadEPMName))
                 TextField("Project DRI", text: candidateText(\.projectDRIName))
@@ -257,6 +338,7 @@ struct ReportComposerView: View {
         switch field {
         case .codeName: return draft.codeName
         case .lineOfBusiness: return draft.lineOfBusiness
+        case .projectSize: return draft.projectSize?.displayName ?? "Not set"
         case .ragStatus: return draft.ragStatus?.rawValue ?? "Not set"
         case .milestonePhase: return draft.milestonePhase
         case .milestoneDeadline: return CompositionDraft(draft: draft).milestoneDeadline ?? "Not set"
@@ -276,26 +358,37 @@ struct ReportComposerView: View {
 @MainActor
 private struct ComposerPreview: View {
     @StateObject private var model: ReportComposerViewModel
+    private let showConversation: Bool
 
-    init() {
+    init(showConversation: Bool = false, longReply: Bool = false) {
+        self.showConversation = showConversation
         let report = ProjectReport(id: UUID(), codeName: "Titan", lineOfBusiness: "Mac", status: .active,
                                    createdAt: .now, updatedAt: .now)
         _model = StateObject(wrappedValue: ReportComposerViewModel(draft: ReportEditorDraft(project: report),
-            reportID: report.id, accountSessionID: UUID(), service: ComposerPreviewService()))
+            reportID: report.id, accountSessionID: UUID(), service: ComposerPreviewService(longReply: longReply)))
     }
 
     var body: some View {
         ReportComposerView(model: model, loadImage: { _ in throw CompositionEditError.invalidProposal },
             onApply: { _ in }, onUndo: {}, onRebase: { model.rebase(on: model.base) }, onClose: {})
-            .frame(width: 1100, height: 800)
+            .frame(width: 1100)
+            .task {
+                if showConversation && model.messages.isEmpty {
+                    await model.send("Help me prepare a concise project status report.")
+                }
+            }
     }
 }
 
 private struct ComposerPreviewService: ReportComposing {
+    var longReply = false
+
     func compose(_ request: CompositionRequest) async throws -> CompositionResponse {
         CompositionResponse(requestID: request.requestID, baseDraftVersion: request.baseDraftVersion,
             candidateVersion: request.candidateVersion, goalID: request.goal.id, goalRevision: request.goal.revision,
-            proposal: CompositionProposal(assistantMessage: "Here is a sample candidate for review.",
+            proposal: CompositionProposal(assistantMessage: longReply
+                ? Array(repeating: "The team is preparing the next milestone. Review delivery dates, owners, risks, and any support needed before sharing this report.", count: 12).joined(separator: "\n\n")
+                : "Here is a sample candidate for review.",
                 clarifyingQuestions: [], proposedChanges: [.init(field: .summaryMessage, operation: .set,
                     value: "The team is preparing the next milestone. Confirm dates and owners before sharing.")],
                 metricChanges: [], warnings: ["Preview data only; no AI request was sent."], semanticFindings: []),
@@ -304,4 +397,6 @@ private struct ComposerPreviewService: ReportComposing {
 }
 
 #Preview("AI Composer — offline") { ComposerPreview() }
+#Preview("AI Composer — short chat") { ComposerPreview(showConversation: true) }
+#Preview("AI Composer — scrolling chat") { ComposerPreview(showConversation: true, longReply: true) }
 #endif

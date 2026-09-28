@@ -34,6 +34,10 @@ Do not choose or change ragStatus unless the source explicitly supplies a suppor
 RAG value or the user explicitly asks you to recommend one. A blocker alone does not
 authorize selecting red or amber. When asking which value a field should have, leave
 that field out of proposedChanges until the user answers.
+Project size is user-assigned scope, not staffing or health. Set projectSize only
+when the user explicitly supplies small, medium or large, or requests a recommendation.
+Do not invent numerical thresholds for size; ask if the intended scope is unclear.
+Only propose projectSize when the draft includes that field; older clients cannot use it.
 Describe your work as a proposal: say 'I propose' or 'Here is a draft'. Never say you
 updated, changed, saved, or applied report fields; only the user can apply a proposal.
 For example, 'Validation is complete and no blockers were found' can become
@@ -76,15 +80,22 @@ def generation_body(request: Request, policy: BudgetPolicy) -> dict:
         "draft": request.draft.model_dump(mode="json", by_alias=True),
         "messages": [message.model_dump(mode="json") for message in request.messages],
     }
+    schema = proposal_schema()
+    choices = dict(TEXT_FIELD_CHOICES)
+    if "project_size" not in request.draft.model_fields_set:
+        context["draft"].pop("projectSize")
+        choices.pop("projectSize")
+        fields = schema["properties"]["proposedChanges"]["items"]["properties"]["field"]["enum"]
+        fields.remove("projectSize")
     return {
         "systemInstruction": {"parts": [{"text": INSTRUCTIONS + '\nAllowed field values: '
-                                         + json.dumps(TEXT_FIELD_CHOICES)}]},
+                                         + json.dumps(choices)}]},
         "contents": [{"role": "user", "parts": [{"text": json.dumps(context, ensure_ascii=False)}]}],
         "generationConfig": {
             "candidateCount": 1,
             "maxOutputTokens": policy.max_output_tokens,
             "responseMimeType": "application/json",
-            "responseJsonSchema": proposal_schema(),
+            "responseJsonSchema": schema,
         },
     }
 

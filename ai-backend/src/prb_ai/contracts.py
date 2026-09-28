@@ -3,7 +3,7 @@
 import hashlib
 import json
 from datetime import date
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, get_args
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
@@ -30,11 +30,12 @@ UnitText = Annotated[str, Field(max_length=50), utf16_bound(50)]
 Explanation = Annotated[str, Field(max_length=1_000), utf16_bound(1_000)]
 Comparison = Literal["lessThan", "lessThanOrEqual", "greaterThan", "greaterThanOrEqual", "equal"]
 Severity = Literal["p0", "p1", "p2", "p3", "info"]
+ProjectSize = Literal["small", "medium", "large"]
 Health = Literal["green", "amber", "red"]
 SummaryType = Literal["update", "blocker", "ask"]
 Section = Literal["summary", "health", "milestone", "accountability", "metrics"]
 Criterion = Literal["audienceFit", "languageFit", "factualAccuracy", "clearAsk", "clearBlocker"]
-TextField = Literal["codeName", "lineOfBusiness", "ragStatus", "milestonePhase", "milestoneDeadline",
+TextField = Literal["codeName", "lineOfBusiness", "projectSize", "ragStatus", "milestonePhase", "milestoneDeadline",
                     "summaryType", "summaryMessage", "leadEPMName", "projectDRIName"]
 
 
@@ -81,6 +82,7 @@ class MetricDraft(Model):
 class Draft(Model):
     code_name: Name
     line_of_business: Name
+    project_size: ProjectSize | None = None
     rag_status: Health | None = None
     milestone_phase: Name
     milestone_deadline: Day | None = None
@@ -125,6 +127,7 @@ class Request(Model):
 
 TEXT_FIELD_CHOICES = {
     "lineOfBusiness": ("iPhone", "Mac", "iPad", "Wearables, Home and Accessories", "Services"),
+    "projectSize": get_args(ProjectSize),
     "ragStatus": ("green", "amber", "red"),
     "milestonePhase": ("Prototype", "EVT", "DVT", "PVT", "Mass Production"),
     "summaryType": ("update", "blocker", "ask"),
@@ -196,7 +199,7 @@ class Finding(Model):
 class Proposal(Model):
     assistant_message: Annotated[str, Field(min_length=1, max_length=4_000), utf16_bound(4_000)]
     clarifying_questions: list[Explanation] = Field(max_length=5)
-    proposed_changes: list[TextChange] = Field(max_length=9)
+    proposed_changes: list[TextChange] = Field(max_length=len(get_args(TextField)))
     metric_changes: list[MetricChange] = Field(max_length=100)
     warnings: list[Explanation] = Field(max_length=10)
     semantic_findings: list[Finding] = Field(max_length=5)
@@ -213,6 +216,9 @@ class Proposal(Model):
 
     def validate_against(self, request: Request) -> None:
         """Reject invented metric IDs and assessments unrelated to the submitted goal."""
+        if "project_size" not in request.draft.model_fields_set and any(
+                change.field == "projectSize" for change in self.proposed_changes):
+            raise ValueError("Client does not support project size proposals")
         available = {metric.id for metric in request.draft.metrics}
         changed: set[str] = set()
         count = len(available)
@@ -271,6 +277,10 @@ def parse_json[T: BaseModel](model: type[T], body: str | bytes) -> T:
 
 
 def request_hash(request: Request) -> str:
-    canonical = json.dumps(request.model_dump(mode="json", by_alias=True), sort_keys=True,
+    payload = request.model_dump(mode="json", by_alias=True)
+    # Preserve hashes for already-admitted requests from clients without this field.
+    if "project_size" not in request.draft.model_fields_set:
+        payload["draft"].pop("projectSize")
+    canonical = json.dumps(payload, sort_keys=True,
                            separators=(",", ":"), ensure_ascii=False, allow_nan=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

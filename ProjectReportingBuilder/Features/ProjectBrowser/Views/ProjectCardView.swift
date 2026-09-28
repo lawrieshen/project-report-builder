@@ -44,6 +44,11 @@ struct ProjectCardView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
             ProjectStatusBadge(status: project.status)
+            if let size = project.projectSize {
+                Text("Project Size: \(size.displayName)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if let health = project.card?.health.ragStatus {
                 Label(health.displayName, systemImage: "circle.fill")
                     .foregroundStyle(health.color)

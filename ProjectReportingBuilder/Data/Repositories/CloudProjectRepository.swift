@@ -111,7 +111,7 @@ final class CloudProjectRepository: ProjectRepository {
         try checkSession()
         let sourceID = original.id
         let copy = ProjectReport(id: UUID(), codeName: original.codeName, lineOfBusiness: original.lineOfBusiness,
-            status: original.status, card: original.card, createdAt: .now, updatedAt: .now)
+            status: original.status, projectSize: original.projectSize, card: original.card, createdAt: .now, updatedAt: .now)
         try await images?.copyCachedImages(from: sourceID, to: copy)
         try await save(copy)
         return copy

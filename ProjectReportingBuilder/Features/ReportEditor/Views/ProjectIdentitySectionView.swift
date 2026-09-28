@@ -16,6 +16,8 @@ struct ProjectIdentitySectionView: View {
             if let message = draft.lineOfBusinessError {
                 Text(message).font(.caption).foregroundStyle(.red)
             }
+            ProjectSizePicker(selection: $draft.projectSize)
+                .accessibilityIdentifier("reportProjectSize")
         }
     }
 }

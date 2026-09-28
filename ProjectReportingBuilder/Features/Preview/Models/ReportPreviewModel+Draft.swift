@@ -6,6 +6,7 @@ extension ReportPreviewModel {
     init(draft: ReportEditorDraft) {
         codeName = draft.codeName.trimmingCharacters(in: .whitespacesAndNewlines)
         lineOfBusiness = draft.lineOfBusiness.trimmingCharacters(in: .whitespacesAndNewlines)
+        projectSize = draft.projectSize
         ragStatus = draft.ragStatus
         milestonePhase = Self.nonempty(draft.milestonePhase)
         milestoneDeadline = draft.milestoneDeadline

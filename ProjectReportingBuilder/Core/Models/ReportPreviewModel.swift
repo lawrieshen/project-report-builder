@@ -4,6 +4,7 @@ import Foundation
 struct ReportPreviewModel: Equatable {
     let codeName: String
     let lineOfBusiness: String
+    var projectSize: ProjectSize? = nil
     let ragStatus: RAGStatus?
     let milestonePhase: String?
     let milestoneDeadline: Date?

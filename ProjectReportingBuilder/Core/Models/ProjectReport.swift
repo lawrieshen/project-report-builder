@@ -14,6 +14,7 @@ nonisolated struct ProjectReport: Identifiable, Codable, Equatable, Sendable {
     var codeName: String
     var lineOfBusiness: String
     var status: ProjectStatus
+    var projectSize: ProjectSize? = nil
     
     var card: SnippetCard?
     

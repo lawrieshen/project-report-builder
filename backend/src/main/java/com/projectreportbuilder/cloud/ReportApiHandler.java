@@ -92,11 +92,12 @@ public final class ReportApiHandler implements RequestStreamHandler {
                     if (tree.path("schemaVersion").asInt() == 1 && tree.path("report").has("assets")) {
                         throw new IllegalArgumentException("Images require schema version 2");
                     }
+                    boolean projectSizeProvided = tree.path("report").has("projectSize");
                     var request = json.treeToValue(ReportJson.withLegacyAssets(tree), ReportService.SaveRequest.class);
                     if (request.report() != null) {
                         for (var asset : request.report().assets()) assets.verify(principal.userID(), reportID(event), asset);
                     }
-                    result = service.save(principal, reportID(event), request);
+                    result = service.save(principal, reportID(event), request, projectSizeProvided);
                 }
                 default -> { return response(404, Map.of("code", "NOT_FOUND", "message", "Route not found")); }
             }

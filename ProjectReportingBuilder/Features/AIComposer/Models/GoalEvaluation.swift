@@ -59,8 +59,6 @@ nonisolated enum GoalEvaluator {
         }
 
         var review: [(GoalCriterion.ID, String)] = [
-            (.audienceFit, "Review whether the report fits the selected audience."),
-            (.languageFit, "Review whether the report uses the selected language."),
             (.factualAccuracy, "Check facts, numbers, units, and unsupported assumptions.")
         ]
         switch goal.purpose {

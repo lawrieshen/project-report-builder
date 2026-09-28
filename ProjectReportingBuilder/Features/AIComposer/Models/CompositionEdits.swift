@@ -16,7 +16,7 @@ nonisolated struct CompositionEdits {
         var draft = base
         var fields = Set<CompositionTextChange.Field>()
         var metricIDs = Set<UUID>()
-        guard proposal.proposedChanges.count <= 9, proposal.metricChanges.count <= 100,
+        guard proposal.proposedChanges.count <= CompositionTextChange.Field.allCases.count, proposal.metricChanges.count <= 100,
               Set(base.metrics.map(\.id)).count == base.metrics.count else {
             throw CompositionEditError.invalidProposal
         }
@@ -80,6 +80,9 @@ nonisolated struct CompositionEdits {
         case .summaryMessage: draft.summaryMessage = value
         case .leadEPMName: draft.leadEPMName = value
         case .projectDRIName: draft.projectDRIName = value
+        case .projectSize:
+            guard change.operation == .clear || ProjectSize(rawValue: value) != nil else { throw CompositionEditError.invalidProposal }
+            draft.projectSize = ProjectSize(rawValue: value)
         case .ragStatus:
             guard change.operation == .clear || RAGStatus(rawValue: value) != nil else { throw CompositionEditError.invalidProposal }
             draft.ragStatus = RAGStatus(rawValue: value)
@@ -124,6 +127,7 @@ nonisolated struct CompositionEdits {
         switch field {
         case .codeName: target.codeName = source.codeName
         case .lineOfBusiness: target.lineOfBusiness = source.lineOfBusiness
+        case .projectSize: target.projectSize = source.projectSize
         case .ragStatus: target.ragStatus = source.ragStatus
         case .milestonePhase: target.milestonePhase = source.milestonePhase
         case .milestoneDeadline: target.milestoneDeadline = source.milestoneDeadline

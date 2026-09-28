@@ -188,6 +188,7 @@ struct ContentView: View {
                         if let draft = editor.draft { composer.rebase(on: draft) }
                     }, onClose: closeComposer)
             }
+            .presentationSizing(.fitted)
             .interactiveDismissDisabled()
         }
     }

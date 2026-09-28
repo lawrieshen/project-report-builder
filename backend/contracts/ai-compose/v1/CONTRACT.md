@@ -43,3 +43,14 @@ characters. Findings are advisory and cannot set confirmation or completion.
 The response echoes request ID, base/candidate version, goal ID/revision, and includes
 the remaining daily allowance. A client must also check its local account session
 and report identity before accepting it. Applying and cloud saving are separate steps.
+
+## Project size
+
+The draft may include `projectSize` as `small`, `medium`, `large`, or null.
+New clients send it even when null to advertise support. Older requests that omit
+it keep their previous canonical hash and cannot receive a `projectSize` proposal.
+
+Supported clients can receive a `projectSize` text change: `set` takes one of the
+three values; `clear` takes null. The app previews changes and applies them only
+on user confirmation. Size is user-assigned scope, not an inference from staffing
+or RAG status. Proposals now allow up to ten distinct text fields.

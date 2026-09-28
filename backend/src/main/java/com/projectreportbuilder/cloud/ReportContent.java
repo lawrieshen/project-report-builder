@@ -11,11 +11,12 @@ import java.util.UUID;
 public record ReportContent(String codeName, String lineOfBusiness, String status,
                             String ragStatus, String milestonePhase, LocalDate milestoneDeadline,
                             String summaryType, String summaryMessage,
-                            String leadEPMName, String projectDRIName, List<Metric> metrics, List<ReportAsset> assets) {
+                            String leadEPMName, String projectDRIName, List<Metric> metrics, List<ReportAsset> assets, String projectSize) {
     public ReportContent {
         require(codeName != null && !codeName.isBlank() && codeName.length() <= 200, "Invalid code name");
         require(Set.of("iPhone", "Mac", "iPad", "Wearables, Home and Accessories", "Services")
                 .contains(lineOfBusiness == null ? "" : lineOfBusiness), "Invalid product line");
+        require(projectSize == null || choice(projectSize, "small", "medium", "large"), "Invalid project size");
         require(choice(status, "draft", "active", "archived"), "Invalid project status");
         require(ragStatus == null || choice(ragStatus, "green", "amber", "red"), "Invalid health");
         require((milestonePhase == null) == (milestoneDeadline == null), "Phase and deadline must be paired");
@@ -46,7 +47,22 @@ public record ReportContent(String codeName, String lineOfBusiness, String statu
                          String milestonePhase, LocalDate milestoneDeadline, String summaryType,
                          String summaryMessage, String leadEPMName, String projectDRIName, List<Metric> metrics) {
         this(codeName, lineOfBusiness, status, ragStatus, milestonePhase, milestoneDeadline,
-                summaryType, summaryMessage, leadEPMName, projectDRIName, metrics, List.of());
+                summaryType, summaryMessage, leadEPMName, projectDRIName, metrics, List.of(), null);
+    }
+
+    /** Preserve source compatibility for callers without project size. */
+    public ReportContent(String codeName, String lineOfBusiness, String status, String ragStatus,
+                         String milestonePhase, LocalDate milestoneDeadline, String summaryType,
+                         String summaryMessage, String leadEPMName, String projectDRIName,
+                         List<Metric> metrics, List<ReportAsset> assets) {
+        this(codeName, lineOfBusiness, status, ragStatus, milestonePhase, milestoneDeadline,
+                summaryType, summaryMessage, leadEPMName, projectDRIName, metrics, assets, null);
+    }
+
+    public ReportContent withProjectSize(String size) {
+        return new ReportContent(codeName, lineOfBusiness, status, ragStatus, milestonePhase,
+                milestoneDeadline, summaryType, summaryMessage, leadEPMName, projectDRIName,
+                metrics, assets, size);
     }
 
     public record Metric(UUID id, String name, double currentValue, Double targetValue,

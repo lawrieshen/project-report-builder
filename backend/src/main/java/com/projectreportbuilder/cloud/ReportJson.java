@@ -62,6 +62,9 @@ final class ReportJson {
         if (root.path("schemaVersion").asInt() == 1
                 && root.path("report") instanceof com.fasterxml.jackson.databind.node.ObjectNode report
                 && !report.has("assets")) report.putArray("assets");
+        // Old stored snapshots and requests predate the optional project size.
+        if (root.path("report") instanceof com.fasterxml.jackson.databind.node.ObjectNode report
+                && !report.has("projectSize")) report.putNull("projectSize");
         return root;
     }
 
